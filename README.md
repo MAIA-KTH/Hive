@@ -70,7 +70,7 @@ To remove from VCS a versioned file : `git rm --cached FILEPATH` and commit
 ## Setup pre-commit
 
 [Pre-commit](https://pre-commit.com)
-
+* Generate a sample config with `pre-commit sample-config > .pre-commit-config.yaml`
 * Set the repos, and their corresponding hooks in `.pre-commit-config.yaml`
 * Run `pre-commit install`
 * `pre-commit run`
