@@ -1,0 +1,5 @@
+mypy
+tox
+pytest
+black
+pre-commit
