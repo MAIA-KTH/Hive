@@ -3,6 +3,9 @@ FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
 ARG username='USERNAME'
 ARG user_pw='USER_PASSWORD'
 
+ENV nnUNet_raw_data_base="/home/simone/Data/LungLobeSeg/nnUNet_dataset"
+ENV nnUNet_preprocessed="/home/simone/Data/LungLobeSeg/nnUNet_preprocessing"
+ENV RESULTS_FOLDER="/home/simone/Data/LungLobeSeg/nnUNet_results"
 # SSH-PYCHARM
 RUN apt-get update && apt-get install -y openssh-server
 RUN apt-get install -y sudo screen git nano tmux vim python3-pip
