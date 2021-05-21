@@ -76,7 +76,7 @@ To remove from VCS a versioned file : `git rm --cached FILEPATH` and commit
 * `pre-commit run`
 
 ## Testing code
-
+Mypy
 ## Package repository
 
 Tox create_package setuptools
