@@ -1,0 +1,17 @@
+{
+  "label_dict": {
+    "0": "Background",
+    "1": "LU",
+    "2": "LL",
+    "3": "RU",
+    "4": "RM",
+    "5": "RL"
+  },
+  "Modalities": [
+    "CT"
+  ],
+  "FileExtension": ".nii.gz",
+  "DatasetName": "LungLobeSeg",
+  "TRAINING_CONFIGURATION": "3d_fullres",
+  "TRAINER_CLASS_NAME": "nnUNetTrainerV2"
+}
