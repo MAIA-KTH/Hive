@@ -1,4 +1,4 @@
-# deep-modular_nnUNet
+# k8s_nnUNet
 
 ## Create Repository on GitHub
 
