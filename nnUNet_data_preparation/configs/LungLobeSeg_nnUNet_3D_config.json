@@ -13,5 +13,6 @@
   "FileExtension": ".nii.gz",
   "DatasetName": "LungLobeSeg",
   "TRAINING_CONFIGURATION": "3d_fullres",
-  "TRAINER_CLASS_NAME": "nnUNetTrainerV2"
+  "TRAINER_CLASS_NAME": "nnUNetTrainerV2",
+  "TRAINER_PLAN": "nnUNetPlansv2.1"
 }
