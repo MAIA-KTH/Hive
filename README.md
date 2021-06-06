@@ -5,7 +5,7 @@
 * Create Repository on GitHub with readme.md, LICENSE and .gitignore (template from the specific project, i.e python)
 * Link Repository to deep-modular project
 * Block direct push and commit on main branch on **Settings | Branches** and check **Require pull request reviews before
-  merging**
+  merging**, **Dismiss stale pull request approvals when new commits are pushed** and **Include administrators**
 
 ## Open GitHub Repository as PyCharm Project
 
@@ -54,6 +54,8 @@ New unversioned files added on Git or to .gitignore on **Right Click | Git | Add
 
 To remove from VCS a versioned file : `git rm --cached FILEPATH` and commit
 
+## Commit and Push
+
 ## Create Pull Request
 
 ## Merge Branch
@@ -67,16 +69,36 @@ To remove from VCS a versioned file : `git rm --cached FILEPATH` and commit
 * `conda activate nnUNet`
 * `conda install -c conda-forge --file `[conda_requirements.txt](conda_requirements.txt)
 
-## Setup pre-commit
+## Setup pre-commit and MyPy
 
 [Pre-commit](https://pre-commit.com)
+
 * Generate a sample config with `pre-commit sample-config > .pre-commit-config.yaml`
 * Set the repos, and their corresponding hooks in `.pre-commit-config.yaml`
 * Run `pre-commit install`
 * `pre-commit run`
 
+*MyPy* can be found in the conda environment
+
+Run Mypy with `--config-file` [tox.ini](nnUNet_data_preparation/tox.ini), as described in [Tox](#tox)
+
+To properly run Black hook, [pyproject.toml](pyproject.toml) should be present in the project folder
+
 ## Testing code
-Mypy
+
+Pytest is used to test python code. Every function starting with *test_*, in a file starting with *test_*, will be
+tested.
+
+To test python code, run : `pytest /path/to/test`
+
+## Tox
+
+Tox is used to test and package the python project.
+
+`tox-quickstart` create an initial tox config file, named *tox.ini*.
+
+*Mypy*, *Pytest* and *Flake8* configurations are added in *tox.ini*.
+
 ## Package repository
 
-Tox create_package setuptools
+create_package setuptools
