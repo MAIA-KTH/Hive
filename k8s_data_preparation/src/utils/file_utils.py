@@ -200,7 +200,7 @@ def create_data_folder_tree(data_folder: str, task_name: str, task_id: str):
 
 
 def split_dataset(
-    input_data_folder: str, test_split_ratio: int
+    input_data_folder: str, test_split_ratio: int, seed: int
 ) -> Tuple[List[str], List[str]]:
     """
 
@@ -208,7 +208,7 @@ def split_dataset(
     ----------
     input_data_folder: folder path of the input dataset
     test_split_ratio:  integer value in the range 0-100, specifying the split ratio to be used for the test set
-
+    seed: integer value to be used as Random seed
     Returns
     -------
     train_subjects and test_subjects: lists of strings containing subject IDs for train set and test set respectively
@@ -217,7 +217,7 @@ def split_dataset(
 
     subjects = subfolders(input_data_folder, join=False)
 
-    random.seed(6)
+    random.seed(seed)
     random.shuffle(subjects)
 
     split_index = len(subjects) - int(len(subjects) * test_split_ratio / 100)

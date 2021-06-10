@@ -60,7 +60,7 @@ def main(arguments):
         arguments["task_ID"],
     )
     train_dataset, test_dataset = split_dataset(
-        arguments["input_data_folder"], arguments["test_split"]
+        arguments["input_data_folder"], arguments["test_split"], config_dict["Seed"]
     )
     copy_data_to_dataset_folder(
         arguments["input_data_folder"],
