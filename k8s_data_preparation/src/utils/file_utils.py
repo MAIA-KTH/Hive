@@ -165,6 +165,40 @@ def create_nnunet_data_folder_tree(data_folder: str, task_name: str, task_id: st
     )
 
 
+def create_data_folder_tree(data_folder: str, task_name: str, task_id: str):
+    """
+    Create dataset folder tree, ready to be populated with the dataset
+
+    :param data_folder: folder path for the database to be saved
+    :param task_id: string used as task_id when creating task folder
+    :param task_name: string used as task_name when creating task folder
+    """  # noqa E501
+    os.makedirs(
+        os.path.join(
+            data_folder,
+            "Task" + task_id + "_" + task_name,
+            "imagesTr",
+        ),
+        exist_ok=True,
+    )
+    os.makedirs(
+        os.path.join(
+            data_folder,
+            "Task" + task_id + "_" + task_name,
+            "labelsTr",
+        ),
+        exist_ok=True,
+    )
+    os.makedirs(
+        os.path.join(
+            data_folder,
+            "Task" + task_id + "_" + task_name,
+            "imagesTs",
+        ),
+        exist_ok=True,
+    )
+
+
 def split_dataset(
     input_data_folder: str, test_split_ratio: int
 ) -> Tuple[List[str], List[str]]:
