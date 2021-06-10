@@ -55,7 +55,7 @@ def main(arguments):
         config_dict = json.load(json_file)
 
     create_nnunet_data_folder_tree(
-        arguments["nnUNet_raw_data_base"],
+        os.environ["nnUNet_raw_data_base"],
         arguments["task_name"],
         arguments["task_ID"],
     )
@@ -93,14 +93,14 @@ def main(arguments):
     config_dict["base_folder"] = os.environ["nnUNet_raw_data_base"]
 
     output_json_basename = (
-            config_dict["DatasetName"]
-            + "_"
-            + config_dict["TRAINING_CONFIGURATION"]
-            + "_"
-            + config_dict["Task_ID"]
-            + "_"
-            + config_dict["Task_Name"]
-            + ".json"
+        config_dict["DatasetName"]
+        + "_"
+        + config_dict["TRAINING_CONFIGURATION"]
+        + "_"
+        + config_dict["Task_ID"]
+        + "_"
+        + config_dict["Task_Name"]
+        + ".json"
     )
 
     try:
@@ -120,7 +120,9 @@ def main(arguments):
                 output_json_basename
             )
         )
-    save_config_json(config_dict, output_json_basename)
+    save_config_json(
+        config_dict, os.path.join(config_dict["results_folder"], output_json_basename)
+    )
 
 
 if __name__ == "__main__":
@@ -179,7 +181,7 @@ if __name__ == "__main__":
         required=False,
         default="./configs/LungLobeSeg_nnUNet_3D_config.json",
         help="Configuration JSON file with experiment and dataset parameters "
-             "(Default: ./configs/LungLobeSeg_nnUNet_3D_config.json)",
+        "(Default: ./configs/LungLobeSeg_nnUNet_3D_config.json)",
     )
 
     add_verbosity_options_to_argparser(parser)

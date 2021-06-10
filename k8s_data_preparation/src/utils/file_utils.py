@@ -21,8 +21,23 @@ def subfiles(folder, join=True, prefix=None, suffix=None, sort=True):
         l(folder, i)
         for i in os.listdir(folder)
         if os.path.isfile(os.path.join(folder, i))
-           and (prefix is None or i.startswith(prefix))
-           and (suffix is None or i.endswith(suffix))
+        and (prefix is None or i.startswith(prefix))
+        and (suffix is None or i.endswith(suffix))
+    ]
+    if sort:
+        res.sort()
+    return res
+
+
+def subfolders(folder, join=True, sort=True):
+    if join:
+        l = os.path.join  # noqa: E741
+    else:
+        l = lambda x, y: y  # noqa: E741, E731
+    res = [
+        l(folder, i)
+        for i in os.listdir(folder)
+        if os.path.isdir(os.path.join(folder, i))
     ]
     if sort:
         res.sort()
@@ -37,16 +52,16 @@ def get_identifiers_from_splitted_files(folder: str):
 
 
 def generate_dataset_json(
-        output_file: str,
-        imagesTr_dir: str,
-        imagesTs_dir: str,
-        modalities: Tuple,
-        labels: dict,
-        dataset_name: str,
-        license: str = "hands off!",
-        dataset_description: str = "",
-        dataset_reference="",
-        dataset_release="0.0",
+    output_file: str,
+    imagesTr_dir: str,
+    imagesTs_dir: str,
+    modalities: Tuple,
+    labels: dict,
+    dataset_name: str,
+    license: str = "hands off!",
+    dataset_description: str = "",
+    dataset_reference="",
+    dataset_release="0.0",
 ):
     """
     :param output_file: This needs to be the full path to the dataset.json you intend to write, so
@@ -151,7 +166,7 @@ def create_nnunet_data_folder_tree(data_folder: str, task_name: str, task_id: st
 
 
 def split_dataset(
-        input_data_folder: str, test_split_ratio: int
+    input_data_folder: str, test_split_ratio: int
 ) -> Tuple[List[str], List[str]]:
     """
 
@@ -165,8 +180,8 @@ def split_dataset(
     train_subjects and test_subjects: lists of strings containing subject IDs for train set and test set respectively
 
     """  # noqa E501
-    subject = [dirs for _, dirs, _ in os.walk(input_data_folder)]
-    subjects = subject[0]  # TODO: Refactor subdirectory listing
+
+    subjects = subfolders(input_data_folder, join=False)
 
     random.seed(6)
     random.shuffle(subjects)
@@ -180,16 +195,16 @@ def split_dataset(
 
 
 def copy_data_to_dataset_folder(
-        input_data_folder: str,
-        train_subjects: List[str],
-        output_data_folder: str,
-        image_suffix: str,
-        image_subpath: str,
-        config_dict: Dict[str, str],
-        label_suffix: str = "None",
-        labels_subpath: str = "labelsTr",
-        modality: int = 0,
-        append_modality_code: bool = True,
+    input_data_folder: str,
+    train_subjects: List[str],
+    output_data_folder: str,
+    image_suffix: str,
+    image_subpath: str,
+    config_dict: Dict[str, str],
+    label_suffix: str = None,
+    labels_subpath: str = "labelsTr",
+    modality: int = 0,
+    append_modality_code: bool = True,
 ):
     """
 
@@ -214,37 +229,57 @@ def copy_data_to_dataset_folder(
     else:
         modality_code = ""
     for directory in train_subjects:
-        for _, _, files in os.walk(os.path.join(input_data_folder, directory)):
-            for (
-                    file
-            ) in files:  # TODO : debug log to check if image+label mask are found
 
-                if file == (directory + image_suffix):
-                    image_filename = file.replace(
-                        image_suffix, "_" + modality_code + config_dict["FileExtension"]
+        files = subfiles(
+            os.path.join(input_data_folder, directory),
+            join=False,
+            suffix=config_dict["FileExtension"],
+        )
+
+        image_filename = directory + image_suffix
+
+        if label_suffix is not None:
+
+            label_filename = directory + label_suffix
+
+            if image_filename in files and label_filename in files:
+                updated_image_filename = image_filename.replace(
+                    image_suffix, "_" + modality_code + config_dict["FileExtension"]
+                )
+                shutil.copy(
+                    os.path.join(input_data_folder, directory, image_filename),
+                    os.path.join(
+                        output_data_folder, image_subpath, updated_image_filename
+                    ),
+                )
+
+                updated_label_filename = label_filename.replace(
+                    label_suffix, config_dict["FileExtension"]
+                )
+                label_itk = sitk.ReadImage(
+                    os.path.join(input_data_folder, directory, directory + label_suffix)
+                )
+                image_itk = sitk.ReadImage(
+                    os.path.join(input_data_folder, directory, directory + image_suffix)
+                )
+                label_itk.CopyInformation(image_itk)
+                sitk.WriteImage(
+                    label_itk,
+                    os.path.join(
+                        output_data_folder, labels_subpath, updated_label_filename
+                    ),
+                )
+            else:
+                logger.warning(
+                    "{} or {} are not stored: skipping {} case".format(
+                        image_filename, label_filename, directory
                     )
-                    shutil.copy(
-                        os.path.join(input_data_folder, directory, file),
-                        os.path.join(output_data_folder, image_subpath, image_filename),
-                    )
-                if label_suffix is not None and file == (directory + label_suffix):
-                    label_filename = file.replace(
-                        label_suffix, config_dict["FileExtension"]
-                    )
-                    image_1 = sitk.ReadImage(
-                        os.path.join(
-                            input_data_folder, directory, directory + label_suffix
-                        )
-                    )
-                    image_2 = sitk.ReadImage(
-                        os.path.join(
-                            input_data_folder, directory, directory + image_suffix
-                        )
-                    )
-                    image_1.CopyInformation(image_2)
-                    sitk.WriteImage(
-                        image_1,
-                        os.path.join(
-                            output_data_folder, labels_subpath, label_filename
-                        ),
-                    )
+                )
+        else:
+            updated_image_filename = image_filename.replace(
+                image_suffix, "_" + modality_code + config_dict["FileExtension"]
+            )
+            shutil.copy(
+                os.path.join(input_data_folder, directory, image_filename),
+                os.path.join(output_data_folder, image_subpath, updated_image_filename),
+            )
