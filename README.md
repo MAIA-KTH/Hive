@@ -72,7 +72,6 @@ To remove from VCS a versioned file : `git rm --cached FILEPATH` and commit
 ## Setup pre-commit and MyPy
 
 [Pre-commit](https://pre-commit.com)
-
 * Generate a sample config with `pre-commit sample-config > .pre-commit-config.yaml`
 * Set the repos, and their corresponding hooks in `.pre-commit-config.yaml`
 * Run `pre-commit install`
@@ -80,9 +79,15 @@ To remove from VCS a versioned file : `git rm --cached FILEPATH` and commit
 
 *MyPy* can be found in the conda environment
 
-Run Mypy with `--config-file` [tox.ini](nnUNet_data_preparation/tox.ini), as described in [Tox](#tox)
+Run Mypy with `--config-file` [tox.ini](k8s_data_preparation/tox.ini), as described in [Tox](#tox)
 
 To properly run Black hook, [pyproject.toml](pyproject.toml) should be present in the project folder
+
+## Check Requirement
+
+Install pipreqs: `pip install pipreqs`
+
+Run `pipreqs /PATH/TO/FOLDER`
 
 ## Testing code
 
