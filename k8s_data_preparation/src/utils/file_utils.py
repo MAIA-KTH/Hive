@@ -189,6 +189,7 @@ def copy_data_to_dataset_folder(
         label_suffix: str = "None",
         labels_subpath: str = "labelsTr",
         modality: int = 0,
+        append_modality_code: bool = True,
 ):
     """
 
@@ -205,9 +206,13 @@ def copy_data_to_dataset_folder(
     labels are not stored
     config_dict: dictionary with dataset and nnUNet configuration parameters
     modality: integer value indexing the modality in config_dict['modalities'] to be considered ( Default: 0 in single modality ) # noqa: E501
+    append_modality_code: append or not 4 digit modality code to image filename
     """
 
-    modality_code = "{0:04d}".format(modality)
+    if append_modality_code:
+        modality_code = "{0:04d}".format(modality)
+    else:
+        modality_code = ""
     for directory in train_subjects:
         for _, _, files in os.walk(os.path.join(input_data_folder, directory)):
             for (
