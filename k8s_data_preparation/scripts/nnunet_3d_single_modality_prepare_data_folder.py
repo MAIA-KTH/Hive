@@ -4,13 +4,12 @@ import os
 from argparse import ArgumentParser, RawTextHelpFormatter
 from textwrap import dedent
 
-from nnunet.dataset_conversion.utils import generate_dataset_json
 from utils.file_utils import (
     create_nnunet_data_folder_tree,
     split_dataset,
-    copy_images_to_nnunet_train_data_folder,
-    copy_images_to_nnunet_test_data_folder,
+    copy_data_to_dataset_folder,
     save_config_json,
+    generate_dataset_json,
 )
 from utils.log_utils import (
     get_logger,
@@ -63,19 +62,21 @@ def main(arguments):
     train_dataset, test_dataset = split_dataset(
         arguments["input_data_folder"], arguments["test_split"]
     )
-    copy_images_to_nnunet_train_data_folder(
+    copy_data_to_dataset_folder(
         arguments["input_data_folder"],
         train_dataset,
         dataset_path,
         arguments["image_suffix"],
-        arguments["label_suffix"],
+        "imagesTr",
         config_dict,
+        arguments["label_suffix"],
     )
-    copy_images_to_nnunet_test_data_folder(
+    copy_data_to_dataset_folder(
         arguments["input_data_folder"],
         test_dataset,
         dataset_path,
         arguments["image_suffix"],
+        "imagesTs",
         config_dict,
     )
     generate_dataset_json(
@@ -91,7 +92,35 @@ def main(arguments):
     config_dict["Task_Name"] = arguments["task_name"]
     config_dict["base_folder"] = os.environ["nnUNet_raw_data_base"]
 
-    save_config_json(config_dict)
+    output_json_basename = (
+            config_dict["DatasetName"]
+            + "_"
+            + config_dict["TRAINING_CONFIGURATION"]
+            + "_"
+            + config_dict["Task_ID"]
+            + "_"
+            + config_dict["Task_Name"]
+            + ".json"
+    )
+
+    try:
+        config_dict["results_folder"] = os.environ["RESULTS_FOLDER"]
+    except KeyError:
+        logger.warning(
+            "RESULTS_FOLDER is not set as environment variable, {} is not saved".format(
+                output_json_basename
+            )
+        )
+        return 1
+    try:
+        config_dict["preprocessing_folder"] = os.environ["nnUNet_preprocessed"]
+    except KeyError:
+        logger.warning(
+            "nnUNet_preprocessed is not set as environment variable, not saved in {}".format(  # noqa E501
+                output_json_basename
+            )
+        )
+    save_config_json(config_dict, output_json_basename)
 
 
 if __name__ == "__main__":
@@ -149,8 +178,8 @@ if __name__ == "__main__":
         type=str,
         required=False,
         default="./configs/LungLobeSeg_nnUNet_3D_config.json",
-        help="Configuration JSON file with experiment and dataset parameters (Default: ./configs/LungLobeSeg_nnUNet_3D_config.json)",
-        # noqa E501
+        help="Configuration JSON file with experiment and dataset parameters "
+             "(Default: ./configs/LungLobeSeg_nnUNet_3D_config.json)",
     )
 
     add_verbosity_options_to_argparser(parser)
