@@ -29,10 +29,16 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-c",
         "--config-file",
         type=str,
         required=True,
+        help="???",
+    )
+
+    parser.add_argument(
+        "--run-fold",
+        type=int,
+        default=0,
         help="???",
     )
 
