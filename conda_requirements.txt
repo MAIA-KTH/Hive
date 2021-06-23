@@ -3,3 +3,9 @@ tox
 pytest
 black
 pre-commit
+seg-metrics
+SimpleITK
+PySimpleGUI
+pynrrd
+nibabel
+scikit-image
