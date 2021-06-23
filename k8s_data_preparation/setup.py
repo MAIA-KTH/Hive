@@ -10,7 +10,7 @@ setup(
     license="",
     author="Simone Bendazzoli",
     author_email="simben@kth.se",
-    description="Tool to standardize dataset folder to match nnUNet folder structure",  # noqa: E501
+    description="Tool to standardize original dataset folder to match Decathlon-like folder structure",  # noqa: E501
     packages=setuptools.find_packages("src"),
     package_data={
         "": ["*.yml", "*.json"],
