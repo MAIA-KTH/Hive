@@ -70,6 +70,8 @@ def main(arguments):
         "imagesTr",
         config_dict,
         arguments["label_suffix"],
+        "labelsTr",
+        0,
     )
     copy_data_to_dataset_folder(
         arguments["input_data_folder"],
@@ -78,6 +80,9 @@ def main(arguments):
         arguments["image_suffix"],
         "imagesTs",
         config_dict,
+        arguments["label_suffix"],
+        "labelsTs",
+        0,
     )
     generate_dataset_json(
         os.path.join(dataset_path, "dataset.json"),
