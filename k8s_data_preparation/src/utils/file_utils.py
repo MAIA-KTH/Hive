@@ -7,7 +7,7 @@ from typing import Dict, Tuple, List
 import SimpleITK as sitk
 import numpy as np
 
-from .log_utils import get_logger
+from .log_utils import get_logger, DEBUG
 
 logger = get_logger(__name__)
 
@@ -45,9 +45,7 @@ def subfolders(folder, join=True, sort=True):
 
 
 def get_identifiers_from_splitted_files(folder: str):
-    uniques = np.unique(
-        [i[:-12] for i in subfiles(folder, suffix=".nii.gz", join=False)]
-    )
+    uniques = np.unique([i for i in subfiles(folder, suffix=".nii.gz", join=False)])
     return uniques
 
 
@@ -100,10 +98,10 @@ def generate_dataset_json(
     json_dict["numTraining"] = len(train_identifiers)
     json_dict["numTest"] = len(test_identifiers)
     json_dict["training"] = [
-        {"image": "./imagesTr/%s.nii.gz" % i, "label": "./labelsTr/%s.nii.gz" % i}
+        {"image": "./imagesTr/%s" % i, "label": "./labelsTr/%s" % i}
         for i in train_identifiers
     ]
-    json_dict["test"] = ["./imagesTs/%s.nii.gz" % i for i in test_identifiers]
+    json_dict["test"] = ["./imagesTs/%s" % i for i in test_identifiers]
 
     if not output_file.endswith("dataset.json"):
         print(
@@ -136,6 +134,7 @@ def create_nnunet_data_folder_tree(data_folder: str, task_name: str, task_id: st
     :param task_id: string used as task_id when creating task folder
     :param task_name: string used as task_name when creating task folder
     """  # noqa E501
+    logger.log(DEBUG, ' Creating Dataset tree at "{}"'.format(data_folder))
     os.makedirs(
         os.path.join(
             data_folder,
@@ -160,6 +159,16 @@ def create_nnunet_data_folder_tree(data_folder: str, task_name: str, task_id: st
             "nnUNet_raw_data",
             "Task" + task_id + "_" + task_name,
             "imagesTs",
+        ),
+        exist_ok=True,
+    )
+
+    os.makedirs(
+        os.path.join(
+            data_folder,
+            "nnUNet_raw_data",
+            "Task" + task_id + "_" + task_name,
+            "labelsTs",
         ),
         exist_ok=True,
     )
@@ -173,6 +182,7 @@ def create_data_folder_tree(data_folder: str, task_name: str, task_id: str):
     :param task_id: string used as task_id when creating task folder
     :param task_name: string used as task_name when creating task folder
     """  # noqa E501
+    logger.log(DEBUG, ' Creating Dataset tree at "{}"'.format(data_folder))
     os.makedirs(
         os.path.join(
             data_folder,
@@ -194,6 +204,15 @@ def create_data_folder_tree(data_folder: str, task_name: str, task_id: str):
             data_folder,
             "Task" + task_id + "_" + task_name,
             "imagesTs",
+        ),
+        exist_ok=True,
+    )
+
+    os.makedirs(
+        os.path.join(
+            data_folder,
+            "Task" + task_id + "_" + task_name,
+            "labelsTs",
         ),
         exist_ok=True,
     )
@@ -236,9 +255,8 @@ def copy_data_to_dataset_folder(
     image_subpath: str,
     config_dict: Dict[str, str],
     label_suffix: str = None,
-    labels_subpath: str = "labelsTr",
-    modality: int = 0,
-    append_modality_code: bool = True,
+    labels_subpath: str = None,
+    modality: int = None,
 ):
     """
 
@@ -251,15 +269,15 @@ def copy_data_to_dataset_folder(
     image_subpath: relative folder name where to store images in nnUNet folder hierarchy: imagesTr/imagesTs
     label_suffix: file suffix to be used to correctly detect the file to store in labelsTr. If None, label images
     are not stored
-    labels_subpath: relative folder name where to store labels in nnUNet folder hierarchy ( Default: labelsTr ). If label_suffix is None,
+    labels_subpath: relative folder name where to store labels in nnUNet folder hierarchy ( Default: None ). If label_suffix is None,
     labels are not stored
     config_dict: dictionary with dataset and nnUNet configuration parameters
-    modality: integer value indexing the modality in config_dict['modalities'] to be considered ( Default: 0 in single modality ) # noqa: E501
-    append_modality_code: append or not 4 digit modality code to image filename
+    modality: integer value indexing the modality in config_dict['modalities'] to be considered ( Default: None ). # noqa: E501
+              If None, no modality code is appended
     """
 
-    if append_modality_code:
-        modality_code = "{0:04d}".format(modality)
+    if modality is not None:
+        modality_code = "_{0:04d}".format(modality)
     else:
         modality_code = ""
     for directory in train_subjects:
@@ -278,7 +296,7 @@ def copy_data_to_dataset_folder(
 
             if image_filename in files and label_filename in files:
                 updated_image_filename = image_filename.replace(
-                    image_suffix, "_" + modality_code + config_dict["FileExtension"]
+                    image_suffix, modality_code + config_dict["FileExtension"]
                 )
                 shutil.copy(
                     os.path.join(input_data_folder, directory, image_filename),
@@ -311,7 +329,7 @@ def copy_data_to_dataset_folder(
                 )
         else:
             updated_image_filename = image_filename.replace(
-                image_suffix, "_" + modality_code + config_dict["FileExtension"]
+                image_suffix, modality_code + config_dict["FileExtension"]
             )
             shutil.copy(
                 os.path.join(input_data_folder, directory, image_filename),
