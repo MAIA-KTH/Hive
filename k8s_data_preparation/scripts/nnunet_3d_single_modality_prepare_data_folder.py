@@ -21,7 +21,7 @@ TIMESTAMP = "{:%Y-%m-%d_%H-%M-%S}".format(datetime.datetime.now())
 
 DESC = dedent(
     """
-    Standardize dataset for 3D LungLobeSeg experiment, to be compatible with nnUNet.
+    Standardize dataset for 3D LungLobeSeg experiment, to be compatible with nnUNet framework.
     The dataset is assumed to be in NIFTI format (*.nii.gz) and containing only a single
     modality ( CT ) for the input 3D volumes.
 
@@ -110,6 +110,10 @@ def main(arguments):
 
     try:
         config_dict["results_folder"] = os.environ["RESULTS_FOLDER"]
+        os.makedirs(
+            config_dict["results_folder"],
+            exist_ok=True,
+        )
     except KeyError:
         logger.warning(
             "RESULTS_FOLDER is not set as environment variable, {} is not saved".format(
@@ -119,6 +123,11 @@ def main(arguments):
         return 1
     try:
         config_dict["preprocessing_folder"] = os.environ["nnUNet_preprocessed"]
+        os.makedirs(
+            config_dict["preprocessing_folder"],
+            exist_ok=True,
+        )
+
     except KeyError:
         logger.warning(
             "nnUNet_preprocessed is not set as environment variable, not saved in {}".format(  # noqa E501
