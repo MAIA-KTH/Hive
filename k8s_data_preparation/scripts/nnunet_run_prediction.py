@@ -11,14 +11,14 @@ from utils.log_utils import (
 
 DESC = dedent(
     """
-    Run nnUNet command to start training for the specified fold.
+    Run nnUNet command to run inference and save the predictions for a set of volumes.
     """  # noqa: E501
 )
 EPILOG = dedent(
     """
     Example call:
-     {filename} --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json --run-fold 0
-     {filename} --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json --run-fold 0 --npz
+     {filename} -i /INPUT_FOLDER -o /OUTPUT_FOLDER --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json
+     {filename} -i /INPUT_FOLDER -o /OUTPUT_FOLDER --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json --save_npz
     """.format(  # noqa: E501
         filename=os.path.basename(__file__)
     )
@@ -28,19 +28,26 @@ if __name__ == "__main__":
     parser = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
 
     parser.add_argument(
+        "-i",
+        "--input-folder",
+        type=str,
+        required=True,
+        help="Folder path containing the volumes to be predicted",
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output-folder",
+        type=str,
+        required=True,
+        help="Folder path where to save the predictions",
+    )
+
+    parser.add_argument(
         "--config-file",
         type=str,
         required=True,
         help="File path for the configuration dictionary, used to retrieve experiments variables (Task_ID)",
-    )
-
-    parser.add_argument(
-        "--run-fold",
-        type=int,
-        choices=range(0, 5),
-        metavar="[0-4]",
-        default=0,
-        help="int value indicating which fold (in the range 0-4) to run",
     )
 
     add_verbosity_options_to_argparser(parser)
@@ -59,10 +66,14 @@ if __name__ == "__main__":
         data = json.load(json_file)
 
         arguments = [
+            "-i",
+            args["input_folder"],
+            "-o",
+            args["output_folder"],
+            "-m",
             data["TRAINING_CONFIGURATION"],
-            data["TRAINER_CLASS_NAME"],
+            "-t",
             "Task" + data["Task_ID"] + "_" + data["Task_Name"],
-            str(args["run_fold"]),
         ]
         arguments.extend(unknown_arguments)
-        os.system("nnUNet_train " + " ".join(arguments))
+        os.system("nnUNet_predict " + " ".join(arguments))

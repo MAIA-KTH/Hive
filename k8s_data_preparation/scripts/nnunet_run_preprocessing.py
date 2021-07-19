@@ -11,14 +11,15 @@ from utils.log_utils import (
 
 DESC = dedent(
     """
-    Run nnUNet command to start training for the specified fold.
+    Run nnUNet command to create experiment plan, preprocessing and ( optionally ) verify the dataset integrity.
+
     """  # noqa: E501
 )
 EPILOG = dedent(
     """
     Example call:
-     {filename} --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json --run-fold 0
-     {filename} --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json --run-fold 0 --npz
+     {filename} --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json
+     {filename} --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json --verify_dataset_integrity
     """.format(  # noqa: E501
         filename=os.path.basename(__file__)
     )
@@ -31,20 +32,10 @@ if __name__ == "__main__":
         "--config-file",
         type=str,
         required=True,
-        help="File path for the configuration dictionary, used to retrieve experiments variables (Task_ID)",
-    )
-
-    parser.add_argument(
-        "--run-fold",
-        type=int,
-        choices=range(0, 5),
-        metavar="[0-4]",
-        default=0,
-        help="int value indicating which fold (in the range 0-4) to run",
+        help="File path for the configuration dictionary, used to retrieve experiments variables (Task_ID) ",
     )
 
     add_verbosity_options_to_argparser(parser)
-
     arguments, unknown_arguments = parser.parse_known_args()
     args = vars(arguments)
 
@@ -59,10 +50,9 @@ if __name__ == "__main__":
         data = json.load(json_file)
 
         arguments = [
-            data["TRAINING_CONFIGURATION"],
-            data["TRAINER_CLASS_NAME"],
-            "Task" + data["Task_ID"] + "_" + data["Task_Name"],
-            str(args["run_fold"]),
+            "-t",
+            data["Task_ID"],
         ]
+
         arguments.extend(unknown_arguments)
-        os.system("nnUNet_train " + " ".join(arguments))
+        os.system("nnUNet_plan_and_preprocess " + " ".join(arguments))
