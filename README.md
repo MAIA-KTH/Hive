@@ -1,4 +1,4 @@
-# deep-modular_nnUNet
+# k8s_nnUNet
 
 ## Create Repository on GitHub
 
@@ -130,3 +130,4 @@ Create *tar.gz* package:
 Create *whl* package:
 
 * `python setup.py bdist_wheel`
+
