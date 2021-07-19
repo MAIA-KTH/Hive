@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: nnunet-validation
+  name: nnunet-pod-validation
+  namespace: default
+spec:
+  volumes:
+    - name: nfs-data-volume
+      #nfs:
+      #  path: /mnt/nfs_share/Data/LungLobeSeg
+      #  server: 130.237.84.230
+      hostPath:
+        path: /media/simone/external_drive/Backups/LungLobeSeg
+    - name: dshm
+      emptyDir:
+        medium: Memory
+  #- name: nnunet-data-preparation-dev
+  #  hostPath:
+  #    path: /home/simone/Documents/Projects/k8s_nnUNet/nnUNet_data_preparation
+  containers:
+    - image: docker-registry:5000/nnunet:v1
+      env:
+        - name: user
+          valueFrom:
+            secretKeyRef:
+              key: user
+              name: nnunet_secret
+        - name: password
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: nnunet_secret
+      resources:
+        requests:
+          memory: "28Gi"
+          cpu: "10000m"
+        limits:
+          memory: "28Gi"
+          cpu: "10000m"
+          nvidia.com/gpu: "1"
+      imagePullPolicy: IfNotPresent
+      name: nnunet
+      volumeMounts:
+        - name: nfs-data-volume
+          mountPath: /home/user/LungLobeSeg
+        #- name: nnunet-data-preparation-dev
+        #  mountPath: /home/user/nnunet_data_preparation
+        - mountPath: /dev/shm
+          name: dshm
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: nnunet-validation
+  name: nnunet-service-validation
+  namespace: default
+spec:
+  type: NodePort
+  ports:
+    - port: 22
+      targetPort: 22
+      nodePort: 30023
+  selector:
+    app: nnunet-validation
