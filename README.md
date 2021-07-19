@@ -15,7 +15,7 @@
 
 ### SSH Configuration
 
-* **File | Settings-Tools- | SSH Configurations**
+* **File | Settings | Tools | SSH Configurations**
 
 ### Deployment Configuration
 
@@ -31,6 +31,10 @@ Deploy `.idea` and `.git` folders on remote, selecting also **Delete remote file
 ### Docker Configuration
 
 * **View | Tool Windows | Services | Add service | Docker**
+
+### Kubernetes Configuration
+
+* **View | Tool Windows | Services | Add service | Kubernetes**
 
 ## Create Issue
 
@@ -48,6 +52,10 @@ On PyCharm
 
 Associate changelist and create new Git branch, update Issue state as open.
 
+The GitHub server account can be linked at :
+
+* **File | Settings | Tools | Tasks | Servers**
+
 ## Git
 
 New unversioned files added on Git or to .gitignore on **Right Click | Git | Add or Add to .gitignore**
@@ -56,18 +64,17 @@ To remove from VCS a versioned file : `git rm --cached FILEPATH` and commit
 
 ## Commit and Push
 
+Commit changes in the specific Changelist by selecting the files in **View | Tool Windows | Commit** and clicking
+**Commit** or **Commit and Push**
+
+Pull commits from origin with **Git | Update Project...**
 ## Create Pull Request
+
+On **Git | GitHub | Create Pull Request...** create the request, filling the fields.
 
 ## Merge Branch
 
 ## Close Task
-
-## Setup Conda environment inside container
-
-* `source /opt/conda/bin/activate`
-* `conda create -n nnUNet --clone base`
-* `conda activate nnUNet`
-* `conda install -c conda-forge --file `[conda_requirements.txt](conda_requirements.txt)
 
 ## Setup pre-commit and MyPy
 
@@ -83,7 +90,13 @@ Run Mypy with `--config-file` [tox.ini](k8s_data_preparation/tox.ini), as descri
 
 To properly run Black hook, [pyproject.toml](pyproject.toml) should be present in the project folder
 
-## Check Requirement
+## Remote Python to Run and Debug code
+
+Create SSH Python Interpreter, linking to the corresponding *python* (either *system* or *anaconda* interpreter).
+
+Link the Project Folders, disabling the Automatic upload.
+
+## Check Requirements
 
 Install pipreqs: `pip install pipreqs`
 
@@ -104,6 +117,16 @@ Tox is used to test and package the python project.
 
 *Mypy*, *Pytest* and *Flake8* configurations are added in *tox.ini*.
 
+To run Tox:
+
+* `Tox -e LIST_OF_VIRTUAL_ENVS`
+
 ## Package repository
 
-create_package setuptools
+Create *tar.gz* package:
+
+* `python setup.py sdist`
+
+Create *whl* package:
+
+* `python setup.py bdist_wheel`
