@@ -29,5 +29,5 @@ setup(
         "scikit-image",
         "ipython",
     ],
-    scripts=glob.glob("scripts/*"),
+    scripts=glob.glob("../scripts/*"),
 )

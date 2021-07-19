@@ -24,9 +24,7 @@ def setup_logging(level: Union[str, int] = "DEBUG"):
     coloredlogs.install(level=level, fmt=LOG_FMT)
 
 
-def get_logger(
-    name: str = "", level: Union[str, int] = None, format=None
-) -> logging.Logger:
+def get_logger(name: str = "", level: Union[str, int] = None, format=None) -> logging.Logger:
     """Get a logger and setup colored logging if level is provided."""
     if format is not None:
         logging.basicConfig(format=format)
@@ -56,9 +54,7 @@ def add_verbosity_options_to_argparser(p: ArgumentParser):
 
 def log_lvl_from_verbosity_args(args: Dict) -> int:
     if args["verbose"]:
-        return logging.DEBUG - __VERBOSITY_GRANULARITY__ * (
-            args["verbose"] - 1
-        )  # noqa: 501
+        return logging.DEBUG - __VERBOSITY_GRANULARITY__ * (args["verbose"] - 1)  # noqa: 501
     elif args["silent"]:
         return logging.WARN
     else:

@@ -34,11 +34,7 @@ def subfolders(folder, join=True, sort=True):
         l = os.path.join  # noqa: E741
     else:
         l = lambda x, y: y  # noqa: E741, E731
-    res = [
-        l(folder, i)
-        for i in os.listdir(folder)
-        if os.path.isdir(os.path.join(folder, i))
-    ]
+    res = [l(folder, i) for i in os.listdir(folder) if os.path.isdir(os.path.join(folder, i))]
     if sort:
         res.sort()
     return res
@@ -97,10 +93,7 @@ def generate_dataset_json(
 
     json_dict["numTraining"] = len(train_identifiers)
     json_dict["numTest"] = len(test_identifiers)
-    json_dict["training"] = [
-        {"image": "./imagesTr/%s" % i, "label": "./labelsTr/%s" % i}
-        for i in train_identifiers
-    ]
+    json_dict["training"] = [{"image": "./imagesTr/%s" % i, "label": "./labelsTr/%s" % i} for i in train_identifiers]
     json_dict["test"] = ["./imagesTs/%s" % i for i in test_identifiers]
 
     if not output_file.endswith("dataset.json"):
@@ -218,9 +211,7 @@ def create_data_folder_tree(data_folder: str, task_name: str, task_id: str):
     )
 
 
-def split_dataset(
-    input_data_folder: str, test_split_ratio: int, seed: int
-) -> Tuple[List[str], List[str]]:
+def split_dataset(input_data_folder: str, test_split_ratio: int, seed: int) -> Tuple[List[str], List[str]]:
     """
 
     Parameters
@@ -295,42 +286,24 @@ def copy_data_to_dataset_folder(
             label_filename = directory + label_suffix
 
             if image_filename in files and label_filename in files:
-                updated_image_filename = image_filename.replace(
-                    image_suffix, modality_code + config_dict["FileExtension"]
-                )
+                updated_image_filename = image_filename.replace(image_suffix, modality_code + config_dict["FileExtension"])
                 shutil.copy(
                     os.path.join(input_data_folder, directory, image_filename),
-                    os.path.join(
-                        output_data_folder, image_subpath, updated_image_filename
-                    ),
+                    os.path.join(output_data_folder, image_subpath, updated_image_filename),
                 )
 
-                updated_label_filename = label_filename.replace(
-                    label_suffix, config_dict["FileExtension"]
-                )
-                label_itk = sitk.ReadImage(
-                    os.path.join(input_data_folder, directory, directory + label_suffix)
-                )
-                image_itk = sitk.ReadImage(
-                    os.path.join(input_data_folder, directory, directory + image_suffix)
-                )
+                updated_label_filename = label_filename.replace(label_suffix, config_dict["FileExtension"])
+                label_itk = sitk.ReadImage(os.path.join(input_data_folder, directory, directory + label_suffix))
+                image_itk = sitk.ReadImage(os.path.join(input_data_folder, directory, directory + image_suffix))
                 label_itk.CopyInformation(image_itk)
                 sitk.WriteImage(
                     label_itk,
-                    os.path.join(
-                        output_data_folder, labels_subpath, updated_label_filename
-                    ),
+                    os.path.join(output_data_folder, labels_subpath, updated_label_filename),
                 )
             else:
-                logger.warning(
-                    "{} or {} are not stored: skipping {} case".format(
-                        image_filename, label_filename, directory
-                    )
-                )
+                logger.warning("{} or {} are not stored: skipping {} case".format(image_filename, label_filename, directory))
         else:
-            updated_image_filename = image_filename.replace(
-                image_suffix, modality_code + config_dict["FileExtension"]
-            )
+            updated_image_filename = image_filename.replace(image_suffix, modality_code + config_dict["FileExtension"])
             shutil.copy(
                 os.path.join(input_data_folder, directory, image_filename),
                 os.path.join(output_data_folder, image_subpath, updated_image_filename),

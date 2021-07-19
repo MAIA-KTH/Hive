@@ -59,9 +59,7 @@ def main(arguments):
         arguments["task_name"],
         arguments["task_ID"],
     )
-    train_dataset, test_dataset = split_dataset(
-        arguments["input_data_folder"], arguments["test_split"], config_dict["Seed"]
-    )
+    train_dataset, test_dataset = split_dataset(arguments["input_data_folder"], arguments["test_split"], config_dict["Seed"])
     copy_data_to_dataset_folder(
         arguments["input_data_folder"],
         train_dataset,
@@ -115,11 +113,7 @@ def main(arguments):
             exist_ok=True,
         )
     except KeyError:
-        logger.warning(
-            "RESULTS_FOLDER is not set as environment variable, {} is not saved".format(
-                output_json_basename
-            )
-        )
+        logger.warning("RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
         return 1
     try:
         config_dict["preprocessing_folder"] = os.environ["nnUNet_preprocessed"]
@@ -130,19 +124,14 @@ def main(arguments):
 
     except KeyError:
         logger.warning(
-            "nnUNet_preprocessed is not set as environment variable, not saved in {}".format(  # noqa E501
-                output_json_basename
-            )
+            "nnUNet_preprocessed is not set as environment variable, not saved in {}".format(output_json_basename)
+            # noqa E501
         )
-    save_config_json(
-        config_dict, os.path.join(config_dict["results_folder"], output_json_basename)
-    )
+    save_config_json(config_dict, os.path.join(config_dict["results_folder"], output_json_basename))
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(
-        description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter
-    )
+    parser = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
 
     parser.add_argument(
         "-i",

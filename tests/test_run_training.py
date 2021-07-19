@@ -2,7 +2,7 @@ import json
 import os
 
 import seg_metrics.seg_metrics as sg
-from utils.file_utils import subfiles
+from utils import subfiles
 
 
 def test_training_command():
