@@ -2,7 +2,8 @@ FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
 
 # SSH-PYCHARM
 RUN apt-get update && apt-get install -y openssh-server
-RUN apt-get install -y sudo screen git nano tmux vim python3-pip python3-tk
+RUN apt-get install -y sudo screen git nano tmux vim python3-pip
+#python3-tk
 RUN mkdir /var/run/sshd
 
 EXPOSE 22
