@@ -241,7 +241,7 @@ def split_dataset(input_data_folder: str, test_split_ratio: int, seed: int) -> T
 
 def copy_data_to_dataset_folder(
     input_data_folder: str,
-    train_subjects: List[str],
+    subjects: List[str],
     output_data_folder: str,
     image_suffix: str,
     image_subpath: str,
@@ -257,7 +257,7 @@ def copy_data_to_dataset_folder(
     ----------
     num_threads: number of threads to use in multiprocessing ( Default: 5 )
     input_data_folder: folder path of the input dataset
-    train_subjects: string list containing subject IDs for train set
+    subjects: string list containing subject IDs for train set
     output_data_folder: folder path where to store images ( and labels )
     image_suffix: file suffix to be used to correctly detect the file to store in imagesTr/imagesTs
     image_subpath: relative folder name where to store images in nnUNet folder hierarchy: imagesTr/imagesTs
@@ -277,7 +277,7 @@ def copy_data_to_dataset_folder(
 
     pool = Pool(num_threads)
     copied_files = []
-    for directory in train_subjects:
+    for directory in subjects:
 
         files = subfiles(
             os.path.join(input_data_folder, directory),
