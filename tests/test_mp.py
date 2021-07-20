@@ -1,22 +1,25 @@
 import os
 import shutil
+import time
 from multiprocessing import Pool
 
 import SimpleITK as sitk
-from utils.file_utils import subfiles
 
 
 def test_mp_copy():
+    from utils.file_utils import subfiles, subfolders
+
     modality = 0
-    num_threads = 5
+    num_threads = 2
     file_extension = ".nii.gz"
     image_suffix = "_image.nii.gz"
     label_suffix = "_mask.nii.gz"
     image_subpath = "images"
     labels_subpath = "labels"
     input_data_folder = "/home/LungLobeSeg/dataset_147_cases"
-    output_data_folder = "/home/test_mp"
-    subjects = []
+    output_data_folder = "/home/simone/test_mp"
+    subj = subfolders(input_data_folder, join=False)
+    subjects = subj[:20]
     modality_code = "_{0:04d}".format(modality)
 
     pool = Pool(num_threads)
@@ -75,7 +78,10 @@ def test_mp_copy():
                     ),
                 )
             )
+    start = time.time()
     _ = [i.get() for i in copied_files]
+    end = time.time()
+    print("Elapsed time: {}".format(end - start))
 
 
 def copy_image_file(input_filepath: str, output_filepath: str):
