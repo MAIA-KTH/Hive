@@ -4,7 +4,9 @@
 
 replicaCount: 1
 
-extraHostVolumes: [ ]
+extraHostVolumes:
+  - name: k8s-nnunet
+    hostPath: /home/simone/Documents/Projects/k8s_nnUNet
 extraSecretVolumes:
   - name: secret-git-key
     secretName: ssh-key-secret
@@ -17,6 +19,8 @@ extraNFSVolumes:
 extraVolumeMounts:
   - name: nfs-data-volume
     mountPath: /home/LungLobeSeg
+  - name: k8s-nnunet
+    mountPath: /home/k8s_nnUNet
   - mountPath: /dev/shm
     name: dshm
   - name: secret-git-key
