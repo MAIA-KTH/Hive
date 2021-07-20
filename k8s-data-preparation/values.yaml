@@ -1,0 +1,83 @@
+# Default values for k8s-data-preparation.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+extraHostVolumes: [ ]
+extraNFSVolumes:
+  - name: nfs-data-volume
+    hostPath: /mnt/nfs_share/Data/LungLobeSeg
+    server: 130.237.84.230
+
+extraVolumeMounts:
+  - name: nfs-data-volume
+    mountPath: /home/LungLobeSeg
+  - mountPath: /dev/shm
+    name: dshm
+
+extraEnv:
+  - name: user
+    valueFrom:
+      secretKeyRef:
+        key: user
+        name: nnunet-secret
+  - name: password
+    valueFrom:
+      secretKeyRef:
+        key: password
+        name: nnunet-secret
+
+resources:
+  requests:
+    memory: "54Gi"
+    cpu: "15000m"
+  limits:
+    memory: "54Gi"
+    cpu: "15000m"
+    nvidia.com/gpu: "1"
+
+image:
+  repository: docker-registry:5000/nnunet
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "v1"
+
+imagePullSecrets: [ ]
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: { }
+
+podSecurityContext: { }
+# fsGroup: 2000
+
+securityContext: { }
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+# runAsUser: 1000
+
+service:
+  type: NodePort
+  ports:
+    - port: 22
+      targetPort: 22
+      nodePort: 30022
+      name: 'ssh'
+
+nodeSelector: { }
+
+tolerations: [ ]
+
+affinity: { }
+
+dshm: True
+
+autoscaling:
+  enabled: False
+
+ingress:
+  enabled: False
