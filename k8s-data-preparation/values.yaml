@@ -5,6 +5,10 @@
 replicaCount: 1
 
 extraHostVolumes: [ ]
+extraSecretVolumes:
+  - name: secret-git-key
+    secretName: ssh-key-secret
+
 extraNFSVolumes:
   - name: nfs-data-volume
     hostPath: /mnt/nfs_share/Data/LungLobeSeg
@@ -15,6 +19,9 @@ extraVolumeMounts:
     mountPath: /home/LungLobeSeg
   - mountPath: /dev/shm
     name: dshm
+  - name: secret-git-key
+    readOnly: true
+    mountPath: "/etc/secret-volume"
 
 extraEnv:
   - name: user

@@ -30,11 +30,16 @@ spec:
           emptyDir:
             medium: Memory
         {{- end}}
+        {{- range .Values.extraSecretVolumes }}
+        - name: {{ .name | quote }}
+          secret:
+            secretName: {{ .secretName | quote }}
+        {{- end}}
         {{- range .Values.extraHostVolumes }}
         - name: {{ .name | quote }}
           hostPath:
             path: {{ .hostPath | quote }}
-          {{- end }}
+        {{- end }}
         {{- range .Values.extraNFSVolumes }}
         - name: {{ .name | quote }}
           nfs:
