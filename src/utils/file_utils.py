@@ -333,6 +333,7 @@ def copy_data_to_dataset_folder(
                     ),
                 )
             )
+    _ = [i.get() for i in copied_files]
 
 
 def copy_image_file(input_filepath: str, output_filepath: str):
