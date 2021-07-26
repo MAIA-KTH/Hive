@@ -70,7 +70,7 @@ Commit changes in the specific Changelist by selecting the files in **View | Too
 Pull commits from origin with **Git | Update Project...**
 ## Create Pull Request
 
-On **Git | GitHub | Create Pull Request...** create the request, filling the fields.
+On **Git | GitHub | Create Pull Request...** create the request, filling the fields for the Reviewers, Assigned developer, Labels, Title and optional Description.
 
 ## Merge Branch
 
@@ -86,7 +86,7 @@ On **Git | GitHub | Create Pull Request...** create the request, filling the fie
 
 *MyPy* can be found in the conda environment
 
-Run Mypy with `--config-file` [tox.ini](k8s_data_preparation/tox.ini), as described in [Tox](#tox)
+Run Mypy with `--config-file` [tox.ini](tox.ini), as described in [Tox](#tox)
 
 To properly run Black hook, [pyproject.toml](pyproject.toml) should be present in the project folder
 
@@ -119,7 +119,7 @@ Tox is used to test and package the python project.
 
 To run Tox:
 
-* `Tox -e LIST_OF_VIRTUAL_ENVS`
+* `tox -e LIST_OF_VIRTUAL_ENVS`
 
 ## Package repository
 
