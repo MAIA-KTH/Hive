@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 
 import datetime
+import importlib.resources
 import json
 import os
 from argparse import ArgumentParser, RawTextHelpFormatter
 from textwrap import dedent
 
-from utils.file_utils import (
+import k8s_DP.configs
+from k8s_DP.utils.file_utils import (
     create_nnunet_data_folder_tree,
     split_dataset,
     copy_data_to_dataset_folder,
     save_config_json,
     generate_dataset_json,
 )
-from utils.log_utils import (
+from k8s_DP.utils.log_utils import (
     get_logger,
     add_verbosity_options_to_argparser,
     log_lvl_from_verbosity_args,
@@ -34,7 +36,7 @@ EPILOG = dedent(
      Example call:
       {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz
       {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --task-ID 106 --task-name LungLobeSeg3D
-      {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --task-ID 101 --task-name 3D_LungLobeSeg --test-split 30 --config-file ./configs/LungLobeSeg_nnUNet_3D_config.json
+      {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --task-ID 101 --task-name 3D_LungLobeSeg --test-split 30 --config-file LungLobeSeg_nnUNet_3D_config.json
     """.format(  # noqa: E501
         filename=os.path.basename(__file__)
     )
@@ -53,8 +55,13 @@ def main(arguments):
         logger.error("nnUNet_raw_data_base is not set as environment variable")
         return 1
 
-    with open(arguments["config_file"]) as json_file:
-        config_dict = json.load(json_file)
+    try:
+        with open(arguments["config_file"]) as json_file:
+            config_dict = json.load(json_file)
+    except FileNotFoundError:
+        with importlib.resources.path(k8s_DP.configs, arguments["config_file"]) as json_path:
+            with open(json_path) as json_file:
+                config_dict = json.load(json_file)
 
     create_nnunet_data_folder_tree(
         os.environ["nnUNet_raw_data_base"],
@@ -184,9 +191,8 @@ if __name__ == "__main__":
         "--config-file",
         type=str,
         required=False,
-        default="./configs/LungLobeSeg_nnUNet_3D_config.json",
-        help="Configuration JSON file with experiment and dataset parameters "
-        "(Default: ./configs/LungLobeSeg_nnUNet_3D_config.json)",
+        default="LungLobeSeg_nnUNet_3D_config.json",
+        help="Configuration JSON file with experiment and dataset parameters " "(Default: LungLobeSeg_nnUNet_3D_config.json)",
     )
 
     add_verbosity_options_to_argparser(parser)

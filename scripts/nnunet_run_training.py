@@ -5,7 +5,7 @@ import os
 from argparse import ArgumentParser, RawTextHelpFormatter
 from textwrap import dedent
 
-from utils.log_utils import (
+from k8s_DP.utils.log_utils import (
     get_logger,
     add_verbosity_options_to_argparser,
     log_lvl_from_verbosity_args,
