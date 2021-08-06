@@ -2,6 +2,7 @@ import json
 import os
 import random
 import shutil
+from multiprocessing import Pool
 from typing import Dict, Tuple, List
 
 import SimpleITK as sitk
@@ -240,7 +241,7 @@ def split_dataset(input_data_folder: str, test_split_ratio: int, seed: int) -> T
 
 def copy_data_to_dataset_folder(
     input_data_folder: str,
-    train_subjects: List[str],
+    subjects: List[str],
     output_data_folder: str,
     image_suffix: str,
     image_subpath: str,
@@ -248,13 +249,15 @@ def copy_data_to_dataset_folder(
     label_suffix: str = None,
     labels_subpath: str = None,
     modality: int = None,
+    num_threads: int = 5,
 ):
     """
 
     Parameters
     ----------
+    num_threads: number of threads to use in multiprocessing ( Default: 5 )
     input_data_folder: folder path of the input dataset
-    train_subjects: string list containing subject IDs for train set
+    subjects: string list containing subject IDs for train set
     output_data_folder: folder path where to store images ( and labels )
     image_suffix: file suffix to be used to correctly detect the file to store in imagesTr/imagesTs
     image_subpath: relative folder name where to store images in nnUNet folder hierarchy: imagesTr/imagesTs
@@ -271,7 +274,10 @@ def copy_data_to_dataset_folder(
         modality_code = "_{0:04d}".format(modality)
     else:
         modality_code = ""
-    for directory in train_subjects:
+
+    pool = Pool(num_threads)
+    copied_files = []
+    for directory in subjects:
 
         files = subfiles(
             os.path.join(input_data_folder, directory),
@@ -287,24 +293,73 @@ def copy_data_to_dataset_folder(
 
             if image_filename in files and label_filename in files:
                 updated_image_filename = image_filename.replace(image_suffix, modality_code + config_dict["FileExtension"])
-                shutil.copy(
-                    os.path.join(input_data_folder, directory, image_filename),
-                    os.path.join(output_data_folder, image_subpath, updated_image_filename),
+                updated_label_filename = label_filename.replace(label_suffix, config_dict["FileExtension"])
+                copied_files.append(
+                    pool.starmap_async(
+                        copy_image_file,
+                        (
+                            (
+                                os.path.join(input_data_folder, directory, image_filename),
+                                os.path.join(output_data_folder, image_subpath, updated_image_filename),
+                            ),
+                        ),
+                    )
+                )
+                copied_files.append(
+                    pool.starmap_async(
+                        copy_label_file,
+                        (
+                            (
+                                os.path.join(input_data_folder, directory, directory + image_suffix),
+                                os.path.join(input_data_folder, directory, directory + label_suffix),
+                                os.path.join(output_data_folder, labels_subpath, updated_label_filename),
+                            ),
+                        ),
+                    )
                 )
 
-                updated_label_filename = label_filename.replace(label_suffix, config_dict["FileExtension"])
-                label_itk = sitk.ReadImage(os.path.join(input_data_folder, directory, directory + label_suffix))
-                image_itk = sitk.ReadImage(os.path.join(input_data_folder, directory, directory + image_suffix))
-                label_itk.CopyInformation(image_itk)
-                sitk.WriteImage(
-                    label_itk,
-                    os.path.join(output_data_folder, labels_subpath, updated_label_filename),
-                )
             else:
                 logger.warning("{} or {} are not stored: skipping {} case".format(image_filename, label_filename, directory))
         else:
             updated_image_filename = image_filename.replace(image_suffix, modality_code + config_dict["FileExtension"])
-            shutil.copy(
-                os.path.join(input_data_folder, directory, image_filename),
-                os.path.join(output_data_folder, image_subpath, updated_image_filename),
+            copied_files.append(
+                pool.starmap_async(
+                    copy_image_file,
+                    (
+                        (
+                            os.path.join(input_data_folder, directory, image_filename),
+                            os.path.join(output_data_folder, image_subpath, updated_image_filename),
+                        ),
+                    ),
+                )
             )
+    _ = [i.get() for i in copied_files]
+
+
+def copy_image_file(input_filepath: str, output_filepath: str):
+    """
+
+    Parameters
+    ----------
+    input_filepath: file path for the file to copy
+    output_filepath: file path where to copy the file
+    """
+    shutil.copy(
+        input_filepath,
+        output_filepath,
+    )
+
+
+def copy_label_file(input_image: str, input_label: str, output_filepath: str):
+    """
+
+    Parameters
+    ----------
+    input_image: file path for the input image, to be used as reference when copying image information
+    input_label: file path for the input label to be copied
+    output_filepath: file location where to save the label image
+    """
+    label_itk = sitk.ReadImage(input_label)
+    image_itk = sitk.ReadImage(input_image)
+    label_itk.CopyInformation(image_itk)
+    sitk.WriteImage(label_itk, output_filepath)

@@ -13,7 +13,7 @@ setup(
     description="Tool to standardize original dataset folder to match Decathlon-like folder structure",  # noqa: E501
     packages=setuptools.find_packages("src"),
     package_data={
-        "": ["*.yml", "*.json"],
+        "": ["configs/*.yml", "configs/*.json"],
     },
     package_dir={"": "src"},
     install_requires=[

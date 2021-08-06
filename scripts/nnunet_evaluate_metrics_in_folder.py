@@ -1,11 +1,13 @@
+#!/usr/bin/env python
+
 import json
 import os
 from argparse import ArgumentParser, RawTextHelpFormatter
 from textwrap import dedent
 
 import seg_metrics.seg_metrics as sg
-from utils.file_utils import subfiles
-from utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, DEBUG
+from k8s_DP.utils.file_utils import subfiles
+from k8s_DP.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, DEBUG
 
 DESC = dedent(
     """

@@ -10,6 +10,4 @@ cd /home/$user
 
 su $user "/workspace/create_nnUNet_conda_env.sh"
 
-ln -s /home/user/LungLobeSeg /home/$user/LungLobeSeg
-ln -s /home/user/nnunet_data_preparation /home/$user/nnunet_data_preparation
 exec "$@"
