@@ -6,4 +6,5 @@ conda activate nnUNet
 pip install -r /workspace/conda_requirements.txt
 conda env config vars set $(eval echo $(cat /workspace/.env))
 conda env config vars set GIT_SSH_COMMAND="ssh -v -i /etc/secret-volume/ssh-privatekey"
-yes | pip install git+ssh://git@github.com/SimoneBendazzoli93/k8s_nnUNet.git
+pip install git+https://github.com/SimoneBendazzoli93/k8s_nnUNet.git@v1.0
+#pip install git+ssh://git@github.com/SimoneBendazzoli93/k8s_nnUNet.git@v1.0
