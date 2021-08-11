@@ -383,10 +383,10 @@ def compute_confusion_matrix(gt_filename: str, pred_filename: str, labels: List[
         fp = np.sum(cm[:, int(c)]) - tp
         fn = np.sum(cm[int(c), :]) - tp
         tn = pop - (fn + tp + fp)
-        cm_single_class_map["tp"] = tp
-        cm_single_class_map["fp"] = fp
-        cm_single_class_map["fn"] = fn
-        cm_single_class_map["tn"] = tn
+        cm_single_class_map["tp"] = float(tp)
+        cm_single_class_map["fp"] = float(fp)
+        cm_single_class_map["fn"] = float(fn)
+        cm_single_class_map["tn"] = float(tn)
         cm_single_class_map["test_p"] = np.sum((gt_data.flatten() == int(c)).astype(np.uint8), dtype=np.float64)
         cm_single_class_map["pred_p"] = np.sum((pred_data.flatten() == int(c)).astype(np.uint8), dtype=np.float64)
         cm_class_map[c] = cm_single_class_map
