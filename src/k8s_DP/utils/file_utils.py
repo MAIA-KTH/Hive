@@ -7,6 +7,7 @@ from typing import Dict, Tuple, List
 
 import SimpleITK as sitk
 import numpy as np
+from tqdm import tqdm
 
 from .log_utils import get_logger, DEBUG
 
@@ -240,22 +241,22 @@ def split_dataset(input_data_folder: str, test_split_ratio: int, seed: int) -> T
 
 
 def copy_data_to_dataset_folder(
-    input_data_folder: str,
-    subjects: List[str],
-    output_data_folder: str,
-    image_suffix: str,
-    image_subpath: str,
-    config_dict: Dict[str, str],
-    label_suffix: str = None,
-    labels_subpath: str = None,
-    modality: int = None,
-    num_threads: int = 5,
+        input_data_folder: str,
+        subjects: List[str],
+        output_data_folder: str,
+        image_suffix: str,
+        image_subpath: str,
+        config_dict: Dict[str, str],
+        label_suffix: str = None,
+        labels_subpath: str = None,
+        modality: int = None,
+        num_threads: int = None,
 ):
     """
 
     Parameters
     ----------
-    num_threads: number of threads to use in multiprocessing ( Default: 5 )
+    num_threads: number of threads to use in multiprocessing ( Default: N_THREADS )
     input_data_folder: folder path of the input dataset
     subjects: string list containing subject IDs for train set
     output_data_folder: folder path where to store images ( and labels )
@@ -274,6 +275,13 @@ def copy_data_to_dataset_folder(
         modality_code = "_{0:04d}".format(modality)
     else:
         modality_code = ""
+
+    if num_threads is None:
+        try:
+            num_threads = int(os.environ["N_THREADS"])
+        except KeyError:
+            logger.warning("N_THREADS is not set as environment variable. Using Default [1]")
+            num_threads = 1
 
     pool = Pool(num_threads)
     copied_files = []
@@ -333,7 +341,7 @@ def copy_data_to_dataset_folder(
                     ),
                 )
             )
-    _ = [i.get() for i in copied_files]
+    _ = [i.get() for i in tqdm(copied_files)]
 
 
 def copy_image_file(input_filepath: str, output_filepath: str):
