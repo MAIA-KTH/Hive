@@ -3,7 +3,7 @@
 import hashlib
 import importlib.resources
 import json
-import os
+from pathlib import Path
 from argparse import ArgumentParser, RawTextHelpFormatter
 from collections import OrderedDict
 from datetime import datetime
@@ -26,7 +26,7 @@ EPILOG = dedent(
     ::
         {filename} --ground-truth-folder /path/to/gt_folder --prediction-folder /path/to/pred_folder --config-file /path/to/config_file.json
     """.format(  # noqa: E501
-        filename=os.path.basename(__file__)
+        filename=Path(__file__).name
     )
 )
 
@@ -59,12 +59,12 @@ def get_arg_parser():
     return pars
 
 
-if __name__ == "__main__":
+def main():
     parser = get_arg_parser()
     args = vars(parser.parse_args())
 
-    logger = get_logger(
-        name=os.path.basename(__file__),
+    logger = get_logger(  # NOQA: F841
+        name=Path(__file__).name,
         level=log_lvl_from_verbosity_args(args),
     )
 
@@ -92,5 +92,9 @@ if __name__ == "__main__":
     json_dict["task"] = "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"]
     json_dict["results"] = all_scores
     json_dict["id"] = hashlib.md5(json.dumps(json_dict).encode("utf-8")).hexdigest()[:12]
-    with open(os.path.join(args["prediction_folder"], "summary.json"), "w") as outfile:
+    with open(Path(args["prediction_folder"]).joinpath("summary.json"), "w") as outfile:
         json.dump(json_dict, outfile)
+
+
+if __name__ == "__main__":
+    main()

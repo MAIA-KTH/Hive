@@ -4,6 +4,7 @@ import datetime
 import importlib.resources
 import json
 import os
+from pathlib import Path
 from argparse import ArgumentParser, RawTextHelpFormatter
 from textwrap import dedent
 
@@ -33,20 +34,28 @@ DESC = dedent(
 )
 EPILOG = dedent(
     """
-     Example call:
-      {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz
-      {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --task-ID 106 --task-name LungLobeSeg3D
-      {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --task-ID 101 --task-name 3D_LungLobeSeg --test-split 30 --config-file LungLobeSeg_nnUNet_3D_config.json
+    Example call:
+    ::
+        {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz
+        {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --task-ID 106 --task-name LungLobeSeg3D
+        {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --task-ID 101 --task-name 3D_LungLobeSeg --test-split 30 --config-file LungLobeSeg_nnUNet_3D_config.json
     """.format(  # noqa: E501
-        filename=os.path.basename(__file__)
+        filename=Path(__file__).name
     )
 )
 
 
-def main(arguments):
+def main():
+    parser = get_arg_parser()
+
+    arguments = vars(parser.parse_args())
+
+    logger = get_logger(
+        name=Path(__file__).name,
+        level=log_lvl_from_verbosity_args(arguments),
+    )
     try:
-        dataset_path = os.path.join(
-            os.environ["nnUNet_raw_data_base"],
+        dataset_path = Path(os.environ["nnUNet_raw_data_base"]).joinpath(
             "nnUNet_raw_data",
             "Task" + arguments["task_ID"] + "_" + arguments["task_name"],
         )
@@ -92,9 +101,9 @@ def main(arguments):
         0,
     )
     generate_dataset_json(
-        os.path.join(dataset_path, "dataset.json"),
-        os.path.join(dataset_path, "imagesTr"),
-        os.path.join(dataset_path, "imagesTs"),
+        Path(dataset_path).joinpath("dataset.json"),
+        Path(dataset_path).joinpath("imagesTr"),
+        Path(dataset_path).joinpath("imagesTs"),
         config_dict["Modalities"],
         config_dict["label_dict"],
         config_dict["DatasetName"],
@@ -103,6 +112,7 @@ def main(arguments):
     config_dict["Task_ID"] = arguments["task_ID"]
     config_dict["Task_Name"] = arguments["task_name"]
     config_dict["base_folder"] = os.environ["nnUNet_raw_data_base"]
+    config_dict["n_folds"] = 5
 
     output_json_basename = (
         config_dict["DatasetName"]
@@ -117,32 +127,26 @@ def main(arguments):
 
     try:
         config_dict["results_folder"] = os.environ["RESULTS_FOLDER"]
-        os.makedirs(
-            config_dict["results_folder"],
-            exist_ok=True,
-        )
+        Path(config_dict["results_folder"]).mkdir(parents=True, exist_ok=True)
     except KeyError:
         logger.warning("RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
         return 1
     try:
         config_dict["preprocessing_folder"] = os.environ["nnUNet_preprocessed"]
-        os.makedirs(
-            config_dict["preprocessing_folder"],
-            exist_ok=True,
-        )
+        Path(config_dict[config_dict["preprocessing_folder"]]).mkdir(parents=True, exist_ok=True)
 
     except KeyError:
         logger.warning(
             "nnUNet_preprocessed is not set as environment variable, not saved in {}".format(output_json_basename)
             # noqa E501
         )
-    save_config_json(config_dict, os.path.join(config_dict["results_folder"], output_json_basename))
+    save_config_json(config_dict, Path(config_dict["results_folder"]).joinpath(output_json_basename))
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
+def get_arg_parser():
+    pars = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
 
-    parser.add_argument(
+    pars.add_argument(
         "-i",
         "--input-data-folder",
         type=str,
@@ -150,35 +154,35 @@ if __name__ == "__main__":
         help="Input Dataset folder",
     )
 
-    parser.add_argument(
+    pars.add_argument(
         "--task-ID",
         type=str,
         default="100",
         help="Task ID used in the folder path tree creation (Default: 100)",
     )
 
-    parser.add_argument(
+    pars.add_argument(
         "--task-name",
         type=str,
         default="LungLobeSeg_3D_Single_Modality",
         help="Task Name used in the folder path tree creation (Default: LungLobeSeg_3D_Single_Modality)",  # noqa E501
     )
 
-    parser.add_argument(
+    pars.add_argument(
         "--image-suffix",
         type=str,
         required=True,
         help="Image filename suffix to correctly detect the image files in the dataset",
     )
 
-    parser.add_argument(
+    pars.add_argument(
         "--label-suffix",
         type=str,
         required=True,
         help="Label filename suffix to correctly detect the label files in the dataset",
     )
 
-    parser.add_argument(
+    pars.add_argument(
         "--test-split",
         type=int,
         choices=range(0, 101),
@@ -187,7 +191,7 @@ if __name__ == "__main__":
         help="Split value ( in %% ) to create Test set from Dataset (Default: 20)",
     )
 
-    parser.add_argument(
+    pars.add_argument(
         "--config-file",
         type=str,
         required=False,
@@ -195,13 +199,10 @@ if __name__ == "__main__":
         help="Configuration JSON file with experiment and dataset parameters " "(Default: LungLobeSeg_nnUNet_3D_config.json)",
     )
 
-    add_verbosity_options_to_argparser(parser)
+    add_verbosity_options_to_argparser(pars)
 
-    args = vars(parser.parse_args())
+    return pars
 
-    logger = get_logger(
-        name=os.path.basename(__file__),
-        level=log_lvl_from_verbosity_args(args),
-    )
 
-    main(args)
+if __name__ == "__main__":
+    main()
