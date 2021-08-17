@@ -1,4 +1,4 @@
-# k8s_nnUNet
+# Hive
 
 ## Create Repository on GitHub
 
