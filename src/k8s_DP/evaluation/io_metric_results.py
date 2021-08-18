@@ -38,7 +38,10 @@ DEFAULT_METRIC_UNITS = {"Dice": "", "Hausdorff Distance": "[ mm ]"}
 
 def find_file_from_pattern(folder, pattern, file_extension):
     files = subfiles(folder, prefix=pattern[: -len(file_extension)], suffix=file_extension)
-    return files[0]
+    if len(files) > 0:
+        return files[0]
+    else:
+        return None
 
 
 def get_results_summary_filepath(config_dict, section, fold=0):
@@ -153,7 +156,7 @@ def save_metrics(config_dict, metric_name, basic_metrics, section):
                     df_temp[column_selection].loc[[metric_name]].rename(columns=column_rename, index={metric_name: str(subj_id)})
                 )
 
-            if add_volume_column:
+            if add_volume_column and Path(images_folder_path).is_dir():
                 volume_file = find_file_from_pattern(
                     images_folder_path, Path(df_single_temp[volume_reference_column][0]).name, config_dict["FileExtension"]
                 )
