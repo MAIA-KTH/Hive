@@ -1,13 +1,15 @@
 import os
 from collections import OrderedDict
 from multiprocessing import Pool
+from pathlib import Path
 from typing import List, Dict, Union, Any
 
 import numpy as np
+from tqdm import tqdm
+
 from k8s_DP.evaluation.metrics import compute_confusion_matrix, METRICS
 from k8s_DP.utils.file_utils import subfiles
 from k8s_DP.utils.log_utils import get_logger
-from tqdm import tqdm
 
 logger = get_logger(__name__)
 
@@ -27,7 +29,7 @@ DEFAULT_METRICS = [
 
 
 def compute_metrics_for_case(
-        gt_filename: str, pred_filename: str, labels: List[str], metrics: List[str] = DEFAULT_METRICS
+    gt_filename: str, pred_filename: str, labels: List[str], metrics: List[str] = DEFAULT_METRICS
 ) -> Dict[str, Union[str, Dict]]:
     r"""
     Computes given metrics for the specified subject and labels. The subject is defined by the *ground truth image* and the
@@ -82,12 +84,12 @@ def compute_metrics_for_case(
 
 
 def compute_metrics_for_folder(
-        gt_folder: str,
-        pred_folder: str,
-        labels: List[str],
-        file_suffix: str,
-        metrics: List[str] = DEFAULT_METRICS,
-        num_threads: int = None,
+    gt_folder: str,
+    pred_folder: str,
+    labels: List[str],
+    file_suffix: str,
+    metrics: List[str] = DEFAULT_METRICS,
+    num_threads: int = None,
 ) -> List[Dict[str, Any]]:
     """
     Computes given metrics for the specified subjects and labels. The subjects are defined by the *ground truth folder*
@@ -134,16 +136,23 @@ def compute_metrics_for_folder(
     evaluated_cases = []
     for gt_filepath in gt_files:
         if gt_filepath in pred_files:
-            if not os.path.isfile(os.path.join(gt_folder, gt_filepath)):
-                logger.warning("{} does not exist".format(os.path.join(gt_folder, gt_filepath)))
+            if not Path(gt_folder).joinpath(gt_filepath).is_file():
+                logger.warning("{} does not exist".format(Path(gt_folder).joinpath(gt_filepath)))
                 continue
-            if not os.path.isfile(os.path.join(pred_folder, gt_filepath)):
-                logger.warning("{} does not exist".format(os.path.join(pred_folder, gt_filepath)))
+            if not Path(pred_folder).joinpath(gt_filepath).is_file():
+                logger.warning("{} does not exist".format(Path(pred_folder).joinpath(gt_filepath)))
 
             evaluated_cases.append(
                 pool.starmap_async(
                     compute_metrics_for_case,
-                    ((os.path.join(gt_folder, gt_filepath), os.path.join(pred_folder, gt_filepath), labels, metrics),),
+                    (
+                        (
+                            str(Path(gt_folder).joinpath(gt_filepath)),
+                            str(Path(pred_folder).joinpath(gt_filepath)),
+                            labels,
+                            metrics,
+                        ),
+                    ),
                 )
             )
         else:

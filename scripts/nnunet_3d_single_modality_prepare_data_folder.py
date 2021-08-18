@@ -4,8 +4,8 @@ import datetime
 import importlib.resources
 import json
 import os
-from pathlib import Path
 from argparse import ArgumentParser, RawTextHelpFormatter
+from pathlib import Path
 from textwrap import dedent
 
 import k8s_DP.configs
@@ -55,9 +55,11 @@ def main():
         level=log_lvl_from_verbosity_args(arguments),
     )
     try:
-        dataset_path = Path(os.environ["nnUNet_raw_data_base"]).joinpath(
-            "nnUNet_raw_data",
-            "Task" + arguments["task_ID"] + "_" + arguments["task_name"],
+        dataset_path = str(
+            Path(os.environ["nnUNet_raw_data_base"]).joinpath(
+                "nnUNet_raw_data",
+                "Task" + arguments["task_ID"] + "_" + arguments["task_name"],
+            )
         )
 
     except KeyError:
@@ -101,9 +103,9 @@ def main():
         0,
     )
     generate_dataset_json(
-        Path(dataset_path).joinpath("dataset.json"),
-        Path(dataset_path).joinpath("imagesTr"),
-        Path(dataset_path).joinpath("imagesTs"),
+        str(Path(dataset_path).joinpath("dataset.json")),
+        str(Path(dataset_path).joinpath("imagesTr")),
+        str(Path(dataset_path).joinpath("imagesTs")),
         config_dict["Modalities"],
         config_dict["label_dict"],
         config_dict["DatasetName"],
@@ -140,7 +142,7 @@ def main():
             "nnUNet_preprocessed is not set as environment variable, not saved in {}".format(output_json_basename)
             # noqa E501
         )
-    save_config_json(config_dict, Path(config_dict["results_folder"]).joinpath(output_json_basename))
+    save_config_json(config_dict, str(Path(config_dict["results_folder"]).joinpath(output_json_basename)))
 
 
 def get_arg_parser():
