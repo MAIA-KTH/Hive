@@ -5,8 +5,9 @@ import json
 from pathlib import Path
 import visdom
 import pandas as pd
+from pandasgui import show
 import plotly.io as pio
-
+import argparse
 from argparse import ArgumentParser, RawTextHelpFormatter
 from k8s_DP.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
 from k8s_DP.evaluation.io_metric_results import (
@@ -27,6 +28,7 @@ DESC = dedent(
     """
     Generates metric result tables as ``Pandas Dataframe``, saving them as ``Pickle`` files. The files are stored in
     */path/to/results_folder/metrics_DF/SECTION/METRIC_NAME*, with SECTION indicating ``Validation`` or ``Testing`` metrics.
+    The created **Pandas Dataframes** can optionally be inspected with ```PandasGui``.
     For each given metric, a table with the metric score for each label class is created, including a flat version used for ``Plotly`` visualization.
     Optionally, a Pandas Dataframe including the average and the standard deviation scores for each label class is saved.
     The selected metrics can be included in the set of basic metrics, or they can be an advanced combination of the basic ones.
@@ -59,6 +61,17 @@ EPILOG = dedent(
 )
 
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
+
+
 def get_arg_parser():
     pars = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
 
@@ -81,12 +94,12 @@ def get_arg_parser():
         type=str,
         required=False,
         nargs="+",
-        help="Sequence of metrics to be computed. If specified, the metrics listed in the configuration " "file are overridden",
+        help="Sequence of metrics to be computed. If specified, the metrics listed in the configuration file are overridden",
     )
 
     pars.add_argument(
         "--visualize-only",
-        type=bool,
+        type=str2bool,
         required=False,
         default=False,
         help="Visualize results only, without creating the corresponding **Pandas Dataframes**",
@@ -94,7 +107,7 @@ def get_arg_parser():
 
     pars.add_argument(
         "--save-png",
-        type=bool,
+        type=str2bool,
         required=False,
         default=False,
         help="Specify to save the metric **Plotly** plots as PNGs",
@@ -102,7 +115,7 @@ def get_arg_parser():
 
     pars.add_argument(
         "--save-html",
-        type=bool,
+        type=str2bool,
         required=False,
         default=False,
         help="Specify to save the metric **Plotly** plots as HTMLs",
@@ -110,15 +123,23 @@ def get_arg_parser():
 
     pars.add_argument(
         "--show-in-browser",
-        type=bool,
+        type=str2bool,
         required=False,
         default=False,
         help="Specify to display the metric **Plotly** plots in the default browser",
     )
 
     pars.add_argument(
+        "--show-pandas-gui",
+        type=str2bool,
+        required=False,
+        default=False,
+        help="Specify to inspect the Pandas Dataframes using **PandasGUI**",
+    )
+
+    pars.add_argument(
         "--upload-visdom-server",
-        type=bool,
+        type=str2bool,
         required=False,
         default=False,
         help="Specify to upload the metric **Plotly** plots in the running **Visdom** server",
@@ -144,7 +165,7 @@ def main():
     with open(args["config_file"]) as json_file:
         config_dict = json.load(json_file)
 
-    if not args["visualize_only"]:
+    if args["visualize_only"] is not True:
         summary_filepath = get_results_summary_filepath(config_dict, args["section"])
         base_metrics = read_metric_list(summary_filepath, config_dict)
 
@@ -160,17 +181,30 @@ def main():
     if args["metrics"]:
         metrics = args["metrics"]
 
-    if args["upload_visdom_server"]:
+    if args["upload_visdom_server"] is True:
         vis = visdom.Visdom()
 
     label_dict = config_dict["label_dict"]
     label_dict.pop("0", None)
 
+    pd_gui = {}
     for metric in metrics:
-        if not args["visualize_only"]:
+
+        if args["visualize_only"] is not True:
             save_metrics(config_dict, metric, base_metrics, args["section"])
 
-        if args["save_png"] or args["save_html"] or args["show_in_browser"] or args["upload_visdom_server"]:
+        df_path = Path(config_dict["results_folder"]).joinpath(
+            "metrics_DF", args["section"], metric, "{}_table.pkl".format(metric)
+        )
+        if df_path.is_file():
+            pd_gui[metric] = df_path
+
+        if (
+            args["save_png"] is True
+            or args["save_html"] is True
+            or args["show_in_browser"] is True
+            or args["upload_visdom_server"] is True
+        ):
             df_flat_path = Path(config_dict["results_folder"]).joinpath(
                 "metrics_DF", args["section"], metric, "{}_flat.pkl".format(metric)
             )
@@ -186,7 +220,7 @@ def main():
 
                 fig_histo = get_plotly_histo(df_flat, metric, measurement_unit, args["section"])
                 fig_boxplot = get_plotly_boxplot(df_flat, metric, measurement_unit, args["section"])
-                if args["save_png"]:
+                if args["save_png"] is True:
                     fig_histo.write_image(
                         str(
                             Path(config_dict["results_folder"]).joinpath(
@@ -201,11 +235,11 @@ def main():
                             )
                         )
                     )
-                if args["show_in_browser"]:
+                if args["show_in_browser"] is True:
                     fig_histo.show()
                     fig_boxplot.show()
 
-                if args["save_html"]:
+                if args["save_html"] is True:
                     fig_histo.write_html(
                         str(
                             Path(config_dict["results_folder"]).joinpath(
@@ -220,9 +254,7 @@ def main():
                             )
                         )
                     )
-                    df_path = Path(config_dict["results_folder"]).joinpath(
-                        "metrics_DF", args["section"], metric, "{}_table.pkl".format(metric)
-                    )
+
                     if df_path.is_file():
                         df = pd.read_pickle(str(df_path))
                         if metric in DEFAULT_BAR_CONFIGS:
@@ -251,7 +283,7 @@ def main():
 
                         file.close()
 
-                if args["upload_visdom_server"]:
+                if args["upload_visdom_server"] is True:
                     vis.plotlyplot(fig_histo, env=metric)
                     vis.plotlyplot(fig_boxplot, env=metric)
                     df_path = Path(config_dict["results_folder"]).joinpath(
@@ -279,6 +311,9 @@ def main():
                         logger.info("{} does not exist".format(str(df_path)))
             else:
                 logger.info("{} does not exist".format(str(df_flat_path)))
+
+    if args["show_pandas_gui"] is True:
+        show(**{metric: pd.read_pickle(pd_gui[metric]) for metric in pd_gui})
 
 
 if __name__ == "__main__":
