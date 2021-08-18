@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 
 import hashlib
-import importlib.resources
 import json
-from pathlib import Path
 from argparse import ArgumentParser, RawTextHelpFormatter
 from collections import OrderedDict
 from datetime import datetime
+from pathlib import Path
 from textwrap import dedent
 
-import k8s_DP.configs
 from k8s_DP.evaluation.evaluator import compute_metrics_for_folder, order_scores_with_means
 from k8s_DP.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
 
@@ -68,13 +66,8 @@ def main():
         level=log_lvl_from_verbosity_args(args),
     )
 
-    try:
-        with open(args["config_file"]) as json_file:
-            config_dict = json.load(json_file)
-    except FileNotFoundError:
-        with importlib.resources.path(k8s_DP.configs, args["config_file"]) as json_path:
-            with open(json_path) as json_file:
-                config_dict = json.load(json_file)
+    with open(args["config_file"]) as json_file:
+        config_dict = json.load(json_file)
 
     file_suffix = config_dict["FileExtension"]
     label_dict = config_dict["label_dict"]
