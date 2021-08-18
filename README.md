@@ -76,6 +76,11 @@ On **Git | GitHub | Create Pull Request...** create the request, filling the fie
 
 ## Close Task
 
+## Anaconda Development Environment
+* Python 3.8
+* R  `conda install -c r r`
+* setuptools `conda install -c anaconda setuptools` (for *easy_install* tool)
+
 ## Setup pre-commit and MyPy
 
 [Pre-commit](https://pre-commit.com)
@@ -131,3 +136,29 @@ Create *whl* package:
 
 * `python setup.py bdist_wheel`
 
+## Create Docker Image
+Create Docker Image:
+* `docker build . -t IMAGE_TAG`
+
+Tag Docker Image for the Docker registry deployment
+* `docker tag IMAGE_TAG docker-registry:5000/IMAGE_TAG:v1`
+
+And pull:
+
+* `docker pull docker-registry:5000/IMAGE_TAG:v1`
+
+## Deploy k8s Pod with Helm
+* Create Local Helm package from inside the Local Helm folder:
+
+`helm repo package /PATH/TO/HELM/CHART`
+
+* Update and create Helm index:
+
+```
+helm repo index .
+helm repo update
+```
+
+* Install on k8s Cluster:
+
+`helm install
