@@ -77,7 +77,7 @@ def test_read_metrics():
         "True Negative Rate",
     ]
 
-    additional_columns = {}  # {"test": 'Prediction File', "reference": 'Ground Truth File'}
+    additional_columns = {"test": "Prediction File", "reference": "Ground Truth File"}
     n_folds = 1  # 5
     config_file = "C:/Users/simon/Desktop/LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json"
     section = "testing"  # 'validation'
@@ -133,7 +133,7 @@ def test_read_metrics():
                 )
 
             volume_file = find_file_from_pattern(
-                images_folder_path, os.path.basename(df_single_temp["Ground " "Truth " "File"][0]), config_dict["FileExtension"]
+                images_folder_path, os.path.basename(df_single_temp["Ground Truth File"][0]), config_dict["FileExtension"]
             )
 
             if os.path.isfile(volume_file):
@@ -145,9 +145,13 @@ def test_read_metrics():
             df = df.append(df_single_temp)
             subj_id = subj_id + 1
 
-    df_aggregate = pd.DataFrame(zip(df.mean(), df.std()), columns=["Mean", "SD"], index=label_dict).rename(  # NOQA: F841
-        index=label_dict
-    )
+    save_stats = True
+    os.makedirs(os.path.join(config_dict["results_folder"], "metrics_DF", section), exist_ok=True)
+    if save_stats:
+        df_aggregate = pd.DataFrame(zip(df.mean(), df.std()), columns=["Mean", "SD"], index=label_dict).rename(index=label_dict)
+        df_aggregate.to_pickle(
+            os.path.join(config_dict["results_folder"], "metrics_DF", section, "{}_stats.pkl".format(metric_name))
+        )
 
     if composed_metric is not None:
         metric_name = composed_metric
@@ -156,7 +160,6 @@ def test_read_metrics():
     df_flat.reset_index(inplace=True)
     df_flat.columns = ["Subject", "Label", metric_name]
 
-    os.makedirs(os.path.join(config_dict["results_folder"], "metrics_DF", section), exist_ok=True)
     df.to_pickle(os.path.join(config_dict["results_folder"], "metrics_DF", section, "{}_table.pkl".format(metric_name)))
     df_flat.to_pickle(os.path.join(config_dict["results_folder"], "metrics_DF", section, "{}_flat.pkl".format(metric_name)))
 
