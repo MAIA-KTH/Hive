@@ -196,8 +196,12 @@ def main():
         df_path = Path(config_dict["results_folder"]).joinpath(
             "metrics_DF", args["section"], metric, "{}_table.pkl".format(metric)
         )
+        df_flat_path = Path(config_dict["results_folder"]).joinpath(
+            "metrics_DF", args["section"], metric, "{}_flat.pkl".format(metric)
+        )
         if df_path.is_file():
             pd_gui[metric] = df_path
+            pd_gui[metric + "_flat"] = df_flat_path
 
         if (
             args["save_png"] is True
@@ -205,9 +209,7 @@ def main():
             or args["show_in_browser"] is True
             or args["upload_visdom_server"] is True
         ):
-            df_flat_path = Path(config_dict["results_folder"]).joinpath(
-                "metrics_DF", args["section"], metric, "{}_flat.pkl".format(metric)
-            )
+
             if df_flat_path.is_file():
                 df_flat = pd.read_pickle(str(df_flat_path))
                 if metrics_dict is not None and isinstance(metrics_dict, dict) and "m_unit" in metrics_dict[metric]:
