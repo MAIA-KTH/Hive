@@ -4,7 +4,7 @@ import setuptools
 from setuptools import setup
 
 setup(
-    name="k8s_DP",
+    name="Hive",
     version="1.1",
     url="https://github.com/SimoneBendazzoli93/Hive.git",
     license="",

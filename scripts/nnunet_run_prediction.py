@@ -6,7 +6,7 @@ from pathlib import Path
 from argparse import ArgumentParser, RawTextHelpFormatter
 from textwrap import dedent
 
-from k8s_DP.utils.log_utils import (
+from Hive.utils.log_utils import (
     get_logger,
     add_verbosity_options_to_argparser,
     log_lvl_from_verbosity_args,

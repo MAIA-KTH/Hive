@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 from argparse import ArgumentParser
-from k8s_DP.utils.log_utils import (
+from Hive.utils.log_utils import (
     add_verbosity_options_to_argparser,
     get_logger,
     log_lvl_from_verbosity_args,

@@ -8,8 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from textwrap import dedent
 
-from k8s_DP.evaluation.evaluator import compute_metrics_for_folder, order_scores_with_means
-from k8s_DP.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
+from Hive.evaluation.evaluator import compute_metrics_for_folder, order_scores_with_means
+from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
 
 DESC = dedent(
     """

@@ -9,8 +9,8 @@ from pandasgui import show
 import plotly.io as pio
 import argparse
 from argparse import ArgumentParser, RawTextHelpFormatter
-from k8s_DP.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
-from k8s_DP.evaluation.io_metric_results import (
+from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
+from Hive.evaluation.io_metric_results import (
     get_results_summary_filepath,
     read_metric_list,
     save_metrics,

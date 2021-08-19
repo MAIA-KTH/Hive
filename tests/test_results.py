@@ -7,7 +7,7 @@ import SimpleITK as sitk
 import numpy as np
 import pandas as pd
 import plotly.express as px
-from k8s_DP.utils.file_utils import subfiles
+from Hive.utils.file_utils import subfiles
 from medpy import metric
 from sklearn.metrics import confusion_matrix
 
