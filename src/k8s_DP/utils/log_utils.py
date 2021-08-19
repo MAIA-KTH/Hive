@@ -20,18 +20,16 @@ for lvl_value in [DEBUG2, DEBUG4, DEBUG6]:
     logging.addLevelName(lvl_value, "DEBUG")
 
 
-def setup_logging(level: Union[str, int] = "DEBUG"):
-    coloredlogs.install(level=level, fmt=LOG_FMT)
+def setup_logging(logger: logging.Logger, level: Union[str, int] = "DEBUG", fmt: str = LOG_FMT):
+    coloredlogs.install(logger=logger, level=level, fmt=fmt)
 
 
-def get_logger(name: str = "", level: Union[str, int] = None, format=None) -> logging.Logger:
+def get_logger(name: str = "", level: Union[str, int] = "DEBUG", fmt: str = LOG_FMT) -> logging.Logger:
     """Get a logger and setup colored logging if level is provided."""
-    if format is not None:
-        logging.basicConfig(format=format)
-    if level is not None:
-        setup_logging(level=level)
+    logger = logging.getLogger(name)
+    setup_logging(logger=logger, level=level, fmt=fmt)
 
-    return logging.getLogger(name)
+    return logger
 
 
 def add_verbosity_options_to_argparser(p: ArgumentParser):
