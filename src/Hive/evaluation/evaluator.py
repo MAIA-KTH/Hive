@@ -7,9 +7,9 @@ from typing import List, Dict, Union, Any
 import numpy as np
 from tqdm import tqdm
 
-from k8s_DP.evaluation.metrics import compute_confusion_matrix, METRICS
-from k8s_DP.utils.file_utils import subfiles
-from k8s_DP.utils.log_utils import get_logger
+from Hive.evaluation.metrics import compute_confusion_matrix, METRICS
+from Hive.utils.file_utils import subfiles
+from Hive.utils.log_utils import get_logger
 
 logger = get_logger(__name__)
 

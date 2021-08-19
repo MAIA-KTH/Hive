@@ -5,8 +5,8 @@ import plotly.express as px
 import numpy as np
 import copy
 
-from k8s_DP.utils.file_utils import subfiles
-from k8s_DP.utils.log_utils import get_logger, DEBUG
+from Hive.utils.file_utils import subfiles
+from Hive.utils.log_utils import get_logger, DEBUG
 
 SECTIONS = ["testing", "validation"]
 

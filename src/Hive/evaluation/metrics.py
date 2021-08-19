@@ -27,8 +27,7 @@ def accuracy(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
     accuracy_map = {}
     for c in list(cm_map.keys()):
         try:
-            acc = (cm_map[c]["tp"] + cm_map[c]["tn"]) / (
-                        cm_map[c]["tp"] + cm_map[c]["tn"] + cm_map[c]["fp"] + cm_map[c]["fn"])
+            acc = (cm_map[c]["tp"] + cm_map[c]["tn"]) / (cm_map[c]["tp"] + cm_map[c]["tn"] + cm_map[c]["fp"] + cm_map[c]["fn"])
             accuracy_map[c] = acc
         except TypeError:
             continue
