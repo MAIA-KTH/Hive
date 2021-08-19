@@ -4,30 +4,31 @@ import setuptools
 from setuptools import setup
 
 setup(
-    name="k8s_data_preparation",
-    version="1.0",
-    url="https://github.com/SimoneBendazzoli93/k8s_nnUNet.git",
+    name="k8s_DP",
+    version="1.1",
+    url="https://github.com/SimoneBendazzoli93/Hive.git",
     license="",
     author="Simone Bendazzoli",
     author_email="simben@kth.se",
-    description="Tool to standardize original dataset folder to match Decathlon-like folder structure",  # noqa: E501
+    description="",  # noqa: E501
     packages=setuptools.find_packages("src"),
     package_data={
         "": ["configs/*.yml", "configs/*.json"],
     },
     package_dir={"": "src"},
     install_requires=[
+        "visdom",
         "coloredlogs",
-        "matplotlib",
         "numpy",
         "SimpleITK",
-        "seg-metrics",
         "pandas",
-        "PySimpleGUI",
-        "pynrrd",
-        "nibabel",
-        "scikit-image",
-        "ipython",
+        "scikit-learn",
+        "tqdm",
+        "MedPy",
+        "plotly",
+        "kaleido",
+        "nbformat",
+        "pandasgui",
     ],
-    scripts=glob.glob("./scripts/*"),
+    scripts=glob.glob("scripts/*"),
 )

@@ -2,6 +2,7 @@
 
 import json
 import os
+from pathlib import Path
 from argparse import ArgumentParser, RawTextHelpFormatter
 from textwrap import dedent
 
@@ -19,17 +20,19 @@ DESC = dedent(
 EPILOG = dedent(
     """
     Example call:
-     {filename} -i /INPUT_FOLDER -o /OUTPUT_FOLDER --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json
-     {filename} -i /INPUT_FOLDER -o /OUTPUT_FOLDER --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json --save_npz
+    ::
+        {filename} -i /INPUT_FOLDER -o /OUTPUT_FOLDER --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json
+        {filename} -i /INPUT_FOLDER -o /OUTPUT_FOLDER --config-file ../LungLobeSeg_3d_fullres_100_LungLobeSeg_3D_Single_Modality.json --save_npz
     """.format(  # noqa: E501
-        filename=os.path.basename(__file__)
+        filename=Path(__file__).name
     )
 )
 
-if __name__ == "__main__":
-    parser = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
 
-    parser.add_argument(
+def get_arg_parser():
+    pars = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
+
+    pars.add_argument(
         "-i",
         "--input-folder",
         type=str,
@@ -37,7 +40,7 @@ if __name__ == "__main__":
         help="Folder path containing the volumes to be predicted",
     )
 
-    parser.add_argument(
+    pars.add_argument(
         "-o",
         "--output-folder",
         type=str,
@@ -45,20 +48,25 @@ if __name__ == "__main__":
         help="Folder path where to save the predictions",
     )
 
-    parser.add_argument(
+    pars.add_argument(
         "--config-file",
         type=str,
         required=True,
         help="File path for the configuration dictionary, used to retrieve experiments variables (Task_ID)",
     )
 
-    add_verbosity_options_to_argparser(parser)
+    add_verbosity_options_to_argparser(pars)
 
+    return pars
+
+
+def main():
+    parser = get_arg_parser()
     arguments, unknown_arguments = parser.parse_known_args()
     args = vars(arguments)
 
-    logger = get_logger(
-        name=os.path.basename(__file__),
+    logger = get_logger(  # NOQA: F841
+        name=Path(__file__).name,
         level=log_lvl_from_verbosity_args(args),
     )
 
@@ -67,7 +75,7 @@ if __name__ == "__main__":
     with open(config_file) as json_file:
         data = json.load(json_file)
 
-        arguments = [
+        arguments_list = [
             "-i",
             args["input_folder"],
             "-o",
@@ -77,5 +85,9 @@ if __name__ == "__main__":
             "-t",
             "Task" + data["Task_ID"] + "_" + data["Task_Name"],
         ]
-        arguments.extend(unknown_arguments)
-        os.system("nnUNet_predict " + " ".join(arguments))
+        arguments_list.extend(unknown_arguments)
+        os.system("nnUNet_predict " + " ".join(arguments_list))
+
+
+if __name__ == "__main__":
+    main()

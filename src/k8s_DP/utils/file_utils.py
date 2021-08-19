@@ -3,10 +3,12 @@ import os
 import random
 import shutil
 from multiprocessing import Pool
+from pathlib import Path
 from typing import Dict, Tuple, List
 
 import SimpleITK as sitk
 import numpy as np
+from tqdm import tqdm
 
 from .log_utils import get_logger, DEBUG
 
@@ -19,11 +21,9 @@ def subfiles(folder, join=True, prefix=None, suffix=None, sort=True):
     else:
         l = lambda x, y: y  # noqa: E741, E731
     res = [
-        l(folder, i)
-        for i in os.listdir(folder)
-        if os.path.isfile(os.path.join(folder, i))
-        and (prefix is None or i.startswith(prefix))
-        and (suffix is None or i.endswith(suffix))
+        l(folder, i.name)
+        for i in Path(folder).iterdir()
+        if i.is_file() and (prefix is None or i.name.startswith(prefix)) and (suffix is None or i.name.endswith(suffix))
     ]
     if sort:
         res.sort()
@@ -35,7 +35,7 @@ def subfolders(folder, join=True, sort=True):
         l = os.path.join  # noqa: E741
     else:
         l = lambda x, y: y  # noqa: E741, E731
-    res = [l(folder, i) for i in os.listdir(folder) if os.path.isdir(os.path.join(folder, i))]
+    res = [l(folder, i.name) for i in Path(folder).iterdir() if i.is_dir()]
     if sort:
         res.sort()
     return res
@@ -82,27 +82,27 @@ def generate_dataset_json(
     else:
         test_identifiers = []
 
-    json_dict = {}
-    json_dict["name"] = dataset_name
-    json_dict["description"] = dataset_description
-    json_dict["tensorImageSize"] = "4D"
-    json_dict["reference"] = dataset_reference
-    json_dict["licence"] = license
-    json_dict["release"] = dataset_release
-    json_dict["modality"] = {str(i): modalities[i] for i in range(len(modalities))}
-    json_dict["labels"] = {str(i): labels[i] for i in labels.keys()}
-
-    json_dict["numTraining"] = len(train_identifiers)
-    json_dict["numTest"] = len(test_identifiers)
-    json_dict["training"] = [{"image": "./imagesTr/%s" % i, "label": "./labelsTr/%s" % i} for i in train_identifiers]
-    json_dict["test"] = ["./imagesTs/%s" % i for i in test_identifiers]
+    json_dict = {
+        "name": dataset_name,
+        "description": dataset_description,
+        "tensorImageSize": "4D",
+        "reference": dataset_reference,
+        "licence": license,
+        "release": dataset_release,
+        "modality": {str(i): modalities[i] for i in range(len(modalities))},
+        "labels": {str(i): labels[i] for i in labels.keys()},
+        "numTraining": len(train_identifiers),
+        "numTest": len(test_identifiers),
+        "training": [{"image": "./imagesTr/%s" % i, "label": "./labelsTr/%s" % i} for i in train_identifiers],
+        "test": ["./imagesTs/%s" % i for i in test_identifiers],
+    }
 
     if not output_file.endswith("dataset.json"):
         print(
             "WARNING: output file name is not dataset.json! This may be intentional or not. You decide. "  # noqa: E501
             "Proceeding anyways..."
         )
-    save_config_json(json_dict, os.path.join(output_file))
+    save_config_json(json_dict, output_file)
 
 
 def save_config_json(config_dict: Dict[str, str], output_json: str) -> int:
@@ -129,41 +129,24 @@ def create_nnunet_data_folder_tree(data_folder: str, task_name: str, task_id: st
     :param task_name: string used as task_name when creating task folder
     """  # noqa E501
     logger.log(DEBUG, ' Creating Dataset tree at "{}"'.format(data_folder))
-    os.makedirs(
-        os.path.join(
-            data_folder,
-            "nnUNet_raw_data",
-            "Task" + task_id + "_" + task_name,
-            "imagesTr",
-        ),
-        exist_ok=True,
-    )
-    os.makedirs(
-        os.path.join(
-            data_folder,
-            "nnUNet_raw_data",
-            "Task" + task_id + "_" + task_name,
-            "labelsTr",
-        ),
-        exist_ok=True,
-    )
-    os.makedirs(
-        os.path.join(
-            data_folder,
-            "nnUNet_raw_data",
-            "Task" + task_id + "_" + task_name,
-            "imagesTs",
-        ),
+
+    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "imagesTr",).mkdir(
+        parents=True,
         exist_ok=True,
     )
 
-    os.makedirs(
-        os.path.join(
-            data_folder,
-            "nnUNet_raw_data",
-            "Task" + task_id + "_" + task_name,
-            "labelsTs",
-        ),
+    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "labelsTr",).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "imagesTs",).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "labelsTs",).mkdir(
+        parents=True,
         exist_ok=True,
     )
 
@@ -177,37 +160,24 @@ def create_data_folder_tree(data_folder: str, task_name: str, task_id: str):
     :param task_name: string used as task_name when creating task folder
     """  # noqa E501
     logger.log(DEBUG, ' Creating Dataset tree at "{}"'.format(data_folder))
-    os.makedirs(
-        os.path.join(
-            data_folder,
-            "Task" + task_id + "_" + task_name,
-            "imagesTr",
-        ),
-        exist_ok=True,
-    )
-    os.makedirs(
-        os.path.join(
-            data_folder,
-            "Task" + task_id + "_" + task_name,
-            "labelsTr",
-        ),
-        exist_ok=True,
-    )
-    os.makedirs(
-        os.path.join(
-            data_folder,
-            "Task" + task_id + "_" + task_name,
-            "imagesTs",
-        ),
+
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "imagesTr",).mkdir(
+        parents=True,
         exist_ok=True,
     )
 
-    os.makedirs(
-        os.path.join(
-            data_folder,
-            "Task" + task_id + "_" + task_name,
-            "labelsTs",
-        ),
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "labelsTr",).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "imagesTs",).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "labelsTs",).mkdir(
+        parents=True,
         exist_ok=True,
     )
 
@@ -249,13 +219,13 @@ def copy_data_to_dataset_folder(
     label_suffix: str = None,
     labels_subpath: str = None,
     modality: int = None,
-    num_threads: int = 5,
+    num_threads: int = None,
 ):
     """
 
     Parameters
     ----------
-    num_threads: number of threads to use in multiprocessing ( Default: 5 )
+    num_threads: number of threads to use in multiprocessing ( Default: N_THREADS )
     input_data_folder: folder path of the input dataset
     subjects: string list containing subject IDs for train set
     output_data_folder: folder path where to store images ( and labels )
@@ -275,12 +245,19 @@ def copy_data_to_dataset_folder(
     else:
         modality_code = ""
 
+    if num_threads is None:
+        try:
+            num_threads = int(os.environ["N_THREADS"])
+        except KeyError:
+            logger.warning("N_THREADS is not set as environment variable. Using Default [1]")
+            num_threads = 1
+
     pool = Pool(num_threads)
     copied_files = []
     for directory in subjects:
 
         files = subfiles(
-            os.path.join(input_data_folder, directory),
+            str(Path(input_data_folder).joinpath(directory)),
             join=False,
             suffix=config_dict["FileExtension"],
         )
@@ -299,8 +276,8 @@ def copy_data_to_dataset_folder(
                         copy_image_file,
                         (
                             (
-                                os.path.join(input_data_folder, directory, image_filename),
-                                os.path.join(output_data_folder, image_subpath, updated_image_filename),
+                                str(Path(input_data_folder).joinpath(directory, image_filename)),
+                                str(Path(output_data_folder).joinpath(image_subpath, updated_image_filename)),
                             ),
                         ),
                     )
@@ -310,9 +287,9 @@ def copy_data_to_dataset_folder(
                         copy_label_file,
                         (
                             (
-                                os.path.join(input_data_folder, directory, directory + image_suffix),
-                                os.path.join(input_data_folder, directory, directory + label_suffix),
-                                os.path.join(output_data_folder, labels_subpath, updated_label_filename),
+                                str(Path(input_data_folder).joinpath(directory, directory + image_suffix)),
+                                str(Path(input_data_folder).joinpath(directory, directory + label_suffix)),
+                                str(Path(output_data_folder).joinpath(labels_subpath, updated_label_filename)),
                             ),
                         ),
                     )
@@ -327,13 +304,13 @@ def copy_data_to_dataset_folder(
                     copy_image_file,
                     (
                         (
-                            os.path.join(input_data_folder, directory, image_filename),
-                            os.path.join(output_data_folder, image_subpath, updated_image_filename),
+                            str(Path(input_data_folder).joinpath(directory, image_filename)),
+                            str(Path(output_data_folder).joinpath(image_subpath, updated_image_filename)),
                         ),
                     ),
                 )
             )
-    _ = [i.get() for i in copied_files]
+    _ = [i.get() for i in tqdm(copied_files)]
 
 
 def copy_image_file(input_filepath: str, output_filepath: str):

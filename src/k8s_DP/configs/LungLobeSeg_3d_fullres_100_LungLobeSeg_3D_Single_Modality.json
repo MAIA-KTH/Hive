@@ -16,6 +16,12 @@
   "TRAINER_CLASS_NAME": "nnUNetTrainerV2",
   "TRAINER_PLAN": "nnUNetPlansv2.1",
   "Seed": 6,
+  "preprocessing_folder": "/home/LungLobeSeg/nnUNet_preprocess",
+  "Task_ID": "100",
+  "Task_Name": "LungLobeSeg_3D_Single_Modality",
+  "base_folder": "/home/LungLobeSeg/nnUNet_base",
+  "results_folder": "/home/LungLobeSeg/nnUNet_results",
+  "n_folds": 5,
   "Metrics_save_configs": {
     "Additional_DF_columns": {
       "test": "Prediction",
