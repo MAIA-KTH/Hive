@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "k8s-data-preparation.fullname" . }}
+  name: {{ include "nnunet-environment.fullname" . }}
   labels:
-  {{- include "k8s-data-preparation.labels" . | nindent 4 }}
+  {{- include "nnunet-environment.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-  {{- include "k8s-data-preparation.selectorLabels" . | nindent 6 }}
+  {{- include "nnunet-environment.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -18,7 +18,7 @@ spec:
       {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-    {{- include "k8s-data-preparation.selectorLabels" . | nindent 8 }}
+    {{- include "nnunet-environment.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

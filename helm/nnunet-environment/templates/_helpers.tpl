@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "k8s-data-preparation.name" -}}
+{{- define "nnunet-environment.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "k8s-data-preparation.fullname" -}}
+{{- define "nnunet-environment.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "k8s-data-preparation.chart" -}}
+{{- define "nnunet-environment.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "k8s-data-preparation.labels" -}}
-helm.sh/chart: {{ include "k8s-data-preparation.chart" . }}
-{{ include "k8s-data-preparation.selectorLabels" . }}
+{{- define "nnunet-environment.labels" -}}
+helm.sh/chart: {{ include "nnunet-environment.chart" . }}
+{{ include "nnunet-environment.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,8 +45,8 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "k8s-data-preparation.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "k8s-data-preparation.name" . }}
+{{- define "nnunet-environment.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "nnunet-environment.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app: nnunet
 {{- end }}
@@ -54,9 +54,9 @@ app: nnunet
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "k8s-data-preparation.serviceAccountName" -}}
+{{- define "nnunet-environment.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "k8s-data-preparation.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "nnunet-environment.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
