@@ -130,7 +130,7 @@ def save_metrics(config_dict, metric_name, basic_metrics, section):
         with open(summary_filepath) as json_file:
             summary_results_data = json.load(json_file)
 
-        for i in [x for x in range(len(summary_results_data["results"]["all"]))]:
+        for i in range(len(summary_results_data["results"]["all"])):
             df_temp = pd.DataFrame(summary_results_data["results"]["all"][i])
             column_selection = list(label_dict.keys())
             column_rename = copy.deepcopy(label_dict)
