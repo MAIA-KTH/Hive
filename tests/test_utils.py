@@ -1,6 +1,9 @@
 import sys
-from pathlib import Path
 from argparse import ArgumentParser
+from pathlib import Path
+
+import pytest
+
 from Hive.utils.log_utils import (
     add_verbosity_options_to_argparser,
     get_logger,
@@ -9,7 +12,6 @@ from Hive.utils.log_utils import (
     DEBUG2,
     WARN,
 )
-import pytest
 
 
 def get_test_logger(message_level, log_format):
