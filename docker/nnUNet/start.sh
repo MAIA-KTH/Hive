@@ -1,13 +1,12 @@
 #!/bin/bash
 
-echo $user
-groupadd --gid 1111 docker_user_group
-useradd -m -s /bin/bash -u 1000 --groups docker_user_group $user
+useradd -m -s /bin/bash -u 1000 $user
 echo $user":"$password | chpasswd
 adduser $user sudo
 
-cd /home/$user
-
 su $user "/workspace/create_nnUNet_conda_env.sh"
 
+echo 'source /workspace/.env' >> /home/$user/.bashrc
+#pip install git+https://github.com/SimoneBendazzoli93/Hive.git@v1.1
+pip install git+ssh://git@github.com/SimoneBendazzoli93/Hive.git@v1.1
 exec "$@"
