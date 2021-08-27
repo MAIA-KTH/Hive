@@ -47,6 +47,9 @@ def compute_metrics_for_case(
         Prediction filepath. The image voxels should contain the class indices.
     labels : List[str]
         list of strings, indicating for which labels the confusion matrix is computed.
+    prediction_suffix : str
+        filename suffix used to save the JSON summary accordingly. Example: ``"XYZ_post.nii.gz"`` generates
+        ``"summary_post.json"``
     metrics : List[str]
         list of strings, specifying which metrics to compute. Defaults to [ ``"Dice"``, ``"Accuracy"``, ``"Jaccard"``,
         ``"Recall"``, ``"Precision"``, ``"False Positive Rate"``, ``"False Omission Rate"``, ``"Hausdorff Distance"``,
@@ -60,7 +63,7 @@ def compute_metrics_for_case(
     """
     cm_class_map = compute_confusion_matrix(gt_filename, pred_filename, labels)
 
-    metrics_dict = {}  # type: Dict[str, Union[str, Dict]]
+    metrics_dict = {}  # type: Dict[str,Any]
 
     for c in labels:
         metrics_dict[c] = {}
@@ -84,13 +87,14 @@ def compute_metrics_for_case(
 
 
 def compute_metrics_for_folder(
-    gt_folder: str,
-    pred_folder: str,
-    labels: List[str],
-    file_suffix: str,
-    metrics: List[str] = DEFAULT_METRICS,
-    num_threads: int = None,
-) -> List[Dict[str, Any]]:
+        gt_folder: str,
+        pred_folder: str,
+        labels: List[str],
+        file_suffix: str,
+        metrics: List[str] = DEFAULT_METRICS,
+        num_threads: int = None,
+        prediction_suffix: str = '',
+):
     """
     Computes given metrics for the specified subjects and labels. The subjects are defined by the *ground truth folder*
     and the *predicted folder*. Only subjects with a correspondence in both the folder are considered and evaluated.
@@ -180,7 +184,7 @@ def order_scores_with_means(all_res: List[Dict[str, Any]]) -> Dict[str, Union[Li
     Dict[str, Union[List, Dict]]
         Dictionary containing ```"all_res"`` and the average score for each metric and each label.
     """  # noqa: W605
-    all_scores = OrderedDict()  # type: Dict[str, Union[List, Dict]]
+    all_scores = OrderedDict()  # type: Dict[str, Any]
     all_scores["all"] = []
     all_scores["mean"] = OrderedDict()
 

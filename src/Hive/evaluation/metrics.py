@@ -6,7 +6,7 @@ from medpy import metric
 from sklearn.metrics import confusion_matrix
 
 
-def accuracy(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
+def accuracy(cm_map: Dict[str, Any]) -> Dict[str, float]:
     r"""
     Computes **Accuracy** for each label specified in ``cm_map``.
 
@@ -34,7 +34,7 @@ def accuracy(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
     return accuracy_map
 
 
-def dice(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
+def dice(cm_map: Dict[str, Any]) -> Dict[str, float]:
     r"""
     Computes **Dice - F1 Score** for each label specified in ``cm_map``.
 
@@ -62,7 +62,7 @@ def dice(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
     return dice_map
 
 
-def jaccard(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
+def jaccard(cm_map: Dict[str, Any]) -> Dict[str, float]:
     r"""
     Computes **Jaccard coefficient** for each label specified in ``cm_map``.
 
@@ -90,7 +90,7 @@ def jaccard(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
     return jaccard_map
 
 
-def precision(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
+def precision(cm_map: Dict[str, Any]) -> Dict[str, float]:
     r"""
     Computes **Precision** for each label specified in ``cm_map``.
 
@@ -118,7 +118,7 @@ def precision(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
     return precision_map
 
 
-def recall(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
+def recall(cm_map: Dict[str, Any]) -> Dict[str, float]:
     r"""
     Computes **Recall** for each label specified in ``cm_map``.
 
@@ -146,7 +146,7 @@ def recall(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
     return recall_map
 
 
-def fpr(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
+def fpr(cm_map: Dict[str, Any]) -> Dict[str, float]:
     r"""
     Computes **False Positive Rate** for each label specified in ``cm_map``.
 
@@ -202,7 +202,7 @@ def fomr(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
     return fomr_map
 
 
-def hd(cm_map: Dict[str, Union[str, Dict[str, float]]]) -> Dict[str, float]:
+def hd(cm_map: Dict[str, Any]) -> Dict[str, float]:
     r"""
     Computes **Hausdorff Distance** for each label specified in ``cm_map``.
 
@@ -233,7 +233,7 @@ def hd(cm_map: Dict[str, Union[str, Dict[str, float]]]) -> Dict[str, float]:
     return hd_map
 
 
-def hd95(cm_map: Dict[str, Union[str, Dict[str, float]]]) -> Dict[str, float]:
+def hd95(cm_map: Dict[str, Any]) -> Dict[str, float]:
     r"""
     Computes **Hausdorff Distance 95 Quantile** for each label specified in ``cm_map``.
 
@@ -264,7 +264,7 @@ def hd95(cm_map: Dict[str, Union[str, Dict[str, float]]]) -> Dict[str, float]:
     return hd95_map
 
 
-def asd(cm_map: Dict[str, Union[str, Dict[str, float]]]) -> Dict[str, float]:
+def asd(cm_map: Dict[str, Any]) -> Dict[str, float]:
     r"""
     Computes **Average Surface Distance** for each label specified in ``cm_map``.
 
@@ -295,7 +295,7 @@ def asd(cm_map: Dict[str, Union[str, Dict[str, float]]]) -> Dict[str, float]:
     return asd_map
 
 
-def assd(cm_map: Dict[str, Union[str, Dict[str, float]]]) -> Dict[str, float]:
+def assd(cm_map: Dict[str, Any]) -> Dict[str, float]:
     r"""
     Computes **Average Symmetric Surface Distance** for each label specified in ``cm_map``.
 
@@ -359,6 +359,8 @@ def compute_confusion_matrix(gt_filename: str, pred_filename: str, labels: List[
     labels : List[str]
         list of strings, indicating for which labels the confusion matrix is computed.
         Example: [``"1"``, ``"2"``, ``"3"``]
+    include_distance_metrics : bool
+        Include distance metrics in the output map. Defaults to True
 
     Returns
     -------
