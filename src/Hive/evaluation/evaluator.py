@@ -1,5 +1,8 @@
+import hashlib
+import json
 import os
 from collections import OrderedDict
+from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
 from typing import List, Dict, Union, Any
@@ -8,8 +11,8 @@ import numpy as np
 from tqdm import tqdm
 
 from Hive.evaluation.metrics import compute_confusion_matrix, METRICS
-from Hive.utils.file_utils import subfiles
-from Hive.utils.log_utils import get_logger
+from Hive.utils.file_utils import subfiles, subfolders
+from Hive.utils.log_utils import get_logger, DEBUG
 
 logger = get_logger(__name__)
 
@@ -29,8 +32,9 @@ DEFAULT_METRICS = [
 
 
 def compute_metrics_for_case(
-    gt_filename: str, pred_filename: str, labels: List[str], metrics: List[str] = DEFAULT_METRICS
-) -> Dict[str, Union[str, Dict]]:
+        gt_filename: str, pred_filename: str, labels: List[str], prediction_suffix: str,
+        metrics: List[str] = DEFAULT_METRICS,
+):
     r"""
     Computes given metrics for the specified subject and labels. The subject is defined by the *ground truth image* and the
     *predicted image*. The ``metrics`` to compute are specified in a list, alongside the ``labels`` to consider.
@@ -66,6 +70,8 @@ def compute_metrics_for_case(
     metrics_dict = {}  # type: Dict[str,Any]
 
     for c in labels:
+        if (cm_class_map[c]["tp"] + cm_class_map[c]["fp"]) == 0:
+            logger.warning("Class {} in file {} has no positive values".format(c, pred_filename))
         metrics_dict[c] = {}
         metrics_dict[c]["True Positives"] = cm_class_map[c]["tp"]
         metrics_dict[c]["False Positives"] = cm_class_map[c]["fp"]
@@ -83,7 +89,10 @@ def compute_metrics_for_case(
     metrics_dict["reference"] = gt_filename
     metrics_dict["test"] = pred_filename
 
-    return metrics_dict
+    with open(Path(pred_filename).parent.joinpath("summary{}.json".format(prediction_suffix)), "w") as outfile:
+        json.dump(metrics_dict, outfile)
+
+    return
 
 
 def compute_metrics_for_folder(
@@ -119,6 +128,8 @@ def compute_metrics_for_folder(
          ``"Hausdorff Distance 95"``, ``"Avg. Surface Distance"``, ``"Avg. Symmetric Surface Distance"`` ].
     num_threads : int
         number of threads to use in multiprocessing ( Default: N_THREADS )
+    prediction_suffix : str
+        Name suffix for the prediction files to be considered for the evaluation. Can be None. Example: ``"_pred"``
 
     Returns
     -------
@@ -126,8 +137,16 @@ def compute_metrics_for_folder(
         list of dictionaries, one per subject, each containing ``gt_filename``, ``pred_filename`` and, for each
         label a sub-dictionary specifying the metric scores.
     """
+    if prediction_suffix is None:
+        prediction_suffix = ''
+
     gt_files = subfiles(gt_folder, join=False, suffix=file_suffix)
-    pred_files = subfiles(pred_folder, join=False, suffix=file_suffix)
+    pred_files = subfiles(pred_folder, join=True, suffix=prediction_suffix + file_suffix)
+
+    if len(pred_files) == 0:
+        pred_subfolders = subfolders(pred_folder, join=True)
+        pred_files = [subfiles(pred_subfolder, join=True, suffix=prediction_suffix + file_suffix)[0] for pred_subfolder
+                      in pred_subfolders]
 
     if num_threads is None:
         try:
@@ -138,31 +157,38 @@ def compute_metrics_for_folder(
 
     pool = Pool(num_threads)
     evaluated_cases = []
-    for gt_filepath in gt_files:
-        if gt_filepath in pred_files:
+    for pred_filepath in pred_files:
+        gt_filepath = str(Path(pred_filepath).name).replace(prediction_suffix, '')
+        if gt_filepath in gt_files:
             if not Path(gt_folder).joinpath(gt_filepath).is_file():
                 logger.warning("{} does not exist".format(Path(gt_folder).joinpath(gt_filepath)))
                 continue
-            if not Path(pred_folder).joinpath(gt_filepath).is_file():
-                logger.warning("{} does not exist".format(Path(pred_folder).joinpath(gt_filepath)))
 
+            if Path(pred_filepath).parent.joinpath("summary{}.json".format(prediction_suffix)).is_file():
+                continue
             evaluated_cases.append(
-                pool.starmap_async(
-                    compute_metrics_for_case,
-                    (
-                        (
-                            str(Path(gt_folder).joinpath(gt_filepath)),
-                            str(Path(pred_folder).joinpath(gt_filepath)),
-                            labels,
-                            metrics,
-                        ),
-                    ),
-                )
+
+                (
+                    str(Path(gt_folder).joinpath(gt_filepath)),
+                    pred_filepath,
+                    labels,
+                    prediction_suffix,
+                    metrics,
+
+                ),
             )
+
         else:
-            logger.warning("{} cannot be found in {}".format(gt_filepath, pred_folder))
-    all_metrics = [i.get()[0] for i in tqdm(evaluated_cases)]
-    return all_metrics
+            logger.log(DEBUG, "{} cannot be found in {}".format(gt_filepath, gt_folder))
+
+    res = pool.starmap_async(
+        compute_metrics_for_case, evaluated_cases)
+    pool.close()
+
+    [res.get() for _ in tqdm(evaluated_cases, desc='Prediction Evaluation')]
+    pool.join()
+
+    return
 
 
 def order_scores_with_means(all_res: List[Dict[str, Any]]) -> Dict[str, Union[List, Dict]]:
@@ -206,3 +232,86 @@ def order_scores_with_means(all_res: List[Dict[str, Any]]) -> Dict[str, Union[Li
         for score in all_scores["mean"][label]:
             all_scores["mean"][label][score] = float(np.nanmean(all_scores["mean"][label][score]))
     return all_scores
+
+
+def load_json_summaries(pred_folder: str, prediction_suffix: str, file_suffix: str) -> List[Dict]:
+    """
+    Load the single JSON summaries, one per each case, and create a list containing all of them.
+
+    Parameters
+    ----------
+    pred_folder : str
+        folder for the prediction files.
+    prediction_suffix : str
+        filename suffix to be considered in the evaluation, for example when choosing post-processed volumes ( Example: ``"_post"`` ).
+    file_suffix : str
+        filename extension ( Example: ``"nii.gz"`` ).
+
+    Returns
+    -------
+    List[Dict]
+        List of metric dictionaries for each case and each label.
+    """
+    all_res = []
+    if prediction_suffix is None:
+        prediction_suffix = ''
+
+    pred_files = subfiles(pred_folder, join=True, suffix=prediction_suffix + file_suffix)
+
+    if len(pred_files) == 0:
+        pred_subfolders = subfolders(pred_folder, join=True)
+        pred_files = [subfiles(pred_subfolder, join=True, suffix=prediction_suffix + file_suffix)[0] for pred_subfolder
+                      in pred_subfolders]
+
+    for pred_filepath in pred_files:
+        json_summary_path = Path(pred_filepath).parent.joinpath("summary{}.json".format(prediction_suffix))
+        if json_summary_path.is_file():
+            with open(json_summary_path) as json_file:
+                summary = json.load(json_file)
+                all_res.append(summary)
+
+    return all_res
+
+
+def compute_metrics_and_save_json(config_dict: Dict[str, Any], ground_truth_folder: str, prediction_folder: str,
+                                  prediction_suffix: str = ''):
+    """
+    Given a ground truth folder and a prediction folder, computes the evaluation metrics ans store the results in JSON format.
+
+    Parameters
+    ----------
+    config_dict : Dict[str, Any]
+        configuration dictionary with needed parameters.
+    ground_truth_folder : str
+        folder containing ground truth files.
+    prediction_folder : str
+        folder containing prediction files.
+    prediction_suffix : str
+        filename suffix to be considered in the evaluation, for example when choosing post-processed volumes ( Example: ``"post"`` ).
+    """
+    file_suffix = config_dict["FileExtension"]
+    label_dict = config_dict["label_dict"]
+    label_dict.pop("0", None)
+
+    labels = list(label_dict.keys())
+
+    if prediction_suffix is not '':
+        prediction_suffix = '_' + prediction_suffix
+
+    compute_metrics_for_folder(ground_truth_folder, prediction_folder, labels, file_suffix,
+                               prediction_suffix=prediction_suffix)
+
+    all_res = load_json_summaries(prediction_folder, prediction_suffix, file_suffix)
+    all_scores = order_scores_with_means(all_res)
+
+    json_dict = OrderedDict()
+    json_dict["name"] = config_dict["DatasetName"]
+    timestamp = datetime.today()
+    json_dict["timestamp"] = str(timestamp)
+    json_dict["task"] = "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"]
+    json_dict["results"] = all_scores
+    json_dict["id"] = hashlib.md5(json.dumps(json_dict).encode("utf-8")).hexdigest()[:12]
+    with open(Path(prediction_folder).joinpath("summary{}.json".format(prediction_suffix)), "w") as outfile:
+        json.dump(json_dict, outfile)
+
+    return
