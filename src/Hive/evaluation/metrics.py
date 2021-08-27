@@ -1,9 +1,12 @@
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any
 
 import SimpleITK as sitk
 import numpy as np
-from medpy import metric
-from sklearn.metrics import confusion_matrix
+from medpy.metric.binary import __surface_distances
+from monai.transforms import LoadImaged
+from nptyping import NDArray
+
+EPSILON = 1e-9
 
 
 def accuracy(cm_map: Dict[str, Any]) -> Dict[str, float]:
@@ -27,7 +30,8 @@ def accuracy(cm_map: Dict[str, Any]) -> Dict[str, float]:
     accuracy_map = {}
     for c in list(cm_map.keys()):
         try:
-            acc = (cm_map[c]["tp"] + cm_map[c]["tn"]) / (cm_map[c]["tp"] + cm_map[c]["tn"] + cm_map[c]["fp"] + cm_map[c]["fn"])
+            acc = (cm_map[c]["tp"] + cm_map[c]["tn"]) / (
+                    cm_map[c]["tp"] + cm_map[c]["tn"] + cm_map[c]["fp"] + cm_map[c]["fn"] + EPSILON)
             accuracy_map[c] = acc
         except TypeError:
             continue
@@ -55,7 +59,7 @@ def dice(cm_map: Dict[str, Any]) -> Dict[str, float]:
     dice_map = {}
     for c in list(cm_map.keys()):
         try:
-            dice_val = (2 * cm_map[c]["tp"]) / (2 * cm_map[c]["tp"] + cm_map[c]["fp"] + cm_map[c]["fn"])
+            dice_val = (2 * cm_map[c]["tp"]) / (2 * cm_map[c]["tp"] + cm_map[c]["fp"] + cm_map[c]["fn"] + EPSILON)
             dice_map[c] = dice_val
         except TypeError:
             continue
@@ -83,7 +87,7 @@ def jaccard(cm_map: Dict[str, Any]) -> Dict[str, float]:
     jaccard_map = {}
     for c in list(cm_map.keys()):
         try:
-            jac = (cm_map[c]["tp"]) / (cm_map[c]["tp"] + cm_map[c]["fp"] + cm_map[c]["fn"])
+            jac = (cm_map[c]["tp"]) / (cm_map[c]["tp"] + cm_map[c]["fp"] + cm_map[c]["fn"] + EPSILON)
             jaccard_map[c] = jac
         except TypeError:
             continue
@@ -111,7 +115,7 @@ def precision(cm_map: Dict[str, Any]) -> Dict[str, float]:
     precision_map = {}
     for c in list(cm_map.keys()):
         try:
-            prec = (cm_map[c]["tp"]) / (cm_map[c]["tp"] + cm_map[c]["fp"])
+            prec = (cm_map[c]["tp"]) / (cm_map[c]["tp"] + cm_map[c]["fp"] + EPSILON)
             precision_map[c] = prec
         except TypeError:
             continue
@@ -139,7 +143,7 @@ def recall(cm_map: Dict[str, Any]) -> Dict[str, float]:
     recall_map = {}
     for c in list(cm_map.keys()):
         try:
-            rec = (cm_map[c]["tp"]) / (cm_map[c]["tp"] + cm_map[c]["fn"])
+            rec = (cm_map[c]["tp"]) / (cm_map[c]["tp"] + cm_map[c]["fn"] + EPSILON)
             recall_map[c] = rec
         except TypeError:
             continue
@@ -167,14 +171,53 @@ def fpr(cm_map: Dict[str, Any]) -> Dict[str, float]:
     fpr_map = {}
     for c in list(cm_map.keys()):
         try:
-            fpr_val = (cm_map[c]["fp"]) / (cm_map[c]["tn"] + cm_map[c]["fp"])
+            fpr_val = (cm_map[c]["fp"]) / (cm_map[c]["tn"] + cm_map[c]["fp"] + EPSILON)
             fpr_map[c] = fpr_val
         except TypeError:
             continue
     return fpr_map
 
 
-def fomr(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
+def compute_distance_metrics(cm_map: Dict[str, Any]):
+    """
+    Computes distance metrics for each label and append them in the cm map
+
+    Parameters
+    ----------
+    cm_map : Dict[str, Dict[str, float]]
+        Confusion matrix map, mapping each label to its confusion matrix values, as described in :func:`compute_confusion_matrix`.
+
+    Returns
+    -------
+
+    """
+    gt_itk_image = sitk.ReadImage(cm_map["reference"])
+    pred_itk_image = sitk.ReadImage(cm_map["test"])
+    gt_data = sitk.GetArrayFromImage(gt_itk_image)
+    pred_data = sitk.GetArrayFromImage(pred_itk_image)
+
+    for c in list(cm_map.keys()):
+        try:
+            gt_data_one_hot = (gt_data == int(c)).astype(np.uint8)
+            pred_data_one_hot = (pred_data == int(c)).astype(np.uint8)
+
+            hd1 = __surface_distances(pred_data_one_hot, gt_data_one_hot, np.array(gt_itk_image.GetSpacing())[::-1])
+            hd2 = __surface_distances(gt_data_one_hot, pred_data_one_hot, np.array(gt_itk_image.GetSpacing())[::-1])
+            hd_val = max(hd1.max(), hd2.max())
+            hd95_val = np.percentile(np.hstack((hd1, hd2)), 95)
+            asd_val = hd1.mean()
+            assd_val = np.mean((asd_val, hd2.mean()))
+            cm_map[c]['hd'] = hd_val
+            cm_map[c]['hd95'] = hd95_val
+            cm_map[c]['asd'] = asd_val
+            cm_map[c]['assd'] = assd_val
+
+        except ValueError:
+            continue
+    return
+
+
+def fomr(cm_map: Dict[str, Any]) -> Dict[str, float]:
     r"""
     Computes **False Omission Rate** for each label specified in ``cm_map``.
 
@@ -195,7 +238,7 @@ def fomr(cm_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
     fomr_map = {}
     for c in list(cm_map.keys()):
         try:
-            fomr_val = (cm_map[c]["fn"]) / (cm_map[c]["tn"] + cm_map[c]["fn"])
+            fomr_val = (cm_map[c]["fn"]) / (cm_map[c]["tn"] + cm_map[c]["fn"] + EPSILON)
             fomr_map[c] = fomr_val
         except TypeError:
             continue
@@ -217,17 +260,11 @@ def hd(cm_map: Dict[str, Any]) -> Dict[str, float]:
         Dictionary mapping each label to its respective **Hausdorff Distance**.
 
     """
-    gt_itk_image = sitk.ReadImage(cm_map["reference"])
-    pred_itk_image = sitk.ReadImage(cm_map["test"])
-    gt_data = sitk.GetArrayFromImage(gt_itk_image)
-    pred_data = sitk.GetArrayFromImage(pred_itk_image)
     hd_map = {}
     for c in list(cm_map.keys()):
         try:
-            gt_data_one_hot = (gt_data == int(c)).astype(np.uint8)
-            pred_data_one_hot = (pred_data == int(c)).astype(np.uint8)
-            hd_val = metric.hd(pred_data_one_hot, gt_data_one_hot, np.array(gt_itk_image.GetSpacing())[::-1])
-            hd_map[c] = hd_val
+            c_label = int(c)
+            hd_map[c] = cm_map[c]['hd']
         except ValueError:
             continue
     return hd_map
@@ -248,17 +285,12 @@ def hd95(cm_map: Dict[str, Any]) -> Dict[str, float]:
         Dictionary mapping each label to its respective **Hausdorff Distance 95 Quantile**.
 
     """
-    gt_itk_image = sitk.ReadImage(cm_map["reference"])
-    pred_itk_image = sitk.ReadImage(cm_map["test"])
-    gt_data = sitk.GetArrayFromImage(gt_itk_image)
-    pred_data = sitk.GetArrayFromImage(pred_itk_image)
+
     hd95_map = {}
     for c in list(cm_map.keys()):
         try:
-            gt_data_one_hot = (gt_data == int(c)).astype(np.uint8)
-            pred_data_one_hot = (pred_data == int(c)).astype(np.uint8)
-            hd95_val = metric.hd95(pred_data_one_hot, gt_data_one_hot, np.array(gt_itk_image.GetSpacing())[::-1])
-            hd95_map[c] = hd95_val
+            c_label = int(c)
+            hd95_map[c] = cm_map[c]['hd95']
         except ValueError:
             continue
     return hd95_map
@@ -279,17 +311,11 @@ def asd(cm_map: Dict[str, Any]) -> Dict[str, float]:
         Dictionary mapping each label to its respective **Average Surface Distance**.
 
     """
-    gt_itk_image = sitk.ReadImage(cm_map["reference"])
-    pred_itk_image = sitk.ReadImage(cm_map["test"])
-    gt_data = sitk.GetArrayFromImage(gt_itk_image)
-    pred_data = sitk.GetArrayFromImage(pred_itk_image)
     asd_map = {}
     for c in list(cm_map.keys()):
         try:
-            gt_data_one_hot = (gt_data == int(c)).astype(np.uint8)
-            pred_data_one_hot = (pred_data == int(c)).astype(np.uint8)
-            asd_val = metric.asd(pred_data_one_hot, gt_data_one_hot, np.array(gt_itk_image.GetSpacing())[::-1])
-            asd_map[c] = asd_val
+            c_label = int(c)
+            asd_map[c] = cm_map[c]['asd']
         except ValueError:
             continue
     return asd_map
@@ -310,17 +336,11 @@ def assd(cm_map: Dict[str, Any]) -> Dict[str, float]:
         Dictionary mapping each label to its respective **Average Symmetric Surface Distance**.
 
     """
-    gt_itk_image = sitk.ReadImage(cm_map["reference"])
-    pred_itk_image = sitk.ReadImage(cm_map["test"])
-    gt_data = sitk.GetArrayFromImage(gt_itk_image)
-    pred_data = sitk.GetArrayFromImage(pred_itk_image)
     assd_map = {}
     for c in list(cm_map.keys()):
         try:
-            gt_data_one_hot = (gt_data == int(c)).astype(np.uint8)
-            pred_data_one_hot = (pred_data == int(c)).astype(np.uint8)
-            assd_val = metric.assd(pred_data_one_hot, gt_data_one_hot, np.array(gt_itk_image.GetSpacing())[::-1])
-            assd_map[c] = assd_val
+            c_label = int(c)
+            assd_map[c] = cm_map[c]['assd']
         except ValueError:
             continue
     return assd_map
@@ -341,7 +361,38 @@ METRICS = {
 }
 
 
-def compute_confusion_matrix(gt_filename: str, pred_filename: str, labels: List[str]) -> Dict[str, Union[str, Dict]]:
+def _confusion_matrix(gt_data: NDArray[(Any,), int], pred_data: NDArray[(Any,), int], labels: List[str]) -> Dict[
+    str, Any]:
+    """
+
+    Parameters
+    ----------
+    gt_data : NDArray[(Any,), int]
+        flat Numpy array containing the ground truth data to be evaluated. Each value indicates the class
+    pred_data : NDArray[(Any,), int]
+        flat Numpy array containing the prediction data to be evaluated. Each value indicates the class
+    labels : List[str]
+        list of strings, indicating for which labels the confusion matrix is computed.
+        Example: [``"1"``, ``"2"``, ``"3"``]
+
+    Returns
+    -------
+    Dict[str, Any]
+        Map containing Confusion Matrix values for each label.
+    """
+    cm = {}  # type: Dict[str, Any]
+    for label in labels:
+        cm[label] = {}
+        cm[label]["tp"] = int(((pred_data == int(label)) * (gt_data == int(label))).sum())
+        cm[label]["fp"] = int(((pred_data == int(label)) * (gt_data != int(label))).sum())
+        cm[label]["tn"] = int(((pred_data != int(label)) * (gt_data != int(label))).sum())
+        cm[label]["fn"] = int(((pred_data != int(label)) * (gt_data == int(label))).sum())
+
+    return cm
+
+
+def compute_confusion_matrix(gt_filename: str, pred_filename: str, labels: List[str],
+                             include_distance_metrics: bool = True) -> Dict[str, Any]:
     r"""
     Compute the Confusion matrix given the reference file, the prediction file and a list of labels to evaluate.
     For each label, a dictionary including the amount of True Positives, True Negatives, False Positives
@@ -369,26 +420,18 @@ def compute_confusion_matrix(gt_filename: str, pred_filename: str, labels: List[
        matrix values.
     """
 
-    gt_itk_image = sitk.ReadImage(gt_filename)
-    pred_itk_image = sitk.ReadImage(pred_filename)
-    gt_data = sitk.GetArrayFromImage(gt_itk_image)
-    pred_data = sitk.GetArrayFromImage(pred_itk_image)
+    gt_data = LoadImaged(keys=['image'])({"image": gt_filename})['image'].flatten()
+    pred_data = LoadImaged(keys=['image'])({"image": pred_filename})['image'].flatten()
 
-    cm = confusion_matrix(gt_data.flatten(), pred_data.flatten())
-    pop = np.sum(cm)
-    cm_class_map = {"reference": gt_filename, "test": pred_filename}  # type: Dict[str, Union[str, Dict]]
+    cm_map = _confusion_matrix(gt_data, pred_data, labels)
 
+    cm_map["reference"] = gt_filename
+    cm_map["test"] = pred_filename
     for c in labels:
-        cm_single_class_map = {}
-        tp = cm[int(c), int(c)]
-        fp = np.sum(cm[:, int(c)]) - tp
-        fn = np.sum(cm[int(c), :]) - tp
-        tn = pop - (fn + tp + fp)
-        cm_single_class_map["tp"] = float(tp)
-        cm_single_class_map["fp"] = float(fp)
-        cm_single_class_map["fn"] = float(fn)
-        cm_single_class_map["tn"] = float(tn)
-        cm_single_class_map["test_p"] = np.sum((gt_data.flatten() == int(c)).astype(np.uint8), dtype=np.float64)
-        cm_single_class_map["pred_p"] = np.sum((pred_data.flatten() == int(c)).astype(np.uint8), dtype=np.float64)
-        cm_class_map[c] = cm_single_class_map
-    return cm_class_map
+        cm_map[c]["test_p"] = np.sum((gt_data == int(c)).astype(np.uint8), dtype=np.float64)
+        cm_map[c]["pred_p"] = np.sum((pred_data == int(c)).astype(np.uint8), dtype=np.float64)
+
+    if include_distance_metrics:
+        compute_distance_metrics(cm_map)
+
+    return cm_map
