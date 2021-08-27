@@ -80,6 +80,8 @@ class Save2DSlicesd(MapTransform):
                     output_folder,
                     exist_ok=True,
                 )
+                axis_to_flip = [axis for axis, flip in enumerate(data["{}_meta_dict".format(key)]["axis_flip"]) if flip]
+                data[key] = np.flip(data[key], axis_to_flip)
                 axis_index = data["{}_meta_dict".format(key)]["axis_orientation"].index(orientation_index)
                 data[key] = np.swapaxes(data[key], 0, axis_index)
                 for index, slice_2d in enumerate(data[key]):
@@ -106,5 +108,6 @@ class Save2DSlicesd(MapTransform):
                         np.save(output_file, slice_2d)
                     data["{}_meta_dict".format(key)]["filenames_" + orientation].append({key: output_file})
                 data[key] = np.swapaxes(data[key], 0, axis_index)
+                data[key] = np.flip(data[key], axis_to_flip)
 
         return data
