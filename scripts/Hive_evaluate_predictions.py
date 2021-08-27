@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 
-import hashlib
 import json
 from argparse import ArgumentParser, RawTextHelpFormatter
-from collections import OrderedDict
-from datetime import datetime
 from pathlib import Path
 from textwrap import dedent
 
-from Hive.evaluation.evaluator import compute_metrics_for_folder, order_scores_with_means
+from Hive.evaluation.evaluator import compute_metrics_and_save_json
 from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
 
 DESC = dedent(
@@ -53,6 +50,14 @@ def get_arg_parser():
         help="File path for the configuration dictionary, used to retrieve experiment settings ",
     )
 
+    pars.add_argument(
+        "--prediction-suffix",
+        type=str,
+        required=False,
+        default="",
+        help="Prediction name suffix to find the corresponding prediction files to evaluate. Defaults to ``""`` ",
+    )
+
     add_verbosity_options_to_argparser(pars)
     return pars
 
@@ -68,25 +73,8 @@ def main():
 
     with open(args["config_file"]) as json_file:
         config_dict = json.load(json_file)
-
-    file_suffix = config_dict["FileExtension"]
-    label_dict = config_dict["label_dict"]
-    label_dict.pop("0", None)
-
-    labels = list(label_dict.keys())
-
-    all_res = compute_metrics_for_folder(args["ground_truth_folder"], args["prediction_folder"], labels, file_suffix)
-    all_scores = order_scores_with_means(all_res)
-
-    json_dict = OrderedDict()
-    json_dict["name"] = config_dict["DatasetName"]
-    timestamp = datetime.today()
-    json_dict["timestamp"] = str(timestamp)
-    json_dict["task"] = "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"]
-    json_dict["results"] = all_scores
-    json_dict["id"] = hashlib.md5(json.dumps(json_dict).encode("utf-8")).hexdigest()[:12]
-    with open(Path(args["prediction_folder"]).joinpath("summary.json"), "w") as outfile:
-        json.dump(json_dict, outfile)
+    compute_metrics_and_save_json(config_dict, args['ground_truth_folder'], args['prediction_folder'],
+                                  args['prediction_suffix'])
 
 
 if __name__ == "__main__":
