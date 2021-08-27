@@ -12,13 +12,18 @@
   ],
   "FileExtension": ".nii.gz",
   "DatasetName": "LungLobeSeg",
-  "Experiment Name": "2.5D_UNet",
   "Seed": 6,
+  "Task_ID": "106",
+  "Task_Name": "LungLobeSeg_2.5D_Single_Modality",
+  "base_folder": "/home/LungLobeSeg/Experiments/2.5D_UNet/2.5D_UNet_base",
+  "results_folder": "/home/LungLobeSeg/Experiments/2.5D_UNet/2.5D_UNet_results",
+  "preprocessing_folder": "/home/LungLobeSeg/Experiments/2.5D_UNet/2.5D_UNet_preprocess",
   "train_epochs": 50,
   "norm_stats": {
     "mean": 0,
     "sd": 500
   },
+  "Experiment Name": "2.5D_UNet",
   "slice_size_2d": {
     "axial": [
       512,
@@ -79,7 +84,7 @@
   ],
   "validation_key_metric": "Mean_Dice",
   "post_processing_suffix": "post",
-  "save_softmax": true,
+  "save_softmax": false,
   "Metrics_save_configs": {
     "Additional_DF_columns": {
       "test": "Prediction",
