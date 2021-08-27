@@ -12,15 +12,16 @@
   ],
   "FileExtension": ".nii.gz",
   "DatasetName": "LungLobeSeg",
+  "Experiment Name": "nnUNet_3D_fullres",
   "TRAINING_CONFIGURATION": "3d_fullres",
   "TRAINER_CLASS_NAME": "nnUNetTrainerV2",
   "TRAINER_PLAN": "nnUNetPlansv2.1",
   "Seed": 6,
-  "preprocessing_folder": "/home/LungLobeSeg/nnUNet_preprocess",
+  "preprocessing_folder": "/home/LungLobeSeg/Experiments/nnUNet_3D_fullres/nnUNet_3D_fullres_preprocess",
   "Task_ID": "100",
   "Task_Name": "LungLobeSeg_3D_Single_Modality",
-  "base_folder": "/home/LungLobeSeg/nnUNet_base",
-  "results_folder": "/home/LungLobeSeg/nnUNet_results",
+  "base_folder": "/home/LungLobeSeg/Experiments/nnUNet_3D_fullres/nnUNet_3D_fullres_base",
+  "results_folder": "/home/LungLobeSeg/Experiments/nnUNet_3D_fullres/nnUNet_3D_fullres_results",
   "n_folds": 5,
   "Metrics_save_configs": {
     "Additional_DF_columns": {
@@ -30,18 +31,16 @@
     "Add_Volume_Column": true,
     "Search_file_pattern_from": "Ground Truth",
     "Save_stats": true,
-    "Metrics_dict": {
-      "Dice": {
-        "m_unit": "L",
-        "bar_config": {
-          "thresholds": [ 0.5, 0.55 ],
-          "colors": [ "green", "orange", "red" ],
-          "min_value": 0.0,
-          "max_value": 1.0
-        }
-      },
-      "Hausdorff Distance": {
-      }
-    }
+    "Metrics_dict": [
+      "Dice",
+      "Avg. Surface Distance",
+      "Precision",
+      "Recall",
+      "Accuracy",
+      "Specificity",
+      "Hausdorff Distance 95",
+      "Jaccard",
+      "Relative Volumetric Difference"
+    ]
   }
 }

@@ -56,14 +56,14 @@ def main():
     )
     try:
         dataset_path = str(
-            Path(os.environ["nnUNet_raw_data_base"]).joinpath(
+            Path(os.environ["raw_data_base"]).joinpath(
                 "nnUNet_raw_data",
                 "Task" + arguments["task_ID"] + "_" + arguments["task_name"],
             )
         )
 
     except KeyError:
-        logger.error("nnUNet_raw_data_base is not set as environment variable")
+        logger.error("raw_data_base is not set as environment variable")
         return 1
 
     try:
@@ -75,7 +75,7 @@ def main():
                 config_dict = json.load(json_file)
 
     create_nnunet_data_folder_tree(
-        os.environ["nnUNet_raw_data_base"],
+        os.environ["raw_data_base"],
         arguments["task_name"],
         arguments["task_ID"],
     )
@@ -113,7 +113,7 @@ def main():
 
     config_dict["Task_ID"] = arguments["task_ID"]
     config_dict["Task_Name"] = arguments["task_name"]
-    config_dict["base_folder"] = os.environ["nnUNet_raw_data_base"]
+    config_dict["base_folder"] = os.environ["raw_data_base"]
     config_dict["n_folds"] = 5
 
     output_json_basename = (
@@ -134,12 +134,12 @@ def main():
         logger.warning("RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
         return 1
     try:
-        config_dict["preprocessing_folder"] = os.environ["nnUNet_preprocessed"]
+        config_dict["preprocessing_folder"] = os.environ["preprocessed_folder"]
         Path(config_dict[config_dict["preprocessing_folder"]]).mkdir(parents=True, exist_ok=True)
 
     except KeyError:
         logger.warning(
-            "nnUNet_preprocessed is not set as environment variable, not saved in {}".format(output_json_basename)
+            "preprocessed_folder is not set as environment variable, not saved in {}".format(output_json_basename)
             # noqa E501
         )
     save_config_json(config_dict, str(Path(config_dict["results_folder"]).joinpath(output_json_basename)))
