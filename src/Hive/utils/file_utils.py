@@ -340,3 +340,31 @@ def copy_label_file(input_image: str, input_label: str, output_filepath: str):
     image_itk = sitk.ReadImage(input_image)
     label_itk.CopyInformation(image_itk)
     sitk.WriteImage(label_itk, output_filepath)
+
+
+def move_file_in_subfolders(folder: str, file_suffix: str, file_extension: str):
+    """
+    Moves all the file with a specified extension from a main folder into the corresponding subfolders, each named with
+    the specific file ID. The file ID is given by the filenames ending with *file_pattern*,excluding it.
+
+    Parameters
+    ----------
+    folder : str
+        Main folder from where to move the files
+    file_suffix: str
+        Suffix used to identify the file IDs
+    file_extension: str
+        File extension to identify the files to move.
+    """
+    files = subfiles(folder, join=False, suffix=file_suffix)
+    file_IDs = []
+    for file in files:
+        if file.endswith(file_suffix):
+            Path(folder).joinpath(file[: -len(file_suffix)]).mkdir(parents=True, exist_ok=True)
+            file_IDs.append(file[: -len(file_suffix)])
+
+    files = subfiles(folder, join=False, suffix=file_extension)
+    for file in files:
+        for file_id in file_IDs:
+            if file_id in file:
+                shutil.move(str(Path(folder).joinpath(file)), str(Path(folder).joinpath(file_id, file)))
