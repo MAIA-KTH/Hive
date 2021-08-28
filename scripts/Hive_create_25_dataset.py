@@ -29,9 +29,9 @@ EPILOG = dedent(
     """
     Example call:
     ::
-        {filename} --config-file LungLobeSeg_Monai_2.5D_config.json
-        {filename} --config-file LungLobeSeg_Monai_2.5D_config.json --n-workers 4
-        {filename} --config-file LungLobeSeg_Monai_2.5D_config.json --n-cache 10
+        {filename} --config-file LungLobeSeg_2.5D_config.json
+        {filename} --config-file LungLobeSeg_2.5D_config.json --n-workers 4
+        {filename} --config-file LungLobeSeg_2.5D_config.json --n-cache 10
     """.format(  # noqa: E501
         filename=Path(__file__).name
     )
