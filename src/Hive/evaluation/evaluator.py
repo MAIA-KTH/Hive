@@ -32,7 +32,10 @@ DEFAULT_METRICS = [
 
 
 def compute_metrics_for_case(
-        gt_filename: str, pred_filename: str, labels: List[str], prediction_suffix: str,
+        gt_filename: str,
+        pred_filename: str,
+        labels: List[str],
+        prediction_suffix: str,
         metrics: List[str] = DEFAULT_METRICS,
 ):
     r"""
@@ -102,7 +105,7 @@ def compute_metrics_for_folder(
         file_suffix: str,
         metrics: List[str] = DEFAULT_METRICS,
         num_threads: int = None,
-        prediction_suffix: str = '',
+        prediction_suffix: str = "",
 ):
     """
     Computes given metrics for the specified subjects and labels. The subjects are defined by the *ground truth folder*
@@ -138,15 +141,15 @@ def compute_metrics_for_folder(
         label a sub-dictionary specifying the metric scores.
     """
     if prediction_suffix is None:
-        prediction_suffix = ''
+        prediction_suffix = ""
 
     gt_files = subfiles(gt_folder, join=False, suffix=file_suffix)
-    pred_files = subfiles(pred_folder, join=True, suffix=prediction_suffix + file_suffix)
 
-    if len(pred_files) == 0:
-        pred_subfolders = subfolders(pred_folder, join=True)
-        pred_files = [subfiles(pred_subfolder, join=True, suffix=prediction_suffix + file_suffix)[0] for pred_subfolder
-                      in pred_subfolders]
+    pred_subfolders = subfolders(pred_folder, join=True)
+    pred_files = [
+        subfiles(pred_subfolder, join=True, suffix=prediction_suffix + file_suffix)[0] for pred_subfolder in
+        pred_subfolders
+    ]
 
     if num_threads is None:
         try:
@@ -158,7 +161,7 @@ def compute_metrics_for_folder(
     pool = Pool(num_threads)
     evaluated_cases = []
     for pred_filepath in pred_files:
-        gt_filepath = str(Path(pred_filepath).name).replace(prediction_suffix, '')
+        gt_filepath = str(Path(pred_filepath).name).replace(prediction_suffix, "")
         if gt_filepath in gt_files:
             if not Path(gt_folder).joinpath(gt_filepath).is_file():
                 logger.warning("{} does not exist".format(Path(gt_folder).joinpath(gt_filepath)))
@@ -167,25 +170,22 @@ def compute_metrics_for_folder(
             if Path(pred_filepath).parent.joinpath("summary{}.json".format(prediction_suffix)).is_file():
                 continue
             evaluated_cases.append(
-
                 (
                     str(Path(gt_folder).joinpath(gt_filepath)),
                     pred_filepath,
                     labels,
                     prediction_suffix,
                     metrics,
-
                 ),
             )
 
         else:
             logger.log(DEBUG, "{} cannot be found in {}".format(gt_filepath, gt_folder))
 
-    res = pool.starmap_async(
-        compute_metrics_for_case, evaluated_cases)
+    res = pool.starmap_async(compute_metrics_for_case, evaluated_cases)
     pool.close()
 
-    [res.get() for _ in tqdm(evaluated_cases, desc='Prediction Evaluation')]
+    [res.get() for _ in tqdm(evaluated_cases, desc="Prediction Evaluation")]
     pool.join()
 
     return
@@ -243,7 +243,8 @@ def load_json_summaries(pred_folder: str, prediction_suffix: str, file_suffix: s
     pred_folder : str
         folder for the prediction files.
     prediction_suffix : str
-        filename suffix to be considered in the evaluation, for example when choosing post-processed volumes ( Example: ``"_post"`` ).
+        filename suffix to be considered in the evaluation, for example when choosing post-processed volumes
+        ( Example: ``"_post"`` ).
     file_suffix : str
         filename extension ( Example: ``"nii.gz"`` ).
 
@@ -254,14 +255,13 @@ def load_json_summaries(pred_folder: str, prediction_suffix: str, file_suffix: s
     """
     all_res = []
     if prediction_suffix is None:
-        prediction_suffix = ''
+        prediction_suffix = ""
 
-    pred_files = subfiles(pred_folder, join=True, suffix=prediction_suffix + file_suffix)
-
-    if len(pred_files) == 0:
-        pred_subfolders = subfolders(pred_folder, join=True)
-        pred_files = [subfiles(pred_subfolder, join=True, suffix=prediction_suffix + file_suffix)[0] for pred_subfolder
-                      in pred_subfolders]
+    pred_subfolders = subfolders(pred_folder, join=True)
+    pred_files = [
+        subfiles(pred_subfolder, join=True, suffix=prediction_suffix + file_suffix)[0] for pred_subfolder in
+        pred_subfolders
+    ]
 
     for pred_filepath in pred_files:
         json_summary_path = Path(pred_filepath).parent.joinpath("summary{}.json".format(prediction_suffix))
@@ -273,8 +273,9 @@ def load_json_summaries(pred_folder: str, prediction_suffix: str, file_suffix: s
     return all_res
 
 
-def compute_metrics_and_save_json(config_dict: Dict[str, Any], ground_truth_folder: str, prediction_folder: str,
-                                  prediction_suffix: str = ''):
+def compute_metrics_and_save_json(
+        config_dict: Dict[str, Any], ground_truth_folder: str, prediction_folder: str, prediction_suffix: str = ""
+):
     """
     Given a ground truth folder and a prediction folder, computes the evaluation metrics ans store the results in JSON format.
 
@@ -287,7 +288,8 @@ def compute_metrics_and_save_json(config_dict: Dict[str, Any], ground_truth_fold
     prediction_folder : str
         folder containing prediction files.
     prediction_suffix : str
-        filename suffix to be considered in the evaluation, for example when choosing post-processed volumes ( Example: ``"post"`` ).
+        filename suffix to be considered in the evaluation, for example when choosing post-processed volumes
+        ( Example: ``"post"`` ).
     """
     file_suffix = config_dict["FileExtension"]
     label_dict = config_dict["label_dict"]
@@ -295,8 +297,8 @@ def compute_metrics_and_save_json(config_dict: Dict[str, Any], ground_truth_fold
 
     labels = list(label_dict.keys())
 
-    if prediction_suffix is not '':
-        prediction_suffix = '_' + prediction_suffix
+    if prediction_suffix != "":
+        prediction_suffix = "_" + prediction_suffix
 
     compute_metrics_for_folder(ground_truth_folder, prediction_folder, labels, file_suffix,
                                prediction_suffix=prediction_suffix)
