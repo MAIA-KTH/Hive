@@ -14,7 +14,6 @@ from pandasgui import show
 from Hive.evaluation.io_metric_results import (
     create_dataframes,
     get_saved_dataframes,
-    RESULTS_SECTIONS,
     METRICS_FOLDER_NAME,
 )
 from Hive.evaluation.plotly_plots import create_plots, save_plots, PLOTS, BAR_AGGREGATORS
@@ -26,7 +25,8 @@ pio.renderers.default = "browser"
 DESC = dedent(
     """
     Generates metric result tables as ``Pandas Dataframe``, saving them as ``Pickle`` files. The files are stored in
-    */path/to/results_folder/METRICS_FOLDER/SECTION/METRIC_NAME*, with SECTION indicating ``Validation`` or ``Testing`` metrics.
+    */path/to/results_folder/METRICS_FOLDER/SECTION/METRIC_NAME*, with SECTION indicating ``Experiment``, ``Validation`` 
+    or ``Testing`` metrics.
     The created **Pandas Dataframes** can optionally be inspected with ```PandasGui``.
     For each given metric, a table with the metric score for each label class is created, including a flat version used for ``Plotly`` visualization.
     Optionally, a Pandas Dataframe including the average and the standard deviation scores for each label class is saved.
@@ -50,7 +50,7 @@ EPILOG = dedent(
     ::
         {filename} --config-file /path/to/config_file.json --section testing 
         {filename} --config-file /path/to/config_file.json --section testing --metrics Dice Accuracy Hausdorff Distance
-        {filename} --config-file /path/to/config_file.json --section testing --visualize-only True
+        {filename} --config-file /path/to/config_file.json --section testing --visualize-only True --sections testing validation
         {filename} --config-file /path/to/config_file.json --section testing --visualize-only True  --save-png True
         {filename} --config-file /path/to/config_file.json --section testing --display-in-browser True  --save-png True
         {filename} --config-file /path/to/config_file.json --section testing --upload-visdom-server True  --save-png True
@@ -87,6 +87,14 @@ def get_arg_parser():
         required=False,
         nargs="+",
         help="Sequence of metrics to be computed. If specified, the metrics listed in the configuration file are overridden",
+    )
+
+    pars.add_argument(
+        "--sections",
+        type=str,
+        required=False,
+        nargs="+",
+        help="Sequence of sections to compute the metrics on. Values can be: [ testing, validation, experiment ].",
     )
 
     pars.add_argument(
@@ -186,13 +194,17 @@ def main():
     if args["metrics"]:
         metrics = args["metrics"]
 
+    sections = ["testing", "validation", "experiment"]
+    if args["sections"]:
+        sections = args["sections"]
+
     if args["upload_visdom_server"] is True:
         vis = visdom.Visdom()
 
     if args["visualize_only"] is not True:
-        create_dataframes(config_dict, metrics, prediction_suffix)
+        create_dataframes(config_dict, metrics, sections, prediction_suffix)
 
-    df_paths = get_saved_dataframes(config_dict, metrics)
+    df_paths = get_saved_dataframes(config_dict, metrics, sections)
 
     if (
             args["save_png"] is True
@@ -201,24 +213,24 @@ def main():
             or args["show_in_browser"] is True
             or args["upload_visdom_server"] is True
     ):
-        plot_dict = create_plots(config_dict, df_paths, metrics, config_dict["Experiment Name"])
+        plot_dict = create_plots(config_dict, df_paths, metrics, config_dict["Experiment Name"], sections)
 
         if args["save_png"] is True:
-            save_plots(config_dict["results_folder"], plot_dict, metrics, "png")
+            save_plots(config_dict["results_folder"], plot_dict, metrics, sections, "png")
 
         if args["save_json"] is True:
-            save_plots(config_dict["results_folder"], plot_dict, metrics, "json")
+            save_plots(config_dict["results_folder"], plot_dict, metrics, sections, "json")
 
         if args["show_in_browser"] is True:
             for plot in plot_dict:
                 plot_dict[plot].show()
 
         if args["save_html"] is True:
-            save_plots(config_dict["results_folder"], plot_dict, metrics, "html")
+            save_plots(config_dict["results_folder"], plot_dict, metrics, sections, "html")
 
         if args["upload_visdom_server"] is True:
             for metric in metrics:
-                for section in RESULTS_SECTIONS:
+                for section in sections:
                     for plot in PLOTS:
                         if plot == "bar":
                             for aggr in BAR_AGGREGATORS:

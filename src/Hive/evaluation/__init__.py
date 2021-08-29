@@ -23,8 +23,5 @@ DEFAULT_METRIC_UNITS = {
     "Jaccard": "",
     "Relative Volumetric Difference": "[ % ]",
 }
-SECTIONS = ["testing", "validation"]
-
-RESULTS_SECTIONS = ["testing", "validation", "experiment"]
 
 METRICS_FOLDER_NAME = "metrics_DF"

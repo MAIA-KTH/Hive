@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 import numpy as np
 import pandas as pd
 
-from Hive.evaluation import SECTIONS, RESULTS_SECTIONS, METRICS_FOLDER_NAME
+from Hive.evaluation import METRICS_FOLDER_NAME
 from Hive.utils.log_utils import get_logger, DEBUG
 
 logger = get_logger(__name__)
@@ -16,7 +16,8 @@ ADVANCED_METRICS = {
         "Base_Metrics": ["False Positive Rate"],
         "Function": lambda x: 1 - x,
     },
-    "Fowlkes–Mallows index": {"Base_Metrics": ["Precision", "Recall"], "Function": lambda x, y: np.sqrt(np.multiply(x, y))},
+    "Fowlkes–Mallows index": {"Base_Metrics": ["Precision", "Recall"],
+                              "Function": lambda x, y: np.sqrt(np.multiply(x, y))},
     "Relative Volumetric Difference": {
         "Base_Metrics": ["Total Positives Reference", "Total Positives Test"],
         "Function": lambda x, y: np.divide(np.subtract(y, x), x) * 100,
@@ -25,7 +26,7 @@ ADVANCED_METRICS = {
         "Base_Metrics": ["Total Positives Reference", "Total Positives Test"],
         "Function": lambda x, y: np.divide(np.abs(np.subtract(y, x)), x) * 100,
     },
-}
+}  # type: Dict[str, Any]
 
 
 def get_results_summary_filepath(config_dict: Dict[str, Any], section: str, result_suffix: str, fold: int = 0) -> str:
@@ -49,8 +50,6 @@ def get_results_summary_filepath(config_dict: Dict[str, Any], section: str, resu
      -------
 
     """
-    if section not in SECTIONS:
-        raise ValueError("Invalid section. Expected one of: %s" % SECTIONS)
 
     predictions_path = config_dict["predictions_path"]
     results_folder_name = config_dict["predictions_folder_name"]
@@ -58,8 +57,10 @@ def get_results_summary_filepath(config_dict: Dict[str, Any], section: str, resu
     fold_folder = "fold_" + str(fold)
     if section == "validation":
         parent_folder = str(Path(fold_folder).joinpath(results_folder_name))
-    else:
+    elif section == "testing":
         parent_folder = results_folder_name
+    else:
+        raise ValueError("Invalid section. Expected one of: [ validation, testing ]")
     summary_filepath = str(
         Path(predictions_path).joinpath(
             parent_folder,
@@ -120,9 +121,6 @@ def save_metrics(config_dict: Dict[str, Any], metric_name: str, basic_metrics: L
     """
     pd.options.display.float_format = "{:.2%}".format
 
-    if section not in SECTIONS:
-        raise ValueError("Invalid section. Expected one of: %s" % SECTIONS)
-
     Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name).mkdir(exist_ok=True,
                                                                                                   parents=True)
 
@@ -134,8 +132,10 @@ def save_metrics(config_dict: Dict[str, Any], metric_name: str, basic_metrics: L
 
     if section == "testing":
         n_folds = 1
-    else:
+    elif section == "validation":
         n_folds = config_dict["n_folds"]
+    else:
+        raise ValueError("Invalid section. Expected one of: [ validation, testing ]")
 
     label_dict = config_dict["label_dict"]
     label_dict.pop("0", None)
@@ -150,6 +150,14 @@ def save_metrics(config_dict: Dict[str, Any], metric_name: str, basic_metrics: L
         else:
             logger.log(DEBUG, "{} is not a valid metric. Skipping.".format(metric_name))
             return
+
+    writer = pd.ExcelWriter(
+        str(
+            Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name,
+                                                         "{}.xlsx".format(metric_name))
+        ),
+        engine="xlsxwriter",
+    )
 
     for fold in range(n_folds):
 
@@ -210,6 +218,8 @@ def save_metrics(config_dict: Dict[str, Any], metric_name: str, basic_metrics: L
                 )
             )
 
+            df_aggregate.to_excel(writer, sheet_name="Stats")
+
     df_flat = df[[label_dict[key] for key in label_dict]].stack()
     df_flat = pd.DataFrame(df_flat)
     df_flat.reset_index(inplace=True)
@@ -225,6 +235,9 @@ def save_metrics(config_dict: Dict[str, Any], metric_name: str, basic_metrics: L
             )
         )
     )
+
+    df.to_excel(writer, sheet_name="Table", index=False)
+    writer.save()
     df_flat.to_pickle(
         str(
             Path(config_dict["results_folder"]).joinpath(
@@ -286,6 +299,17 @@ def create_dataframe_for_experiment(config_dict: Dict[str, Any], metric_name: st
             METRICS_FOLDER_NAME, "experiment", metric_name, "{}_flat.pkl".format(metric_name)
         )
     )
+    writer = pd.ExcelWriter(
+        str(
+            Path(config_dict["results_folder"]).joinpath(
+                METRICS_FOLDER_NAME, "experiment", metric_name, "{}.xlsx".format(metric_name)
+            )
+        ),
+        engine="xlsxwriter",
+    )
+    df.to_excel(writer, sheet_name="Table", index=False)
+
+    writer.save()
     df.to_pickle(df_file_path)
 
     df_flat.to_pickle(df_flat_file_path)
@@ -306,12 +330,15 @@ def save_dataframes(config_dict: Dict[str, Any], metric: str, section: str, resu
     result_suffix : str
         String used to retrieve the JSON result summaries, from where to extract metric scores.
     """
-    summary_filepath = get_results_summary_filepath(config_dict, section, result_suffix)
+    try:
+        summary_filepath = get_results_summary_filepath(config_dict, section, result_suffix)
+    except ValueError:
+        return
     base_metrics = read_metric_list(summary_filepath, config_dict)
     save_metrics(config_dict, metric, base_metrics, section, result_suffix)
 
 
-def get_saved_dataframes(config_dict: Dict[str, Any], metrics: List[str]) -> Dict[str, str]:
+def get_saved_dataframes(config_dict: Dict[str, Any], metrics: List[str], sections: List[str]) -> Dict[str, str]:
     """
     For a specified experiments, returns a map including all the saved DataFrames file paths.
 
@@ -321,6 +348,8 @@ def get_saved_dataframes(config_dict: Dict[str, Any], metrics: List[str]) -> Dic
         Configuration dictionary, including experiment settings.
     metrics : List[str]
         List of metrics
+    sections : List[str]
+        List of section names to retrieve DataFrames. Accepted values are: [``"experiment"``, ``"validation"``, ``"testing"``].
     Returns
     -------
     Dict[str, str]
@@ -328,7 +357,7 @@ def get_saved_dataframes(config_dict: Dict[str, Any], metrics: List[str]) -> Dic
     """
     pd_gui = {}
     for metric in metrics:
-        for section in RESULTS_SECTIONS:
+        for section in sections:
             df_path = Path(config_dict["results_folder"]).joinpath(
                 METRICS_FOLDER_NAME, section, metric, "{}_table.pkl".format(metric)
             )
@@ -342,7 +371,7 @@ def get_saved_dataframes(config_dict: Dict[str, Any], metrics: List[str]) -> Dic
     return pd_gui
 
 
-def create_dataframes(config_dict: Dict[str, Any], metrics: List[str], result_suffix: str = ""):
+def create_dataframes(config_dict: Dict[str, Any], metrics: List[str], sections: List[str], result_suffix: str = ""):
     """
     Creates set of Pandas dataframes, given a metric list and the prediction suffix, used to retrieve the corresponding
     JSON summaries. For each metric, 3 set dataframes are created: for validation results, for testing results and a
@@ -356,11 +385,16 @@ def create_dataframes(config_dict: Dict[str, Any], metrics: List[str], result_su
         Configuration dictionary, including experiment settings.
     metrics : List[str]
         List of metrics to create the Pandas dataframes.
+    sections : List[str]
+        List of section names to create DataFrames. Accepted values are: [``"experiment"``, ``"validation"``, ``"testing"``].
     result_suffix: str
         String used to retrieve the JSON result summaries, from where to extract metrics scores.
 
     """
     for metric in metrics:
-        for section in SECTIONS:
+        for section in sections:
             save_dataframes(config_dict, metric, section, result_suffix)
-        create_dataframe_for_experiment(config_dict, metric, SECTIONS)
+        if "experiment" in sections:
+            sections_to_combine = sections.copy()
+            sections_to_combine.remove("experiment")
+            create_dataframe_for_experiment(config_dict, metric, sections_to_combine)

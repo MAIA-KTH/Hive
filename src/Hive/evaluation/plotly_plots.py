@@ -6,7 +6,7 @@ import plotly.express as px
 from pandas import DataFrame
 from plotly.graph_objects import Figure
 
-from Hive.evaluation import DEFAULT_METRIC_UNITS, DEFAULT_BAR_CONFIGS, RESULTS_SECTIONS, METRICS_FOLDER_NAME, SECTIONS
+from Hive.evaluation import DEFAULT_METRIC_UNITS, DEFAULT_BAR_CONFIGS, METRICS_FOLDER_NAME
 
 BAR_AGGREGATORS = ["min", "max", "mean"]
 
@@ -224,7 +224,7 @@ def get_plot_title(main_title: str, section: str, metric: str, aggr="") -> str:
         Plot title for the given section and metric.
     """
     section_dataset = ""
-    if section in SECTIONS:
+    if section in ["validation", "testing"]:
         section_dataset = " {} Set,".format(section.capitalize())
     if aggr != "":
         aggr = " " + aggr
@@ -237,7 +237,7 @@ def create_plots(
         df_paths: Dict[str, str],
         metrics: List[str],
         plot_title: str,
-        sections: List[str] = RESULTS_SECTIONS,
+        sections: List[str],
 ) -> Dict[str, Figure]:
     """
     Creates and returns ``Plotly`` :py:class:`plotly.graph_objects.Figure`, according to the specified sections and metrics.
@@ -254,7 +254,7 @@ def create_plots(
     plot_title : str
         String from where to compose the plot title, as described in :py:`get_plot_title`.
     sections : List[str]
-        Sections to load and create plots. Defaults to [```testing``, ``validation``, ``experiment``].
+        Sections to load and create plots.
     Returns
     -------
     Dict[str, Figure]
@@ -312,7 +312,10 @@ def create_plots(
 SAVE_PLOT_DICT = {"png": "write_image", "json": "write_json", "html": "write_html"}
 
 
-def save_plots(results_folder: str, plot_dict: Dict[str, Figure], metrics: List[str], file_format: str = "png"):
+def save_plots(
+        results_folder: str, plot_dict: Dict[str, Figure], metrics: List[str], sections: List[str],
+        file_format: str = "png"
+):
     """
     Save the ```Plotly`` **Figure** stored in *plot_dict*, according to the specified file format. Accepted formats are:
     ```png``, ```html`` and ``json``.
@@ -325,6 +328,8 @@ def save_plots(results_folder: str, plot_dict: Dict[str, Figure], metrics: List[
         Map of available ```Plotly`` figures.
     metrics : List[str]
         List of metrics to save as plots.
+    sections : List[str]
+        Sections to save plots.
     file_format : str
         File format to save the plots.
     """
@@ -332,7 +337,7 @@ def save_plots(results_folder: str, plot_dict: Dict[str, Figure], metrics: List[
         raise ValueError("Invalid file format. Expected one of: %s" % list(SAVE_PLOT_DICT.keys()))
 
     for metric in metrics:
-        for section in RESULTS_SECTIONS:
+        for section in sections:
             for plot in PLOTS:
                 if plot == "bar":
                     for aggr in BAR_AGGREGATORS:
