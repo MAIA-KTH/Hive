@@ -204,17 +204,17 @@ def main():
         plot_dict = create_plots(config_dict, df_paths, metrics, config_dict["Experiment Name"])
 
         if args["save_png"] is True:
-            save_plots(config_dict, plot_dict, metrics, "png")
+            save_plots(config_dict["results_folder"], plot_dict, metrics, "png")
 
         if args["save_json"] is True:
-            save_plots(config_dict, plot_dict, metrics, "json")
+            save_plots(config_dict["results_folder"], plot_dict, metrics, "json")
 
         if args["show_in_browser"] is True:
             for plot in plot_dict:
                 plot_dict[plot].show()
 
         if args["save_html"] is True:
-            save_plots(config_dict, plot_dict, metrics, "html")
+            save_plots(config_dict["results_folder"], plot_dict, metrics, "html")
 
         if args["upload_visdom_server"] is True:
             for metric in metrics:
