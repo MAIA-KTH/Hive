@@ -123,6 +123,7 @@ def main():
 
     try:
         config_dict["results_folder"] = os.environ["RESULTS_FOLDER"]
+        config_dict["predictions_path"] = os.environ["RESULTS_FOLDER"]
     except KeyError:
         logger.warning(
             "RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))

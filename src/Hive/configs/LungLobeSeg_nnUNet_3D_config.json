@@ -16,14 +16,10 @@
   "TRAINING_CONFIGURATION": "3d_fullres",
   "TRAINER_CLASS_NAME": "nnUNetTrainerV2",
   "TRAINER_PLAN": "nnUNetPlansv2.1",
+  "predictions_folder_name": "validation_raw_postprocessed",
   "Seed": 6,
   "Metrics_save_configs": {
-    "Additional_DF_columns": {
-      "test": "Prediction",
-      "reference": "Ground Truth"
-    },
-    "Add_Volume_Column": true,
-    "Search_file_pattern_from": "Ground Truth",
+    "ID_column": "reference",
     "Save_stats": true,
     "Metrics_dict": [
       "Dice",

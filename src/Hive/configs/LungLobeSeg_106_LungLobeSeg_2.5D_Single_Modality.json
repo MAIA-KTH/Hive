@@ -85,6 +85,8 @@
   "validation_key_metric": "Mean_Dice",
   "post_processing_suffix": "post",
   "save_softmax": false,
+  "predictions_folder_name": "predictions",
+  "predictions_path": "/home/LungLobeSeg/Experiments/2.5D_UNet/2.5D_UNet_results",
   "Metrics_save_configs": {
     "ID_column": "reference",
     "Save_stats": true,

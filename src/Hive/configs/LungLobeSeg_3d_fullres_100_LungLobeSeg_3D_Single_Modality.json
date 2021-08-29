@@ -22,14 +22,11 @@
   "Task_Name": "LungLobeSeg_3D_Single_Modality",
   "base_folder": "/home/LungLobeSeg/Experiments/nnUNet_3D_fullres/nnUNet_3D_fullres_base",
   "results_folder": "/home/LungLobeSeg/Experiments/nnUNet_3D_fullres/nnUNet_3D_fullres_results",
+  "predictions_folder_name": "validation_raw_postprocessed",
+  "predictions_path": "/home/LungLobeSeg/Experiments/nnUNet_3D_fullres/nnUNet_3D_fullres_results/nnUNet/3d_fullres/Task100_LungLobeSeg_3D_Single_Modality/nnUNetTrainerV2__nnUNetPlansv2.1",
   "n_folds": 5,
   "Metrics_save_configs": {
-    "Additional_DF_columns": {
-      "test": "Prediction",
-      "reference": "Ground Truth"
-    },
-    "Add_Volume_Column": true,
-    "Search_file_pattern_from": "Ground Truth",
+    "ID_column": "reference",
     "Save_stats": true,
     "Metrics_dict": [
       "Dice",

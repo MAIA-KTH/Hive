@@ -79,6 +79,7 @@
   ],
   "validation_key_metric": "Mean_Dice",
   "post_processing_suffix": "post",
+  "predictions_folder_name": "predictions",
   "save_softmax": false,
   "Metrics_save_configs": {
     "ID_column": "reference",

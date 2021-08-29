@@ -128,7 +128,16 @@ def main():
     )
 
     try:
+        full_task_name = "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"]
         config_dict["results_folder"] = os.environ["RESULTS_FOLDER"]
+        config_dict["predictions_path"] = str(
+            Path(os.environ["RESULTS_FOLDER"]).joinpath(
+                "nnUNet",
+                config_dict["TRAINING_CONFIGURATION"],
+                full_task_name,
+                config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
+            )
+        )
         Path(config_dict["results_folder"]).mkdir(parents=True, exist_ok=True)
     except KeyError:
         logger.warning("RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
