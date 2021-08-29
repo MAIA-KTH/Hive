@@ -1,14 +1,13 @@
+import copy
 import json
 from pathlib import Path
-import pandas as pd
-import plotly.express as px
+from typing import List, Dict, Any
+
 import numpy as np
-import copy
+import pandas as pd
 
-from Hive.utils.file_utils import subfiles
+from Hive.evaluation import SECTIONS, RESULTS_SECTIONS, METRICS_FOLDER_NAME
 from Hive.utils.log_utils import get_logger, DEBUG
-
-SECTIONS = ["testing", "validation"]
 
 logger = get_logger(__name__)
 
@@ -28,47 +27,64 @@ ADVANCED_METRICS = {
     },
 }
 
-DEFAULT_BAR_CONFIGS = {
-    "Dice": {"thresholds": [0.9, 0.95], "colors": ["green", "orange", "red"], "min_value": 0.0, "max_value": 1.0},
-    "Hausdorff Distance": {"thresholds": [40, 80], "colors": ["red", "orange", "green"], "min_value": 0.0},
-}
 
-DEFAULT_METRIC_UNITS = {"Dice": "", "Hausdorff Distance": "[ mm ]"}
+def get_results_summary_filepath(config_dict: Dict[str, Any], section: str, result_suffix: str, fold: int = 0) -> str:
+    """
+     Return the JSON results filepath, for a specified section ( ``validation`` or ``testing`` ), and/or fold number.
 
+     Parameters
+     ----------
+    config_dict : Dict[str, Any]
+         Configuration dictionary, including experiment settings.
+     section : str
+         Section name. Values accepted: ``global``, ``validation``, ``testing``.
+     result_suffix : str
+         String used to retrieve the JSON result summaries, from where to extract metric scores.
+     fold : int
+         Optional fold number, in case section = ``validation``
 
-def find_file_from_pattern(folder, pattern, file_extension):
-    files = subfiles(folder, prefix=pattern[: -len(file_extension)], suffix=file_extension)
-    if len(files) > 0:
-        return files[0]
-    else:
-        return None
+     Returns
+     str
+         JSON results summary filepath
+     -------
 
-
-def get_results_summary_filepath(config_dict, section, fold=0):
+    """
     if section not in SECTIONS:
         raise ValueError("Invalid section. Expected one of: %s" % SECTIONS)
 
-    full_task_name = "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"]
+    predictions_path = config_dict["predictions_path"]
+    results_folder_name = config_dict["predictions_folder_name"]
+
     fold_folder = "fold_" + str(fold)
     if section == "validation":
-        parent_folder = str(Path(fold_folder).joinpath("validation_raw_postprocessed"))
+        parent_folder = str(Path(fold_folder).joinpath(results_folder_name))
     else:
-        parent_folder = "predictionsTs"
+        parent_folder = results_folder_name
     summary_filepath = str(
-        Path(config_dict["results_folder"]).joinpath(
-            "nnUNet",
-            config_dict["TRAINING_CONFIGURATION"],
-            full_task_name,
-            config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
+        Path(predictions_path).joinpath(
             parent_folder,
-            "summary.json",
+            "summary{}.json".format(result_suffix),
         )
     )
 
     return summary_filepath
 
 
-def read_metric_list(summary_filepath, config_dict):
+def read_metric_list(summary_filepath: str, config_dict: Dict[str, Any]) -> List[str]:
+    """
+
+    Parameters
+    ----------
+    summary_filepath : str
+        JSON summary filepath.
+    config_dict : Dict[str, Any]
+        Configuration dictionary, including experiment settings.
+
+    Returns
+    -------
+    List[str]
+        List of metric names
+    """
     with open(summary_filepath) as json_file:
         results_summary_data = json.load(json_file)
 
@@ -79,36 +95,47 @@ def read_metric_list(summary_filepath, config_dict):
     return metric_list
 
 
-def save_metrics(config_dict, metric_name, basic_metrics, section):
+def save_metrics(config_dict: Dict[str, Any], metric_name: str, basic_metrics: List[str], section: str,
+                 result_suffix: str):
+    """
+    For the specified metric and section, saves a Pandas Dataframe, including the class-wise scores and the case IDs.
+    If the metric is included in the basic_metrics, read from the JSON summary file, the metrics is automatically written
+    in the DataFrame. Otherwise, if the metric is included in the advanced metrics, the corresponding computations are
+    performed, before writing the values.
+    The Pandas DataFrames are then saved as pickle files.
+
+    Parameters
+    ----------
+    config_dict : Dict[str, Any]
+        Configuration dictionary, including experiment settings.
+    metric_name : str
+        Metric name.
+    section : str
+        Section name. Values accepted: ``validation``, ``testing``.
+    basic_metrics : List[str]
+        List of basic metrics, found in the JSON result summary file
+    result_suffix: str
+        String used to retrieve the JSON result summaries, from where to extract metrics scores.
+
+    """
     pd.options.display.float_format = "{:.2%}".format
 
     if section not in SECTIONS:
         raise ValueError("Invalid section. Expected one of: %s" % SECTIONS)
 
-    Path(config_dict["results_folder"]).joinpath("metrics_DF", section, metric_name).mkdir(exist_ok=True, parents=True)
+    Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name).mkdir(exist_ok=True,
+                                                                                                  parents=True)
 
-    additional_columns = {}
-    add_volume_column = False
+    column_id = None
 
     if "Metrics_save_configs" in config_dict:
-        if "Additional_DF_columns" in config_dict["Metrics_save_configs"]:
-            additional_columns = config_dict["Metrics_save_configs"]["Additional_DF_columns"]
-        if (
-            "Add_Volume_Column" in config_dict["Metrics_save_configs"]
-            and "Search_file_pattern_from" in config_dict["Metrics_save_configs"]
-        ):
-            add_volume_column = config_dict["Metrics_save_configs"]["Add_Volume_Column"]
-            volume_reference_column = config_dict["Metrics_save_configs"]["Search_file_pattern_from"]
+        if "ID_column" in config_dict["Metrics_save_configs"]:
+            column_id = config_dict["Metrics_save_configs"]["ID_column"]
 
     if section == "testing":
         n_folds = 1
-        base_folder = "imagesTs"
     else:
         n_folds = config_dict["n_folds"]
-        base_folder = "imagesTr"
-
-    full_task_name = "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"]
-    images_folder_path = str(Path(config_dict["base_folder"]).joinpath("nnUNet_raw_data", full_task_name, base_folder))
 
     label_dict = config_dict["label_dict"]
     label_dict.pop("0", None)
@@ -126,7 +153,7 @@ def save_metrics(config_dict, metric_name, basic_metrics, section):
 
     for fold in range(n_folds):
 
-        summary_filepath = get_results_summary_filepath(config_dict, section, fold)
+        summary_filepath = get_results_summary_filepath(config_dict, section, result_suffix, fold)
         with open(summary_filepath) as json_file:
             summary_results_data = json.load(json_file)
 
@@ -134,9 +161,6 @@ def save_metrics(config_dict, metric_name, basic_metrics, section):
             df_temp = pd.DataFrame(summary_results_data["results"]["all"][i])
             column_selection = list(label_dict.keys())
             column_rename = copy.deepcopy(label_dict)
-            for additional_column in list(additional_columns.keys()):
-                column_selection.append(additional_column)
-                column_rename[additional_column] = additional_columns[additional_column]
 
             if composed_metric is not None:
                 base_metric_0 = ADVANCED_METRICS[composed_metric]["Base_Metrics"][0]
@@ -153,23 +177,19 @@ def save_metrics(config_dict, metric_name, basic_metrics, section):
                 df_single_temp[[label_dict[key] for key in label_dict]] = df_composed_temp.values
             else:
                 df_single_temp = (
-                    df_temp[column_selection].loc[[metric_name]].rename(columns=column_rename, index={metric_name: str(subj_id)})
+                    df_temp[column_selection].loc[[metric_name]].rename(columns=column_rename,
+                                                                        index={metric_name: str(subj_id)})
                 )
 
-            if add_volume_column and Path(images_folder_path).is_dir():
-                volume_file = find_file_from_pattern(
-                    images_folder_path, Path(df_single_temp[volume_reference_column][0]).name, config_dict["FileExtension"]
-                )
-
-                if Path(volume_file).is_file():
-                    df_single_temp["Volume File"] = volume_file
-                else:
-                    df_single_temp["Volume File"] = ""
+            if column_id is not None:
+                df_single_temp["ID"] = Path(df_temp[column_id][0]).name[: -len(config_dict["FileExtension"])]
 
             if section == "testing":
                 df_single_temp["Section"] = "Testing"
             else:
                 df_single_temp["Section"] = "Fold {}".format(fold)
+
+            df_single_temp["Experiment"] = config_dict["Experiment Name"]
             df = df.append(df_single_temp)
             subj_id = subj_id + 1
 
@@ -185,7 +205,7 @@ def save_metrics(config_dict, metric_name, basic_metrics, section):
             df_aggregate.to_pickle(
                 str(
                     Path(config_dict["results_folder"]).joinpath(
-                        "metrics_DF", section, metric_name, "{}_stats.pkl".format(metric_name)
+                        METRICS_FOLDER_NAME, section, metric_name, "{}_stats.pkl".format(metric_name)
                     )
                 )
             )
@@ -195,85 +215,151 @@ def save_metrics(config_dict, metric_name, basic_metrics, section):
     df_flat.reset_index(inplace=True)
     df_flat.columns = ["Subject", "Label", metric_name]
 
+    df_flat["Section"] = section.capitalize()
+    df_flat["Experiment"] = config_dict["Experiment Name"]
+
     df.to_pickle(
-        str(Path(config_dict["results_folder"]).joinpath("metrics_DF", section, metric_name, "{}_table.pkl".format(metric_name)))
+        str(
+            Path(config_dict["results_folder"]).joinpath(
+                METRICS_FOLDER_NAME, section, metric_name, "{}_table.pkl".format(metric_name)
+            )
+        )
     )
     df_flat.to_pickle(
-        str(Path(config_dict["results_folder"]).joinpath("metrics_DF", section, metric_name, "{}_flat.pkl".format(metric_name)))
-    )
-
-
-def get_plotly_histo(df_flat, metric_name, metric_measurement_unit, section):
-    fig_histo = px.histogram(
-        df_flat,
-        x=metric_name,
-        color="Label",
-        labels={
-            metric_name: metric_name + " " + metric_measurement_unit,
-        },
-        title="{} Set, {}".format(section.capitalize(), metric_name),
-    )
-
-    return fig_histo
-
-
-def get_plotly_boxplot(df_flat, metric_name, metric_measurement_unit, section):
-    fig_boxplot = px.box(
-        df_flat,
-        x="Label",
-        y=metric_name,
-        color="Label",
-        labels={
-            metric_name: metric_name + " " + metric_measurement_unit,
-        },
-        title="{} Set, {}".format(section.capitalize(), metric_name),
-    )
-
-    return fig_boxplot
-
-
-def get_metric_stats_as_html_table(pandas_df, label_dict, metric_name, section, bar_configs=None):
-    df_stats = pd.DataFrame(zip(pandas_df.mean(), pandas_df.std()), columns=["Mean", "SD"], index=label_dict).rename(
-        index=label_dict
-    )
-
-    df_styler = (
-        df_stats.style.set_table_attributes("style='display:inline'")
-        .set_caption("{} Set,  {}".format(section.capitalize(), metric_name))
-        .format({"Mean": "{:.3}", "SD": "{:.3}"})
-        .set_table_styles(
-            [{"selector": "th", "props": [("font-size", "50px")]}, {"selector": "tr", "props": [("font-size", "40px")]}]
+        str(
+            Path(config_dict["results_folder"]).joinpath(
+                METRICS_FOLDER_NAME, section, metric_name, "{}_flat.pkl".format(metric_name)
+            )
         )
     )
 
-    if bar_configs is not None:
 
-        lower_threshold = bar_configs["thresholds"][0]
-        upper_threshold = bar_configs["thresholds"][1]
+def create_dataframe_for_experiment(config_dict: Dict[str, Any], metric_name: str, sections: List[str]):
+    """
+    Given a list of sections, merges the metric results from each DataFrame in a single DataFrame, saving it as **global**
+    section.
 
-        colors = ["green", "orange", "red"]
-        if "colors" in bar_configs:
-            colors = bar_configs["colors"]
+    Parameters
+    ----------
+     config_dict : Dict[str, Any]
+        Configuration dictionary, including experiment settings.
+    metric_name : str
+        Metric name.
+    sections : List[str]
+        List of section names to merge.
+    """
+    df_list = []
+    df_flat_list = []
+    for section in sections:
+        df_list.append(
+            pd.read_pickle(
+                str(
+                    Path(config_dict["results_folder"]).joinpath(
+                        METRICS_FOLDER_NAME, section, metric_name, "{}_table.pkl".format(metric_name)
+                    )
+                )
+            )
+        )
+        df_flat_list.append(
+            pd.read_pickle(
+                str(
+                    Path(config_dict["results_folder"]).joinpath(
+                        METRICS_FOLDER_NAME, section, metric_name, "{}_flat.pkl".format(metric_name)
+                    )
+                )
+            )
+        )
 
-        if "max_value" in bar_configs:
-            max_val = bar_configs["max_value"]
-        else:
-            max_val = df_stats["Mean"].max()
+    df = pd.concat(df_list, ignore_index=True)
+    df_flat = pd.concat(df_flat_list, ignore_index=True)
 
-        if "min_value" in bar_configs:
-            min_val = bar_configs["min_value"]
-        else:
-            min_val = df_stats["Mean"].min()
+    Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "global", metric_name).mkdir(exist_ok=True,
+                                                                                                   parents=True)
+    df_file_path = str(
+        Path(config_dict["results_folder"]).joinpath(
+            METRICS_FOLDER_NAME, "global", metric_name, "{}_table.pkl".format(metric_name)
+        )
+    )
+    df_flat_file_path = str(
+        Path(config_dict["results_folder"]).joinpath(
+            METRICS_FOLDER_NAME, "global", metric_name, "{}_flat.pkl".format(metric_name)
+        )
+    )
+    df.to_pickle(df_file_path)
 
-        i_high = pd.IndexSlice[df_stats.loc[(df_stats["Mean"] >= upper_threshold)].index, "Mean"]
-        i_mid = pd.IndexSlice[
-            df_stats.loc[((df_stats["Mean"] < upper_threshold) & (df_stats["Mean"] >= lower_threshold))].index, "Mean"
-        ]
-        i_low = pd.IndexSlice[df_stats.loc[(df_stats["Mean"] < lower_threshold)].index, "Mean"]
+    df_flat.to_pickle(df_flat_file_path)
 
-        df_styler.bar(subset=i_high, color=colors[0], align="left", vmin=min_val, vmax=max_val).bar(
-            subset=i_mid, color=colors[1], align="left", vmin=min_val, vmax=max_val
-        ).bar(subset=i_low, color=colors[2], align="left", vmin=min_val, vmax=max_val)
-    df_stats_html = df_styler.render()
 
-    return df_stats_html
+def save_dataframes(config_dict: Dict[str, Any], metric: str, section: str, result_suffix: str):
+    """
+    Given a metric and a section, saves the corresponding DataFrames.
+
+    Parameters
+    ----------
+    config_dict : Dict[str, Any]
+        Configuration dictionary, including experiment settings.
+    metric : str
+        Metric name:
+    section : str
+        Section name. Values accepted: ``global``, ``validation``, ``testing``.
+    result_suffix : str
+        String used to retrieve the JSON result summaries, from where to extract metric scores.
+    """
+    summary_filepath = get_results_summary_filepath(config_dict, section, result_suffix)
+    base_metrics = read_metric_list(summary_filepath, config_dict)
+    save_metrics(config_dict, metric, base_metrics, section, result_suffix)
+
+
+def get_saved_dataframes(config_dict: Dict[str, Any], metrics: List[str]) -> Dict[str, str]:
+    """
+    For a specified experiments, returns a map including all the saved DataFrames file paths.
+
+    Parameters
+    ----------
+    config_dict : Dict[str, Any]
+        Configuration dictionary, including experiment settings.
+    metrics : List[str]
+        List of metrics
+    Returns
+    -------
+    Dict[str, str]
+        Map containing all the saved metric DataFrames with the file paths.
+    """
+    pd_gui = {}
+    for metric in metrics:
+        for section in RESULTS_SECTIONS:
+            df_path = Path(config_dict["results_folder"]).joinpath(
+                METRICS_FOLDER_NAME, section, metric, "{}_table.pkl".format(metric)
+            )
+            df_flat_path = Path(config_dict["results_folder"]).joinpath(
+                METRICS_FOLDER_NAME, section, metric, "{}_flat.pkl".format(metric)
+            )
+            if df_path.is_file():
+                pd_gui[metric + "_" + section] = str(df_path)
+            if df_flat_path.is_file():
+                pd_gui[metric + "_flat" + "_" + section] = str(df_flat_path)
+    return pd_gui
+
+
+def create_dataframes(config_dict: Dict[str, Any], metrics: List[str], result_suffix: str = ""):
+    """
+    Creates set of Pandas dataframes, given a metric list and the prediction suffix, used to retrieve the corresponding
+    JSON summaries. For each metric, 3 set dataframes are created: for validation results, for testing results and a
+    global one, including both.
+    The Pandas Dataframes are saved in */PATH/TO/RESULTS/METRICS_FOLDER_NAME/SECTION/METRIC*, with section = [``"global"``,
+     ``"validation"``, ``"testing"``].
+
+    Parameters
+    ----------
+    config_dict : Dict[str, Any]
+        Configuration dictionary, including experiment settings.
+    metrics : List[str]
+        List of metrics to create the Pandas dataframes.
+    result_suffix: str
+        String used to retrieve the JSON result summaries, from where to extract metrics scores.
+
+    """
+    for metric in metrics:
+        for section in SECTIONS:
+            save_dataframes(config_dict, metric, section, result_suffix)
+        create_dataframe_for_experiment(config_dict, metric, SECTIONS)
