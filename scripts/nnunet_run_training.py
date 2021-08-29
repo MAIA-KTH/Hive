@@ -2,10 +2,11 @@
 
 import json
 import os
-from pathlib import Path
 from argparse import ArgumentParser, RawTextHelpFormatter
+from pathlib import Path
 from textwrap import dedent
 
+from Hive.utils.file_utils import move_file_in_subfolders
 from Hive.utils.log_utils import (
     get_logger,
     add_verbosity_options_to_argparser,
@@ -77,6 +78,8 @@ def main():
         ]
         arguments.extend(unknown_arguments)
         os.system("nnUNet_train " + " ".join(arguments))
+        fold_path = str(Path(data["predictions_path"]).joinpath(data["predictions_folder_name"]))
+        move_file_in_subfolders(fold_path, data["FileExtension"], data["FileExtension"])
 
 
 if __name__ == "__main__":

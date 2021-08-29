@@ -1,20 +1,14 @@
 DEFAULT_BAR_CONFIGS = {
-    "Dice": {"thresholds": [0.9, 0.95], "colors": ["red", "orange", "green"], "min_value": 0.0, "max_value": 1.0},
-    "Hausdorff Distance": {"thresholds": [40, 80], "colors": ["green", "orange", "red"], "min_value": 0.0},
-    "Hausdorff Distance 95": {"thresholds": [40, 80], "colors": ["green", "orange", "red"], "min_value": 0.0},
-    "Avg. Surface Distance": {"thresholds": [5, 10], "colors": ["green", "orange", "red"], "min_value": 0.0},
-    "Precision": {"thresholds": [0.9, 0.95], "colors": ["red", "orange", "green"], "min_value": 0.0, "max_value": 1.0},
-    "Recall": {"thresholds": [0.9, 0.95], "colors": ["red", "orange", "green"], "min_value": 0.0, "max_value": 1.0},
-    "Accuracy": {"thresholds": [0.9, 0.95], "colors": ["red", "orange", "green"], "min_value": 0.0, "max_value": 1.0},
-    "Specificity": {"thresholds": [0.9, 0.95], "colors": ["red", "orange", "green"], "min_value": 0.0,
-                    "max_value": 1.0},
-    "Jaccard": {"thresholds": [0.9, 0.95], "colors": ["red", "orange", "green"], "min_value": 0.0, "max_value": 1.0},
-    "Relative Volumetric Difference": {
-        "thresholds": [0.9, 0.95],
-        "colors": ["red", "orange", "green"],
-        "min_value": 0.0,
-        "max_value": 1.0,
-    },
+    "Dice": {"colors": ["red", "orange", "green"]},
+    "Hausdorff Distance": {"colors": ["green", "orange", "red"]},
+    "Hausdorff Distance 95": {"colors": ["green", "orange", "red"]},
+    "Avg. Surface Distance": {"colors": ["green", "orange", "red"]},
+    "Precision": {"colors": ["red", "orange", "green"]},
+    "Recall": {"colors": ["red", "orange", "green"]},
+    "Accuracy": {"colors": ["red", "orange", "green"]},
+    "Specificity": {"colors": ["red", "orange", "green"]},
+    "Jaccard": {"colors": ["red", "orange", "green"]},
+    "Relative Volumetric Difference": {"colors": ["red", "orange", "green"]},
 }
 
 DEFAULT_METRIC_UNITS = {
