@@ -37,7 +37,7 @@ def get_results_summary_filepath(config_dict: Dict[str, Any], section: str, resu
     config_dict : Dict[str, Any]
          Configuration dictionary, including experiment settings.
      section : str
-         Section name. Values accepted: ``global``, ``validation``, ``testing``.
+         Section name. Values accepted:  ``validation``, ``testing``.
      result_suffix : str
          String used to retrieve the JSON result summaries, from where to extract metric scores.
      fold : int
@@ -236,7 +236,7 @@ def save_metrics(config_dict: Dict[str, Any], metric_name: str, basic_metrics: L
 
 def create_dataframe_for_experiment(config_dict: Dict[str, Any], metric_name: str, sections: List[str]):
     """
-    Given a list of sections, merges the metric results from each DataFrame in a single DataFrame, saving it as **global**
+    Given a list of sections, merges the metric results from each DataFrame in a single DataFrame, saving it as **experiment**
     section.
 
     Parameters
@@ -273,16 +273,17 @@ def create_dataframe_for_experiment(config_dict: Dict[str, Any], metric_name: st
     df = pd.concat(df_list, ignore_index=True)
     df_flat = pd.concat(df_flat_list, ignore_index=True)
 
-    Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "global", metric_name).mkdir(exist_ok=True,
-                                                                                                   parents=True)
+    Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name).mkdir(
+        exist_ok=True, parents=True
+    )
     df_file_path = str(
         Path(config_dict["results_folder"]).joinpath(
-            METRICS_FOLDER_NAME, "global", metric_name, "{}_table.pkl".format(metric_name)
+            METRICS_FOLDER_NAME, "experiment", metric_name, "{}_table.pkl".format(metric_name)
         )
     )
     df_flat_file_path = str(
         Path(config_dict["results_folder"]).joinpath(
-            METRICS_FOLDER_NAME, "global", metric_name, "{}_flat.pkl".format(metric_name)
+            METRICS_FOLDER_NAME, "experiment", metric_name, "{}_flat.pkl".format(metric_name)
         )
     )
     df.to_pickle(df_file_path)
@@ -301,7 +302,7 @@ def save_dataframes(config_dict: Dict[str, Any], metric: str, section: str, resu
     metric : str
         Metric name:
     section : str
-        Section name. Values accepted: ``global``, ``validation``, ``testing``.
+        Section name. Values accepted:  ``validation``, ``testing``.
     result_suffix : str
         String used to retrieve the JSON result summaries, from where to extract metric scores.
     """
@@ -346,7 +347,7 @@ def create_dataframes(config_dict: Dict[str, Any], metrics: List[str], result_su
     Creates set of Pandas dataframes, given a metric list and the prediction suffix, used to retrieve the corresponding
     JSON summaries. For each metric, 3 set dataframes are created: for validation results, for testing results and a
     global one, including both.
-    The Pandas Dataframes are saved in */PATH/TO/RESULTS/METRICS_FOLDER_NAME/SECTION/METRIC*, with section = [``"global"``,
+    The Pandas Dataframes are saved in */PATH/TO/RESULTS/METRICS_FOLDER_NAME/SECTION/METRIC*, with section = [``"experiment"``,
      ``"validation"``, ``"testing"``].
 
     Parameters
