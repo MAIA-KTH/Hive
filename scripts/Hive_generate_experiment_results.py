@@ -6,7 +6,6 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
 
-import pandas as pd
 import plotly.io as pio
 import visdom
 from pandasgui import show
@@ -15,6 +14,7 @@ from Hive.evaluation.io_metric_results import (
     create_dataframes,
     get_saved_dataframes,
     METRICS_FOLDER_NAME,
+    read_dataframe,
 )
 from Hive.evaluation.plotly_plots import create_plots, save_plots, PLOTS, BAR_AGGREGATORS
 from Hive.evaluation.vis import create_log_at
@@ -24,9 +24,9 @@ pio.renderers.default = "browser"
 
 DESC = dedent(
     """
-    Generates metric result tables as ``Pandas Dataframe``, saving them as ``Pickle`` files. The files are stored in
-    */path/to/results_folder/METRICS_FOLDER/SECTION/METRIC_NAME*, with SECTION indicating ``Experiment``, ``Validation`` 
-    or ``Testing`` metrics.
+    Generates metric result tables as ``Pandas Dataframe``, saving them as ``Pickle``, ``Excel`` or ``CSV`` files.
+    The files are stored in */path/to/results_folder/METRICS_FOLDER/SECTION/METRIC_NAME*, with SECTION indicating
+    ``Experiment``, ``Validation`` or ``Testing`` metrics.
     The created **Pandas Dataframes** can optionally be inspected with ```PandasGui``.
     For each given metric, a table with the metric score for each label class is created, including a flat version used for ``Plotly`` visualization.
     Optionally, a Pandas Dataframe including the average and the standard deviation scores for each label class is saved.
@@ -53,6 +53,7 @@ EPILOG = dedent(
         {filename} --config-file /path/to/config_file.json --section testing --visualize-only True --sections testing validation
         {filename} --config-file /path/to/config_file.json --section testing --visualize-only True  --save-png True
         {filename} --config-file /path/to/config_file.json --section testing --display-in-browser True  --save-png True
+        {filename} --config-file /path/to/config_file.json --section testing --display-in-browser True  --df-format pickle
         {filename} --config-file /path/to/config_file.json --section testing --upload-visdom-server True  --save-png True
     """.format(  # noqa: E501 W291
         filename=Path(__file__).name
@@ -94,7 +95,15 @@ def get_arg_parser():
         type=str,
         required=False,
         nargs="+",
-        help="Sequence of sections to compute the metrics on. Values can be: [ testing, validation, experiment ].",
+        help="Sequence of sections to compute the metrics on. Values can be: [ ``testing``, ``validation``, ``experiment`` ].",
+    )
+
+    pars.add_argument(
+        "--df-format",
+        type=str,
+        required=False,
+        default="pickle",
+        help="File format to use to save Pandas DataFrame. Values can be: [ ``excel``, ``csv``, ``pickle`` ].",
     )
 
     pars.add_argument(
@@ -198,13 +207,15 @@ def main():
     if args["sections"]:
         sections = args["sections"]
 
+    file_format = args["df_format"]
+
     if args["upload_visdom_server"] is True:
         vis = visdom.Visdom()
 
     if args["visualize_only"] is not True:
-        create_dataframes(config_dict, metrics, sections, prediction_suffix)
+        create_dataframes(config_dict, metrics, sections, prediction_suffix, file_format)
 
-    df_paths = get_saved_dataframes(config_dict, metrics, sections)
+    df_paths = get_saved_dataframes(config_dict, metrics, sections, file_format)
 
     if (
             args["save_png"] is True
@@ -243,7 +254,7 @@ def main():
                     metric,
                 )
     if args["show_pandas_gui"] is True:
-        show(**{metric: pd.read_pickle(df_paths[metric]) for metric in df_paths})
+        show(**{metric: read_dataframe(df_paths[metric]) for metric in df_paths})
 
 
 if __name__ == "__main__":

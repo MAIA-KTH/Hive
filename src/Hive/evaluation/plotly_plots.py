@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import Dict, Any, List, Callable
 
-import pandas as pd
 import plotly.express as px
 from pandas import DataFrame
 from plotly.graph_objects import Figure
 
 from Hive.evaluation import DEFAULT_METRIC_UNITS, DEFAULT_BAR_CONFIGS, METRICS_FOLDER_NAME
+from Hive.evaluation.io_metric_results import read_dataframe
 
 BAR_AGGREGATORS = ["min", "max", "mean"]
 
@@ -263,7 +263,7 @@ def create_plots(
     plot_dict = {}
     for metric in metrics:
         for section in sections:
-            df_flat = pd.read_pickle(df_paths["{}_flat_{}".format(metric, section)])
+            df_flat = read_dataframe(df_paths["{}_flat_{}".format(metric, section)], sheet_name="Flat")
             bar_configs = None
             measurement_unit = ""
 
