@@ -1,18 +1,19 @@
+from os import PathLike
 from pathlib import Path
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List, Callable, Literal, Optional, Union
 
 import plotly.express as px
-from pandas import DataFrame
-from plotly.graph_objects import Figure
-
 from Hive.evaluation import DEFAULT_METRIC_UNITS, DEFAULT_BAR_CONFIGS, METRICS_FOLDER_NAME
 from Hive.evaluation.io_metric_results import read_dataframe
+from pandas import DataFrame
+from plotly.graph_objects import Figure
 
 BAR_AGGREGATORS = ["min", "max", "mean"]
 
 
 def get_plotly_histo(
-        df_flat: DataFrame, metric_name: str, metric_measurement_unit: str, section: str, plot_title: str, **kwargs
+        df_flat: DataFrame, metric_name: str, metric_measurement_unit: str,
+        section: Literal['testing', 'validation', 'experiment', 'project'], plot_title: str, **kwargs
 ) -> Figure:
     """
     Creates and returns a ```Plotly`` :py:class`px.histogram`, according to the given DataFrame, metric and section.
@@ -25,7 +26,7 @@ def get_plotly_histo(
         Specified metric for the plot.
     metric_measurement_unit : str
         Metric measurement unit, to be appended in the plot labels.
-    section : str
+    section : Literal['testing', 'validation', 'experiment', 'project']
         Specified section for the plot.
     plot_title : str
         Plot title.
@@ -64,7 +65,7 @@ def get_plotly_average_bar(
         df_flat: DataFrame,
         metric_name: str,
         metric_measurement_unit: str,
-        section: str,
+        section: Literal['testing', 'validation', 'experiment', 'project'],
         plot_title: str,
         bar_configs: Dict[str, Any],
         aggregator: str,
@@ -82,7 +83,7 @@ def get_plotly_average_bar(
         Specified metric for the plot.
     metric_measurement_unit : str
         Metric measurement unit, to be appended in the plot labels.
-    section : str
+    section : Literal['testing', 'validation', 'experiment', 'project']
         Specified section for the plot.
     plot_title : str
         Plot title.
@@ -146,7 +147,8 @@ def get_plotly_average_bar(
 
 
 def get_plotly_boxplot(
-        df_flat: DataFrame, metric_name: str, metric_measurement_unit: str, section: str, plot_title: str, **kwargs
+        df_flat: DataFrame, metric_name: str, metric_measurement_unit: str,
+        section: Literal['testing', 'validation', 'experiment', 'project'], plot_title: str, **kwargs
 ):
     """
     Creates and returns a ```Plotly`` :py:class`px.box`, according to the given DataFrame, metric and section.
@@ -200,7 +202,8 @@ PLOTS = {"boxplot": get_plotly_boxplot, "bar": get_plotly_average_bar,
          "histo": get_plotly_histo}  # type: Dict[str, Callable]
 
 
-def get_plot_title(main_title: str, section: str, metric: str, aggr="") -> str:
+def get_plot_title(main_title: str, section: Literal['testing', 'validation', 'experiment', 'project'], metric: str,
+                   aggr: Optional[Literal['max', 'min', 'mean']] = None) -> str:
     """
     Compose and return the plot title, according to the specified metric and section.
     The title is composed as follows:
@@ -211,11 +214,11 @@ def get_plot_title(main_title: str, section: str, metric: str, aggr="") -> str:
     ----------
     main_title : str
         Initial strings for the title, to be prepended.
-    section : str
+    section : Literal['testing', 'validation', 'experiment', 'project']
         Section for the title.
     metric: str
         Metric for the title.
-    aggr: str
+    aggr: Optional[Literal['max', 'min', 'mean']]
         Optional metric aggregator. Examples: [```mean``, ```max``, ```min``].
 
     Returns
@@ -226,7 +229,7 @@ def get_plot_title(main_title: str, section: str, metric: str, aggr="") -> str:
     section_dataset = ""
     if section in ["validation", "testing"]:
         section_dataset = " {} Set,".format(section.capitalize())
-    if aggr != "":
+    if aggr is not None:
         aggr = " " + aggr
     title = "{},{}{} {}".format(main_title.replace("_", " "), section_dataset, aggr, metric)
     return title
@@ -237,7 +240,7 @@ def create_plots(
         df_paths: Dict[str, str],
         metrics: List[str],
         plot_title: str,
-        sections: List[str],
+        sections: List[Literal['testing', 'validation', 'experiment']],
 ) -> Dict[str, Figure]:
     """
     Creates and returns ``Plotly`` :py:class:`plotly.graph_objects.Figure`, according to the specified sections and metrics.
@@ -253,7 +256,7 @@ def create_plots(
         List of metrics to create ``Plotly`` plots.
     plot_title : str
         String from where to compose the plot title, as described in :py:`get_plot_title`.
-    sections : List[str]
+    sections : List[Literal['testing', 'validation', 'experiment']]
         Sections to load and create plots.
     Returns
     -------
@@ -286,12 +289,12 @@ def create_plots(
                         bar_configs = config_dict["Metrics_save_configs"]["Metrics_dict"][metric]["bar_config"]
 
             title = get_plot_title(plot_title, section, metric)
+
             args = {
                 "df_flat": df_flat,
                 "metric_name": metric,
                 "metric_measurement_unit": measurement_unit,
                 "section": section,
-                "plot_title": title,
                 "bar_configs": bar_configs,
             }
 
@@ -303,8 +306,92 @@ def create_plots(
                         fig = PLOTS[plot](**args)
                         plot_dict["{}_{}_{}_{}".format(aggr, metric, section, plot)] = fig
                 else:
+                    args["plot_title"] = title
                     fig = PLOTS[plot](**args)
                     plot_dict["{}_{}_{}".format(metric, section, plot)] = fig
+
+    return plot_dict
+
+
+def create_plots_for_project(
+        config_dict: Dict[str, Any],
+        df_paths: Dict[str, str],
+        metrics: List[str],
+        plot_title: str,
+        subsection: Optional[Literal['Validation', 'Testing']] = None,
+) -> Dict[str, Figure]:
+    """
+    Creates and returns ``Plotly`` :py:class:`plotly.graph_objects.Figure` for the project, according to the specified metrics.
+    The Pandas Dataframes used to create the plots are loaded from *df_paths*.
+
+    Parameters
+    ----------
+    config_dict : Dict[str, Any]
+        Configuration dictionary, used to retrieve the metrics plot configurations.
+    df_paths : Dict[str, str]
+        Pandas DataFrame filepath dictionary, used to load the DataFrames.
+    metrics : List[str]
+        List of metrics to create ``Plotly`` plots.
+    plot_title : str
+        String from where to compose the plot title, as described in :py:`get_plot_title`.
+    subsection : Optional[Literal['Validation','Testing']]
+        If set, the metric DataFrame is also filtered according to the specific section, ```Testing`` or ``Validation``].
+
+    Returns
+    -------
+    Dict[str, Figure]
+        Map of created ```Plotly`` figures.
+    """
+    plot_dict = {}
+    project_df_flat = read_dataframe(df_paths["{}_flat".format(config_dict["ProjectName"])], sheet_name="Flat")
+    section = 'project'
+    for metric in metrics:
+        if subsection is None:
+            df_flat = project_df_flat[project_df_flat.Metric.eq(metric)]
+        else:
+            df_flat = project_df_flat[project_df_flat.Metric.eq(metric) & project_df_flat.Section.eq(subsection)]
+        bar_configs = None
+        measurement_unit = ""
+
+        if metric in DEFAULT_BAR_CONFIGS:
+            bar_configs = DEFAULT_BAR_CONFIGS[metric]
+
+        if "Metrics_save_configs" in config_dict and "Metrics_dict" in config_dict["Metrics_save_configs"]:
+            metrics_dict = config_dict["Metrics_save_configs"]["Metrics_dict"]
+            if metrics_dict is not None and isinstance(metrics_dict, dict) and "m_unit" in metrics_dict[metric]:
+                measurement_unit = metrics_dict[metric]["m_unit"]
+            else:
+                if metric in DEFAULT_METRIC_UNITS:
+                    measurement_unit = DEFAULT_METRIC_UNITS[metric]
+
+            if (
+                    isinstance(config_dict["Metrics_save_configs"]["Metrics_dict"], dict)
+                    and metric in config_dict["Metrics_save_configs"]["Metrics_dict"]
+            ):
+                if "bar_config" in config_dict["Metrics_save_configs"]["Metrics_dict"][metric]:
+                    bar_configs = config_dict["Metrics_save_configs"]["Metrics_dict"][metric]["bar_config"]
+
+        title = get_plot_title(plot_title, section, metric)
+
+        args = {
+            "df_flat": df_flat,
+            "metric_name": metric,
+            "metric_measurement_unit": measurement_unit,
+            "section": section,
+            "bar_configs": bar_configs,
+        }
+
+        for plot in PLOTS:
+            if plot == "bar":
+                for aggr in BAR_AGGREGATORS:
+                    args["aggregator"] = aggr
+                    args["plot_title"] = get_plot_title(plot_title, section, metric, aggr)
+                    fig = PLOTS[plot](**args)
+                    plot_dict["{}_{}_{}_{}_{}".format(aggr, metric, section, subsection, plot)] = fig
+            else:
+                args["plot_title"] = title
+                fig = PLOTS[plot](**args)
+                plot_dict["{}_{}_{}_{}".format(metric, section, subsection, plot)] = fig
 
     return plot_dict
 
@@ -313,8 +400,9 @@ SAVE_PLOT_DICT = {"png": "write_image", "json": "write_json", "html": "write_htm
 
 
 def save_plots(
-        results_folder: str, plot_dict: Dict[str, Figure], metrics: List[str], sections: List[str],
-        file_format: str = "png"
+        results_folder: Union[str, PathLike], plot_dict: Dict[str, Figure], metrics: List[str],
+        sections: List[Literal['testing', 'validation', 'experiment', 'project']],
+        file_format: Literal['png', 'html', 'json'] = "png"
 ):
     """
     Save the ```Plotly`` **Figure** stored in *plot_dict*, according to the specified file format. Accepted formats are:
@@ -328,9 +416,9 @@ def save_plots(
         Map of available ```Plotly`` figures.
     metrics : List[str]
         List of metrics to save as plots.
-    sections : List[str]
+    sections : List[Literal['testing', 'validation', 'experiment', 'project']]
         Sections to save plots.
-    file_format : str
+    file_format : Literal['png', 'html', 'json']
         File format to save the plots.
     """
     if file_format not in list(SAVE_PLOT_DICT.keys()):
@@ -338,6 +426,8 @@ def save_plots(
 
     for metric in metrics:
         for section in sections:
+            Path(results_folder).joinpath(
+                METRICS_FOLDER_NAME, section, metric).mkdir(parents=True, exist_ok=True)
             for plot in PLOTS:
                 if plot == "bar":
                     for aggr in BAR_AGGREGATORS:
