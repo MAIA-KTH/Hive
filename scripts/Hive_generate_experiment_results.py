@@ -8,8 +8,6 @@ from textwrap import dedent
 
 import plotly.io as pio
 import visdom
-from pandasgui import show
-
 from Hive.evaluation.io_metric_results import (
     create_dataframes,
     get_saved_dataframes,
@@ -19,6 +17,7 @@ from Hive.evaluation.io_metric_results import (
 from Hive.evaluation.plotly_plots import create_plots, save_plots, PLOTS, BAR_AGGREGATORS
 from Hive.evaluation.vis import create_log_at
 from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
+from pandasgui import show
 
 pio.renderers.default = "browser"
 
@@ -216,7 +215,6 @@ def main():
         create_dataframes(config_dict, metrics, sections, prediction_suffix, file_format)
 
     df_paths = get_saved_dataframes(config_dict, metrics, sections, file_format)
-
     if (
             args["save_png"] is True
             or args["save_json"] is True
@@ -254,7 +252,16 @@ def main():
                     metric,
                 )
     if args["show_pandas_gui"] is True:
-        show(**{metric: read_dataframe(df_paths[metric]) for metric in df_paths})
+        df_dict = {}
+        for metric in df_paths:
+            if file_format == 'excel':
+                if 'flat' in metric:
+                    df_dict[metric] = read_dataframe(df_paths[metric], sheet_name='Flat')
+                else:
+                    df_dict[metric] = read_dataframe(df_paths[metric], sheet_name='Table')
+            else:
+                df_dict[metric] = read_dataframe(df_paths[metric])
+        show(**df_dict)
 
 
 if __name__ == "__main__":
