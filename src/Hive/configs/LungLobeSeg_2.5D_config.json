@@ -55,7 +55,7 @@
   },
   "loss_config": {
     "class_name": "DiceCELoss",
-    "class_param": {
+    "class_params": {
       "to_onehot_y": true,
       "softmax": true,
       "lambda_dice": 0.0
@@ -63,7 +63,7 @@
   },
   "optim_config": {
     "class_name": "Adam",
-    "class_param": {
+    "class_params": {
       "lr": 1e-3
     }
   },
