@@ -90,7 +90,7 @@ def binary_one_hot_and_reduce_label(x: List[List[torch.Tensor]]) -> (List[torch.
     y_pred = x[0]
 
     y_pred = [monai.networks.utils.one_hot(y_pred_single, 2, dim=0) for y_pred_single in y_pred]
-    y = [torch.argmax(y_single, dim=0) for y_single in y_label]
+    y = [torch.squeeze(y_single, dim=0).long() for y_single in y_label]
 
     return y_pred, y
 
@@ -123,7 +123,10 @@ def create_validation_metric_dict(val_metric_list: List[str], n_classes: int) ->
                 val_metric["class_params"] = {}
 
             if "reduce_y_label" in val_metric and val_metric["reduce_y_label"]:
-                val_metric["class_params"]["output_transform"] = reduce_y_label
+                if n_classes == 2:
+                    val_metric["class_params"]["output_transform"] = binary_one_hot_and_reduce_label
+                else:
+                    val_metric["class_params"]["output_transform"] = reduce_y_label
 
             if val_metric["class_import"] == "ignite.metrics.confusion_matrix":
                 if n_classes == 2:
@@ -132,8 +135,7 @@ def create_validation_metric_dict(val_metric_list: List[str], n_classes: int) ->
                     cm = ConfusionMatrix(num_classes=n_classes, output_transform=reduce_y_label)
                 val_metric["class_params"]["cm"] = cm
 
-            validation_metrics[metric_name] = getattr(super_class, val_metric["class_name"])(
-                **val_metric["class_params"])
+            validation_metrics[metric_name] = getattr(super_class, val_metric["class_name"])(**val_metric["class_params"])
 
     return validation_metrics
 
@@ -160,7 +162,7 @@ def epoch_score_function(engine: Engine) -> float:
         engine.state.val_key_metric_biased = 0
 
     engine.state.val_key_metric_biased = (engine.state.val_key_metric_alpha * engine.state.val_key_metric_biased) + (
-            1 - engine.state.val_key_metric_alpha
+        1 - engine.state.val_key_metric_alpha
     ) * engine.state.metrics[engine.state.key_metric]
     bias_weight = 1
     if engine.state.val_key_metric_alpha < 1:
@@ -276,8 +278,7 @@ def epoch_printer(engine: Engine):
     logging.getLogger("evaluator").info(out_str)
 
 
-def reload_checkpoint(checkpoint_folder: Union[str, PathLike], net: nn.Module, opt: torch.optim,
-                      trainer: Engine) -> int:
+def reload_checkpoint(checkpoint_folder: Union[str, PathLike], net: nn.Module, opt: torch.optim, trainer: Engine) -> int:
     """
     Callable to be attached to an Ignite engine to reload any saved checkpoint in the checkpoint folder.
     Returns the epoch number from where to restore the state.

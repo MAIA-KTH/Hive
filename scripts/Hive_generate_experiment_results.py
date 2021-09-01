@@ -37,11 +37,11 @@ DESC = dedent(
 
     Advanced metric combination example:
         .. math::
-            Specificity = 1 - False Positive Rate     
+            Specificity = 1 - False\ Positive\ Rate     
     Optionally, a histogram and a boxplot distributions are rendered, representing the statistics for each label class.
     The plots can be either visualized in a browser window or saved as PNG files or HTML files. If a Visdom server is running, it is
     also possible to upload the metric plots and the statistics tables on the server.
-    """  # noqa: E501 W291
+    """  # noqa: E501 W291 W605
 )
 EPILOG = dedent(
     """
@@ -216,11 +216,11 @@ def main():
 
     df_paths = get_saved_dataframes(config_dict, metrics, sections, file_format)
     if (
-            args["save_png"] is True
-            or args["save_json"] is True
-            or args["save_html"] is True
-            or args["show_in_browser"] is True
-            or args["upload_visdom_server"] is True
+        args["save_png"] is True
+        or args["save_json"] is True
+        or args["save_html"] is True
+        or args["show_in_browser"] is True
+        or args["upload_visdom_server"] is True
     ):
         plot_dict = create_plots(config_dict, df_paths, metrics, config_dict["Experiment Name"], sections)
 
@@ -247,18 +247,17 @@ def main():
                         else:
                             vis.plotlyplot(plot_dict["{}_{}_{}".format(metric, section, plot)], env=metric)
                 create_log_at(
-                    Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric,
-                                                                 metric + ".log"),
+                    Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric, metric + ".log"),
                     metric,
                 )
     if args["show_pandas_gui"] is True:
         df_dict = {}
         for metric in df_paths:
-            if file_format == 'excel':
-                if 'flat' in metric:
-                    df_dict[metric] = read_dataframe(df_paths[metric], sheet_name='Flat')
+            if file_format == "excel":
+                if "flat" in metric:
+                    df_dict[metric] = read_dataframe(df_paths[metric], sheet_name="Flat")
                 else:
-                    df_dict[metric] = read_dataframe(df_paths[metric], sheet_name='Table')
+                    df_dict[metric] = read_dataframe(df_paths[metric], sheet_name="Table")
             else:
                 df_dict[metric] = read_dataframe(df_paths[metric])
         show(**df_dict)
