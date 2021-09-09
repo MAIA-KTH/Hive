@@ -4,7 +4,9 @@
 
 replicaCount: 1
 
-extraHostVolumes: []
+extraHostVolumes:
+  - name: hive
+    hostPath: /home/simone/Documents/Projects/Hive
 extraSecretVolumes:
   - name: secret-git-key
     secretName: ssh-key-secret
@@ -17,6 +19,8 @@ extraNFSVolumes:
 extraVolumeMounts:
   - name: nfs-data-volume
     mountPath: /home/LungLobeSeg
+  - name: hive
+    mountPath: /home/Hive
   - mountPath: /dev/shm
     name: dshm
   - name: secret-git-key
