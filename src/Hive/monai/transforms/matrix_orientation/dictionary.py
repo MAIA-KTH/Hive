@@ -1,12 +1,11 @@
 from typing import Any
 
 import numpy as np
+from Hive.monai import ORIENTATION_MAP
+from Hive.monai.transforms.utils import get_quatern_a, get_axis_order_to_RAI
 from monai.config import KeysCollection
 from monai.transforms import MapTransform
 from scipy.spatial.transform import Rotation as R
-
-from Hive.monai import ORIENTATION_MAP
-from Hive.monai.transforms.utils import get_quatern_a, get_axis_order_to_RAI
 
 
 class OrientToRAId(MapTransform):
@@ -19,10 +18,10 @@ class OrientToRAId(MapTransform):
     """
 
     def __init__(
-            self,
-            keys: KeysCollection,
-            slicing_axes: str = None,
-            allow_missing_keys: bool = False,
+        self,
+        keys: KeysCollection,
+        slicing_axes: str = None,
+        allow_missing_keys: bool = False,
     ) -> None:
         """
         Args:
@@ -40,8 +39,7 @@ class OrientToRAId(MapTransform):
 
         if self.slicing_axes not in ORIENTATION_MAP and self.slicing_axes is not None:
             raise ValueError(
-                "Slicing axes should be one of the following: {} , got {}".format(ORIENTATION_MAP.keys(),
-                                                                                  self.slicing_axes)
+                "Slicing axes should be one of the following: {} , got {}".format(ORIENTATION_MAP.keys(), self.slicing_axes)
             )
 
     def __call__(self, data: Any):
@@ -56,7 +54,7 @@ class OrientToRAId(MapTransform):
                 quaterns.insert(0, get_quatern_a(*quaterns))
                 r = R.from_quat(quaterns)
                 orientation_matrix = r.as_matrix()
-            elif data["image_meta_dict"]["sform_code"] > 0:
+            elif data["{}_meta_dict".format(key)]["sform_code"] > 0:
 
                 orientation_matrix = np.array(
                     [
