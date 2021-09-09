@@ -15,13 +15,62 @@ from Hive.monai.engines.utils import (
     reload_checkpoint,
     save_final_state_summary,
 )
+from Hive.monai.handlers import Hive2Dto3DTensorBoardImageHandler
+from Hive.monai.transforms import OrientToRAId
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.engine import create_supervised_trainer, Events, create_supervised_evaluator, Engine
 from ignite.handlers import ModelCheckpoint
 from monai.data import decollate_batch
 from monai.handlers import TensorBoardStatsHandler, StatsHandler
-from monai.transforms import Transform
+from monai.transforms import LoadImaged, Compose, Transform
 from torch.utils.data import DataLoader
+
+
+def get_id_volume_map(
+    volume_indexes: List[int],
+    val_3D_files: List[Dict],
+    val_2D_files: List[Dict],
+    orientation: str,
+    file_extension: str = ".nii.gz",
+) -> Dict[str, Any]:
+    """
+    Generates and returns as Map of Volume IDs with values corresponding to the volume metadata dictionary and a list of
+    the corresponding 2D slices to stack along the specified orientation, in order to generate the 3D volume from the 2D slices.
+
+    Parameters
+    ----------
+    volume_indexes : List[int]
+        List of indexes for the 3D files to be included.
+    val_3D_files : List[Dict]
+        Input to the 3D Dataset, containing a List of Dict for the 3D volumes.
+    val_2D_files : List[Dict]
+        Input to the 2D Dataset, containing a List of Dict for the 2D volumes.
+    orientation : str
+        Given orientation to create the 3D volume from the 2D stack.
+    file_extension : str
+        Filename extension. Defaults to ``nii.gz``.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Map of volume IDs anc corresponding metadata and list of 2D slices.
+    """
+    volume_ids = [Path(val_3D_files[volume_index]["label"]).name[: -len(file_extension)] for volume_index in volume_indexes]
+
+    val_list = list(val_3D_files[i] for i in volume_indexes)
+
+    val_3D_transform = Compose([LoadImaged(keys=["label"]), OrientToRAId(keys=["label"], slicing_axes=orientation)])
+    val_data = val_3D_transform(val_list)
+
+    volume_id_map = {}
+    for idx, volume_id in enumerate(volume_ids):
+        selected_indexes = []
+        for index, val_file in enumerate(val_2D_files):
+            if volume_id in val_file["label"]:
+                selected_indexes.append(index)
+        val_data[idx]["label_meta_dict"]["indexes"] = selected_indexes
+        volume_id_map[volume_id] = val_data[idx]["label_meta_dict"]
+    return volume_id_map
 
 
 class HiveSupervisedTrainer:
@@ -87,8 +136,7 @@ class HiveSupervisedTrainer:
             ).to(self.device)
             return net
         else:
-            raise AttributeError(
-                "{} has no attribute {}".format(import_class, self.config_dict["net_config"]["class_name"]))
+            raise AttributeError("{} has no attribute {}".format(import_class, self.config_dict["net_config"]["class_name"]))
 
     def _load_loss(self):
         if "class_import" in self.config_dict["loss_config"]:
@@ -101,8 +149,7 @@ class HiveSupervisedTrainer:
             )
             return loss
         else:
-            raise AttributeError(
-                "{} has no attribute {}".format(import_class, self.config_dict["loss_config"]["class_name"]))
+            raise AttributeError("{} has no attribute {}".format(import_class, self.config_dict["loss_config"]["class_name"]))
 
     def _load_optim(self, net):
         if "class_import" in self.config_dict["optim_config"]:
@@ -116,14 +163,13 @@ class HiveSupervisedTrainer:
             )
             return opt
         else:
-            raise AttributeError(
-                "{} has no attribute {}".format(import_class, self.config_dict["optim_config"]["class_name"]))
+            raise AttributeError("{} has no attribute {}".format(import_class, self.config_dict["optim_config"]["class_name"]))
 
     def prepare_trainer_event_handlers(
-            self,
-            progress_bar: bool = True,
-            model_checkpoints_path: Union[str, PathLike] = None,
-            tb_log_path: Union[str, PathLike] = None,
+        self,
+        progress_bar: bool = True,
+        model_checkpoints_path: Union[str, PathLike] = None,
+        tb_log_path: Union[str, PathLike] = None,
     ):
         """
         Creates and attach training event to the trainer engine. If *progress_bar* is True, the training state
@@ -168,12 +214,12 @@ class HiveSupervisedTrainer:
             train_tensorboard_stats_handler.attach(self.trainer)
 
     def create_evaluator(
-            self,
-            val_loader: DataLoader,
-            post_pred_transform: Transform,
-            post_label_transform: Transform,
-            val_metric_list: List[str],
-            val_key_metric: str,
+        self,
+        val_loader: DataLoader,
+        post_pred_transform: Transform,
+        post_label_transform: Transform,
+        val_metric_list: List[str],
+        val_key_metric: str,
     ):
         """
         Creates an Engine evaluator and attaches it to the trainer. A list of metrics are used to perform the training evaluation,
@@ -221,7 +267,11 @@ class HiveSupervisedTrainer:
             self.evaluator.run(val_loader)
 
     def prepare_evaluator_event_handlers(
-            self, val_key_path: Union[str, PathLike] = None, tb_log_path: Union[str, PathLike] = None
+        self,
+        val_key_path: Union[str, PathLike] = None,
+        tb_image_log_path: Union[str, PathLike] = None,
+        tb_log_path: Union[str, PathLike] = None,
+        volume_id_map: Dict[str, Any] = None,
     ):
         """
         Creates and attach evaluation event to the evaluator engine.
@@ -234,6 +284,11 @@ class HiveSupervisedTrainer:
         ----------
         val_key_path : Union[str, PathLike]
             Folder where to save the best epoch Model Checkpoint.
+        tb_image_log_path: Union[str, PathLike]
+            Folder path where to save the volumes to be monitored during validation.
+        volume_id_map : Dict[str, Any]
+            Dictionary listing the volume IDs to monitor and saved after every epoch validation run. The dictionary contains a
+            metadata dictionary and a list of 2D slices to be stacked for each ID case.
         tb_log_path : Union[str, PathLike]
             Folder where to save the TensorBoard evaluation metric logs.
         """
@@ -257,6 +312,23 @@ class HiveSupervisedTrainer:
             )
 
             val_tensorboard_stats_handler.attach(self.evaluator)
+
+            if volume_id_map is not None:
+                output_dir = None
+                if tb_image_log_path is not None:
+                    output_dir = tb_image_log_path
+                val_tensorboard_image_handler = Hive2Dto3DTensorBoardImageHandler(
+                    volume_id_map=volume_id_map,
+                    output_dir=output_dir,
+                    log_dir=tb_log_path,
+                    batch_transform=lambda x: (x["image"], x["label"]),
+                    output_transform=lambda x: x[0],
+                    epoch_level=False,
+                    max_channels=3,
+                    max_frames=64,
+                    global_iter_transform=lambda x: self.trainer.state.epoch,
+                )
+                val_tensorboard_image_handler.attach(self.evaluator)
 
         if val_key_path is not None:
             checkpoint_handler_val = ModelCheckpoint(
