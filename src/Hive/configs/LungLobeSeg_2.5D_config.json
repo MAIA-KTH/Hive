@@ -81,6 +81,7 @@
   "post_processing_suffix": "post",
   "predictions_folder_name": "predictions",
   "save_softmax": false,
+  "3D_validation_idx": [0],
   "Metrics_save_configs": {
     "ID_column": "reference",
     "Save_stats": true,
