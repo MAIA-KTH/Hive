@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import argparse
 import json
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
@@ -16,7 +15,7 @@ from Hive.evaluation.io_metric_results import (
 )
 from Hive.evaluation.plotly_plots import create_plots, save_plots, PLOTS, BAR_AGGREGATORS
 from Hive.evaluation.vis import create_log_at
-from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
+from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, str2bool
 from pandasgui import show
 
 pio.renderers.default = "browser"
@@ -58,17 +57,6 @@ EPILOG = dedent(
         filename=Path(__file__).name
     )
 )
-
-
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ("yes", "true", "t", "y", "1"):
-        return True
-    elif v.lower() in ("no", "false", "f", "n", "0"):
-        return False
-    else:
-        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
 def get_arg_parser():

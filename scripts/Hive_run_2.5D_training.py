@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import argparse
 import json
 import logging
 import os
@@ -14,7 +13,7 @@ from Hive.evaluation.evaluator import compute_metrics_and_save_json
 from Hive.monai.engines.evaluator import Hive2DTo3DEvaluator
 from Hive.monai.engines.trainer import HiveSupervisedTrainer, get_id_volume_map
 from Hive.monai.transforms.model_transforms import post_processing_25D_transform, pre_processing_25D_transform
-from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
+from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, str2bool
 from monai.data import list_data_collate
 from monai.transforms import (
     Activations,
@@ -50,17 +49,6 @@ EPILOG = dedent(
         filename=Path(__file__).name
     )
 )
-
-
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ("yes", "true", "t", "y", "1"):
-        return True
-    elif v.lower() in ("no", "false", "f", "n", "0"):
-        return False
-    else:
-        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
 def get_arg_parser():
