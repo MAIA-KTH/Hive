@@ -16,7 +16,6 @@ from Hive.evaluation.io_metric_results import (
 from Hive.evaluation.plotly_plots import create_plots, save_plots, PLOTS, BAR_AGGREGATORS
 from Hive.evaluation.vis import create_log_at
 from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, str2bool
-from pandasgui import show
 
 pio.renderers.default = "browser"
 
@@ -248,6 +247,8 @@ def main():
                     df_dict[metric] = read_dataframe(df_paths[metric], sheet_name="Table")
             else:
                 df_dict[metric] = read_dataframe(df_paths[metric])
+        from pandasgui import show
+
         show(**df_dict)
 
 
