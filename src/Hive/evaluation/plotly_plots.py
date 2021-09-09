@@ -242,6 +242,8 @@ def get_plot_title(
         section_dataset = " {} Set,".format(section.capitalize())
     if aggr is not None:
         aggr = " " + aggr
+    else:
+        aggr = ""
     title = "{},{}{} {}".format(main_title.replace("_", " "), section_dataset, aggr, metric)
     return title
 
@@ -284,13 +286,13 @@ def create_plots(
             if metric in DEFAULT_BAR_CONFIGS:
                 bar_configs = DEFAULT_BAR_CONFIGS[metric]
 
+            if metric in DEFAULT_METRIC_UNITS:
+                measurement_unit = DEFAULT_METRIC_UNITS[metric]
+
             if "Metrics_save_configs" in config_dict and "Metrics_dict" in config_dict["Metrics_save_configs"]:
                 metrics_dict = config_dict["Metrics_save_configs"]["Metrics_dict"]
                 if metrics_dict is not None and isinstance(metrics_dict, dict) and "m_unit" in metrics_dict[metric]:
                     measurement_unit = metrics_dict[metric]["m_unit"]
-                else:
-                    if metric in DEFAULT_METRIC_UNITS:
-                        measurement_unit = DEFAULT_METRIC_UNITS[metric]
 
                 if (
                     isinstance(config_dict["Metrics_save_configs"]["Metrics_dict"], dict)
@@ -367,13 +369,13 @@ def create_plots_for_project(
         if metric in DEFAULT_BAR_CONFIGS:
             bar_configs = DEFAULT_BAR_CONFIGS[metric]
 
+        if metric in DEFAULT_METRIC_UNITS:
+            measurement_unit = DEFAULT_METRIC_UNITS[metric]
+
         if "Metrics_save_configs" in config_dict and "Metrics_dict" in config_dict["Metrics_save_configs"]:
             metrics_dict = config_dict["Metrics_save_configs"]["Metrics_dict"]
             if metrics_dict is not None and isinstance(metrics_dict, dict) and "m_unit" in metrics_dict[metric]:
                 measurement_unit = metrics_dict[metric]["m_unit"]
-            else:
-                if metric in DEFAULT_METRIC_UNITS:
-                    measurement_unit = DEFAULT_METRIC_UNITS[metric]
 
             if (
                 isinstance(config_dict["Metrics_save_configs"]["Metrics_dict"], dict)
@@ -398,11 +400,11 @@ def create_plots_for_project(
                     args["aggregator"] = aggr
                     args["plot_title"] = get_plot_title(plot_title, section, metric, aggr)
                     fig = PLOTS[plot](**args)
-                    plot_dict["{}_{}_{}_{}_{}".format(aggr, metric, section, subsection, plot)] = fig
+                    plot_dict["{}_{}_{}_{}".format(aggr, metric, section, plot)] = fig
             else:
                 args["plot_title"] = title
                 fig = PLOTS[plot](**args)
-                plot_dict["{}_{}_{}_{}".format(metric, section, subsection, plot)] = fig
+                plot_dict["{}_{}_{}".format(metric, section, plot)] = fig
 
     return plot_dict
 
