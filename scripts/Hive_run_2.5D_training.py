@@ -140,8 +140,7 @@ def run_25d_evaluation_for_fold(fold, config_dict):
     results_folder = config_dict["results_folder"]
 
     evaluator = Hive2DTo3DEvaluator(
-        str(Path(results_folder).joinpath("fold_{}".format(fold))),
-        config_dict["predictions_folder_name"],
+        str(Path(results_folder).joinpath("fold_{}".format(fold), config_dict["predictions_folder_name"])),
         config_dict,
         pre_processing_25D_transform,
         post_processing_25D_transform,
