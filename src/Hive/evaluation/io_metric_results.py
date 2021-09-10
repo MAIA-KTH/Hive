@@ -17,8 +17,7 @@ ADVANCED_METRICS = {
         "Base_Metrics": ["False Positive Rate"],
         "Function": lambda x: 1 - x,
     },
-    "Fowlkes–Mallows index": {"Base_Metrics": ["Precision", "Recall"],
-                              "Function": lambda x, y: np.sqrt(np.multiply(x, y))},
+    "Fowlkes–Mallows index": {"Base_Metrics": ["Precision", "Recall"], "Function": lambda x, y: np.sqrt(np.multiply(x, y))},
     "Relative Volumetric Difference": {
         "Base_Metrics": ["Total Positives Reference", "Total Positives Test"],
         "Function": lambda x, y: np.divide(np.subtract(y, x), x) * 100,
@@ -31,7 +30,7 @@ ADVANCED_METRICS = {
 
 
 def get_results_summary_filepath(
-        config_dict: Dict[str, Any], section: Literal["validation", "testing"], result_suffix: str, fold: int = 0
+    config_dict: Dict[str, Any], section: Literal["validation", "testing"], result_suffix: str, fold: int = 0
 ) -> str:
     """
      Return the JSON results filepath, for a specified section ( ``validation`` or ``testing`` ), and/or fold number.
@@ -100,12 +99,12 @@ def read_metric_list(summary_filepath: Union[str, PathLike], config_dict: Dict[s
 
 
 def save_metrics(
-        config_dict: Dict[str, Any],
-        metric_name: str,
-        basic_metrics: List[str],
-        section: Literal["validation", "testing"],
-        result_suffix: str,
-        df_format: Literal["excel", "csv", "pickle"] = "pickle",
+    config_dict: Dict[str, Any],
+    metric_name: str,
+    basic_metrics: List[str],
+    section: Literal["validation", "testing"],
+    result_suffix: str,
+    df_format: Literal["excel", "csv", "pickle"] = "pickle",
 ):
     """
     For the specified metric and section, saves a Pandas Dataframe, including the class-wise scores and the case IDs.
@@ -132,8 +131,7 @@ def save_metrics(
     """
     pd.options.display.float_format = "{:.2%}".format
 
-    Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name).mkdir(exist_ok=True,
-                                                                                                  parents=True)
+    Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name).mkdir(exist_ok=True, parents=True)
 
     column_id = None
 
@@ -188,8 +186,7 @@ def save_metrics(
                 df_single_temp[[label_dict[key] for key in label_dict]] = df_composed_temp.values
             else:
                 df_single_temp = (
-                    df_temp[column_selection].loc[[metric_name]].rename(columns=column_rename,
-                                                                        index={metric_name: str(subj_id)})
+                    df_temp[column_selection].loc[[metric_name]].rename(columns=column_rename, index={metric_name: str(subj_id)})
                 )
 
             if column_id is not None:
@@ -208,8 +205,7 @@ def save_metrics(
         metric_name = composed_metric
 
     df_output_path = str(
-        Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name,
-                                                     "{}".format(metric_name))
+        Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name, "{}".format(metric_name))
     )
 
     if df_format == "excel":
@@ -248,8 +244,13 @@ def save_metrics(
         writer.save()
 
 
-def create_dataframe_for_project(results_folder: Union[str, PathLike], project_name: str, config_files: List[str],
-                                 metrics: List[str], df_format: Literal['excel', 'csv', 'pickle'] = "pickle", ):
+def create_dataframe_for_project(
+    results_folder: Union[str, PathLike],
+    project_name: str,
+    config_files: List[str],
+    metrics: List[str],
+    df_format: Literal["excel", "csv", "pickle"] = "pickle",
+):
     """
     Given a list of experiment configuration files, merges the metric results from each DataFrame in a single DataFrame,
     saving it as **project** section. All the metric DataFrames are stored in a single DataFrame in the *result_folder*,
@@ -273,17 +274,18 @@ def create_dataframe_for_project(results_folder: Union[str, PathLike], project_n
         with open(config_file) as json_file:
             config_dict = json.load(json_file)
 
-        df_paths[config_dict["Experiment Name"]] = get_saved_dataframes(config_dict, metrics, ['experiment'], df_format)
+        df_paths[config_dict["Experiment Name"]] = get_saved_dataframes(config_dict, metrics, ["experiment"], df_format)
 
     pd_flat_metric_list = []
     pd_metric_list = []
 
     for metric in metrics:
         for experiment in df_paths.keys():
-            df_flat = read_dataframe(df_paths[experiment]["{}_flat_experiment".format(metric)], sheet_name='Flat')
+            df_flat = read_dataframe(df_paths[experiment]["{}_flat_experiment".format(metric)], sheet_name="Flat")
+            df_flat = df_flat.rename(columns={metric: "Metric_Score"})
             df_flat["Metric"] = metric
             pd_flat_metric_list.append(df_flat)
-            df = read_dataframe(df_paths[experiment]["{}_experiment".format(metric)], sheet_name='Table')
+            df = read_dataframe(df_paths[experiment]["{}_experiment".format(metric)], sheet_name="Table")
             df["Metric"] = metric
             pd_metric_list.append(df)
 
@@ -291,9 +293,7 @@ def create_dataframe_for_project(results_folder: Union[str, PathLike], project_n
     df_table = pd.concat(pd_metric_list, ignore_index=True)
     Path(results_folder).joinpath(METRICS_FOLDER_NAME).mkdir(exist_ok=True, parents=True)
 
-    df_file_path = str(
-        Path(results_folder).joinpath(METRICS_FOLDER_NAME, project_name)
-    )
+    df_file_path = str(Path(results_folder).joinpath(METRICS_FOLDER_NAME, project_name))
 
     if df_format == "excel":
         writer = pd.ExcelWriter(df_file_path + ".xlsx", engine="xlsxwriter")
@@ -309,10 +309,10 @@ def create_dataframe_for_project(results_folder: Union[str, PathLike], project_n
 
 
 def create_dataframe_for_experiment(
-        config_dict: Dict[str, Any],
-        metric_name: str,
-        sections: List[Literal["validation", "testing"]],
-        df_format: Literal["excel", "csv", "pickle"] = "pickle",
+    config_dict: Dict[str, Any],
+    metric_name: str,
+    sections: List[Literal["validation", "testing"]],
+    df_format: Literal["excel", "csv", "pickle"] = "pickle",
 ):
     """
     Given a list of sections, merges the metric results from each DataFrame in a single DataFrame, saving it as **experiment**
@@ -333,18 +333,17 @@ def create_dataframe_for_experiment(
     df_flat_list = []
     for section in sections:
         df_path = str(
-            Path(config_dict["results_folder"]).joinpath(
-                METRICS_FOLDER_NAME, section, metric_name, "{}".format(metric_name)
-            ))
-        if df_format == 'csv':
+            Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name, "{}".format(metric_name))
+        )
+        if df_format == "csv":
             df_list.append(read_dataframe(df_path + "_table.csv"))
             df_flat_list.append(read_dataframe(df_path + "_flat.csv"))
-        elif df_format == 'pickle':
+        elif df_format == "pickle":
             df_list.append(read_dataframe(df_path + "_table.pkl"))
             df_flat_list.append(read_dataframe(df_path + "_flat.pkl"))
-        elif df_format == 'excel':
-            df_list.append(read_dataframe(df_path + ".xlsx", sheet_name='Table'))
-            df_flat_list.append(read_dataframe(df_path + ".xlsx", sheet_name='Flat'))
+        elif df_format == "excel":
+            df_list.append(read_dataframe(df_path + ".xlsx", sheet_name="Table"))
+            df_flat_list.append(read_dataframe(df_path + ".xlsx", sheet_name="Flat"))
 
     df = pd.concat(df_list, ignore_index=True)
     df_flat = pd.concat(df_flat_list, ignore_index=True)
@@ -353,8 +352,7 @@ def create_dataframe_for_experiment(
         exist_ok=True, parents=True
     )
     df_file_path = str(
-        Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name,
-                                                     "{}".format(metric_name))
+        Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name, "{}".format(metric_name))
     )
 
     if df_format == "excel":
@@ -371,11 +369,11 @@ def create_dataframe_for_experiment(
 
 
 def save_dataframes(
-        config_dict: Dict[str, Any],
-        metric: str,
-        section: Literal["validation", "testing"],
-        result_suffix: str,
-        df_format: Literal["excel", "csv", "pickle"] = "pickle",
+    config_dict: Dict[str, Any],
+    metric: str,
+    section: Literal["validation", "testing"],
+    result_suffix: str,
+    df_format: Literal["excel", "csv", "pickle"] = "pickle",
 ):
     """
     Given a metric and a section, saves the corresponding DataFrames.
@@ -402,10 +400,10 @@ def save_dataframes(
 
 
 def get_saved_dataframes(
-        config_dict: Dict[str, Any],
-        metrics: List[str],
-        sections: List[Literal["validation", "testing", "experiment", "project"]],
-        df_format: Literal["excel", "csv", "pickle"] = "pickle",
+    config_dict: Dict[str, Any],
+    metrics: List[str],
+    sections: List[Literal["validation", "testing", "experiment", "project"]],
+    df_format: Literal["excel", "csv", "pickle"] = "pickle",
 ) -> Dict[str, str]:
     """
     For a specified experiments, returns a map including all the saved DataFrames file paths.
@@ -434,7 +432,7 @@ def get_saved_dataframes(
 
     pd_gui = {}
 
-    if 'project' in sections:
+    if "project" in sections:
         df_path = Path(config_dict["results_folder"]).joinpath(
             METRICS_FOLDER_NAME, "{}_table.{}".format(config_dict["ProjectName"], file_extension)
         )
@@ -504,11 +502,11 @@ def read_dataframe(df_path: Union[str, PathLike], sheet_name: str = None) -> Dat
 
 
 def create_dataframes(
-        config_dict: Dict[str, Any],
-        metrics: List[str],
-        sections: List[Literal["validation", "testing", "experiment"]],
-        result_suffix: str = "",
-        df_format: Literal["excel", "csv", "pickle"] = "pickle",
+    config_dict: Dict[str, Any],
+    metrics: List[str],
+    sections: List[Literal["validation", "testing", "experiment"]],
+    result_suffix: str = "",
+    df_format: Literal["excel", "csv", "pickle"] = "pickle",
 ):
     """
     Creates set of Pandas dataframes, given a metric list and the prediction suffix, used to retrieve the corresponding

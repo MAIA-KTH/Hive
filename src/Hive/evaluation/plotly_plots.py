@@ -41,23 +41,25 @@ def get_plotly_histo(
     Figure
         ```Plotly`` :py:class`px.histogram` for the given metric and section.
     """
+    x_value = metric_name
     if section == "experiment":
         color_value = "Section"
         facet = None
     elif section == "project":
         color_value = "Experiment"
         facet = "Section"
+        x_value = "Metric_Score"
     else:
         color_value = "Label"
         facet = None
 
     fig_histo = px.histogram(
         df_flat,
-        x=metric_name,
+        x=x_value,
         color=color_value,
         facet_row=facet,
         labels={
-            metric_name: metric_name + " " + metric_measurement_unit,
+            x_value: metric_name + " " + metric_measurement_unit,
         },
         title=plot_title,
     )
@@ -102,7 +104,7 @@ def get_plotly_average_bar(
     Figure
         ```Plotly`` :py:class`px.bar` for the given metric, aggregator and section.
     """
-
+    x_value = metric_name
     if section == "experiment":
         y_value = "Section"
         facet_row = "Label"
@@ -111,6 +113,7 @@ def get_plotly_average_bar(
         y_value = "Experiment"
         facet_row = "Label"
         facet_col = "Section"
+        x_value = "Metric_Score"
     else:
         y_value = "Label"
         facet_row = None
@@ -122,7 +125,7 @@ def get_plotly_average_bar(
 
     text = []
     for index, row in df_flat.iterrows():
-        text.append("{:.3}".format(row[metric_name]))
+        text.append("{:.3}".format(row[x_value]))
 
     colors = "Inferno"
     if bar_configs is not None:
@@ -133,16 +136,16 @@ def get_plotly_average_bar(
     fig_bar = px.bar(
         df_flat,
         y=y_value,
-        x=metric_name,
+        x=x_value,
         orientation="h",
-        color=metric_name,
+        color=x_value,
         facet_row=facet_row,
         facet_col=facet_col,
         barmode="group",
         color_continuous_scale=colors,
         text=text,
         labels={
-            metric_name: metric_name + " " + metric_measurement_unit,
+            x_value: metric_name + " " + metric_measurement_unit,
         },
         title=plot_title,
     )
@@ -180,13 +183,14 @@ def get_plotly_boxplot(
     Figure
         ```Plotly`` :py:class`px.box` for the given metric and section.
     """
-
+    y_value = metric_name
     if section == "experiment":
         color_value = "Section"
         facet = None
     elif section == "project":
         color_value = "Experiment"
         facet = "Section"
+        y_value = "Metric_Score"
     else:
         color_value = "Label"
         facet = None
@@ -194,11 +198,11 @@ def get_plotly_boxplot(
     fig_boxplot = px.box(
         df_flat,
         x="Label",
-        y=metric_name,
+        y=y_value,
         facet_row=facet,
         color=color_value,
         labels={
-            metric_name: metric_name + " " + metric_measurement_unit,
+            y_value: metric_name + " " + metric_measurement_unit,
         },
         title=plot_title,
     )
