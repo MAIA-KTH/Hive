@@ -299,14 +299,13 @@ def create_dataframe_for_project(
             pd_metric_list.append(df)
 
     df_flat = pd.concat(pd_flat_metric_list, ignore_index=True)
+    df_table = pd.concat(pd_metric_list, ignore_index=True)
+    Path(results_folder).joinpath(METRICS_FOLDER_NAME).mkdir(exist_ok=True, parents=True)
 
     subject_list = set(df_flat["Subject"].tolist())
     subject_id = {subject: str(index) for index, subject in enumerate(subject_list)}
-    with open(Path(results_folder).joinpath(METRICS_FOLDER_NAME, project_name, "subject_id.json"), "w") as fp:
+    with open(Path(results_folder).joinpath(METRICS_FOLDER_NAME, "subject_id.json"), "w") as fp:
         json.dump(subject_id, fp)
-
-    df_table = pd.concat(pd_metric_list, ignore_index=True)
-    Path(results_folder).joinpath(METRICS_FOLDER_NAME).mkdir(exist_ok=True, parents=True)
 
     df_file_path = str(Path(results_folder).joinpath(METRICS_FOLDER_NAME, project_name))
 

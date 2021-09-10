@@ -7,6 +7,7 @@ from textwrap import dedent
 
 import plotly.io as pio
 import visdom
+
 from Hive.evaluation.io_metric_results import (
     create_dataframes,
     get_saved_dataframes,
@@ -36,8 +37,8 @@ DESC = dedent(
     Advanced metric combination example:
         .. math::
             Specificity = 1 - False\ Positive\ Rate     
-    Optionally, a histogram and a boxplot distributions are rendered, representing the statistics for each label class.
-    The plots can be either visualized in a browser window or saved as PNG files or HTML files. If a Visdom server is running, it is
+    Optionally, a histogram, a bar plot and a boxplot distributions are rendered, representing the statistics for each label class.
+    The plots can be either visualized in a browser window or saved as PNG files, JSON or HTML files. If a Visdom server is running, it is
     also possible to upload the metric plots and the statistics tables on the server.
     """  # noqa: E501 W291 W605
 )
@@ -45,13 +46,13 @@ EPILOG = dedent(
     """
     Example call:
     ::
-        {filename} --config-file /path/to/config_file.json --section testing 
-        {filename} --config-file /path/to/config_file.json --section testing --metrics Dice Accuracy Hausdorff Distance
-        {filename} --config-file /path/to/config_file.json --section testing --visualize-only True --sections testing validation
-        {filename} --config-file /path/to/config_file.json --section testing --visualize-only True  --save-png True
-        {filename} --config-file /path/to/config_file.json --section testing --display-in-browser True  --save-png True
-        {filename} --config-file /path/to/config_file.json --section testing --display-in-browser True  --df-format pickle
-        {filename} --config-file /path/to/config_file.json --section testing --upload-visdom-server True  --save-png True
+        {filename} --config-file /path/to/config_file.json
+        {filename} --config-file /path/to/config_file.json --metrics Dice Accuracy Hausdorff Distance
+        {filename} --config-file /path/to/config_file.json --visualize-only True --sections testing validation
+        {filename} --config-file /path/to/config_file.json --visualize-only True  --save-png True
+        {filename} --config-file /path/to/config_file.json --display-in-browser True  --save-png True
+        {filename} --config-file /path/to/config_file.json --display-in-browser True  --df-format pickle
+        {filename} --config-file /path/to/config_file.json --upload-visdom-server True  --save-png True
     """.format(  # noqa: E501 W291
         filename=Path(__file__).name
     )
