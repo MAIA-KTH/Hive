@@ -6,9 +6,10 @@ from typing import List, Dict, Any, Literal, Union
 
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
+
 from Hive.evaluation import METRICS_FOLDER_NAME
 from Hive.utils.log_utils import get_logger, DEBUG
-from pandas import DataFrame
 
 logger = get_logger(__name__)
 
@@ -159,7 +160,7 @@ def save_metrics(
         else:
             logger.log(DEBUG, "{} is not a valid metric. Skipping.".format(metric_name))
             return
-
+    subject_list = []
     for fold in range(n_folds):
 
         summary_filepath = get_results_summary_filepath(config_dict, section, result_suffix, fold)
@@ -191,7 +192,7 @@ def save_metrics(
 
             if column_id is not None:
                 df_single_temp["ID"] = Path(df_temp[column_id][0]).name[: -len(config_dict["FileExtension"])]
-
+                subject_list.append(df_single_temp["ID"][0])
             if section == "testing":
                 df_single_temp["Section"] = "Testing"
             else:
@@ -228,9 +229,17 @@ def save_metrics(
     df_flat = pd.DataFrame(df_flat)
     df_flat.reset_index(inplace=True)
     df_flat.columns = ["Subject", "Label", metric_name]
-
     df_flat["Section"] = section.capitalize()
     df_flat["Experiment"] = config_dict["Experiment Name"]
+
+    for index, row in df_flat.iterrows():
+        df_flat["Subject"][index] = subject_list[int(row["Subject"])]
+
+    subject_id = {subject: str(index) for index, subject in enumerate(subject_list)}
+    with open(
+        Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name, "subject_id.json"), "w"
+    ) as fp:
+        json.dump(subject_id, fp)
 
     if df_format == "pickle":
         df_flat.to_pickle(df_output_path + "_flat.pkl")
@@ -290,6 +299,12 @@ def create_dataframe_for_project(
             pd_metric_list.append(df)
 
     df_flat = pd.concat(pd_flat_metric_list, ignore_index=True)
+
+    subject_list = set(df_flat["Subject"].tolist())
+    subject_id = {subject: str(index) for index, subject in enumerate(subject_list)}
+    with open(Path(results_folder).joinpath(METRICS_FOLDER_NAME, project_name, "subject_id.json"), "w") as fp:
+        json.dump(subject_id, fp)
+
     df_table = pd.concat(pd_metric_list, ignore_index=True)
     Path(results_folder).joinpath(METRICS_FOLDER_NAME).mkdir(exist_ok=True, parents=True)
 
@@ -347,6 +362,13 @@ def create_dataframe_for_experiment(
 
     df = pd.concat(df_list, ignore_index=True)
     df_flat = pd.concat(df_flat_list, ignore_index=True)
+
+    subject_list = set(df_flat["Subject"].tolist())
+    subject_id = {subject: str(index) for index, subject in enumerate(subject_list)}
+    with open(
+        Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name, "subject_id.json"), "w"
+    ) as fp:
+        json.dump(subject_id, fp)
 
     Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name).mkdir(
         exist_ok=True, parents=True
