@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "monai-environment.fullname" . }}
+  labels:
+  {{- include "monai-environment.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type}}
+  ports:
+    {{- range .Values.service.ports}}
+    - port: {{.port}}
+      targetPort: {{.targetPort}}
+      nodePort: {{.nodePort}}
+      name: {{.name}}
+  {{- end}}
+
+  selector:
+  {{- include "monai-environment.selectorLabels" . | nindent 4 }}

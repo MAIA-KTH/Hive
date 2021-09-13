@@ -7,7 +7,7 @@ import SimpleITK as sitk
 
 
 def test_mp_copy():
-    from k8s_DP.utils.file_utils import subfiles, subfolders
+    from Hive.utils.file_utils import subfiles, subfolders
 
     modality = 0
     num_threads = 2

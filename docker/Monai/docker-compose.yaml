@@ -1,0 +1,23 @@
+version: "3.1"
+services:
+  nnunet:
+    image: "monai"
+    container_name: monai-environment
+    shm_size: 512m
+    env_file: credentials.env
+    ports:
+      - "30022:22"
+      - "30006:6006"
+    volumes:
+      - D:/GitHub/Windows/Hive:/home/Hive
+      - /mnt/nfs_share/Data/LungLobeSeg:/home/LungLobeSeg
+    deploy:
+      resources:
+        limits:
+          cpus: '10.0'
+          memory: 32G
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: [ '0' ]
+              capabilities: [ gpu ]

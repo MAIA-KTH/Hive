@@ -2,11 +2,12 @@
 
 import json
 import os
-from pathlib import Path
 from argparse import ArgumentParser, RawTextHelpFormatter
+from pathlib import Path
 from textwrap import dedent
 
-from k8s_DP.utils.log_utils import (
+from Hive.utils.file_utils import move_file_in_subfolders
+from Hive.utils.log_utils import (
     get_logger,
     add_verbosity_options_to_argparser,
     log_lvl_from_verbosity_args,
@@ -87,6 +88,7 @@ def main():
         ]
         arguments_list.extend(unknown_arguments)
         os.system("nnUNet_predict " + " ".join(arguments_list))
+        move_file_in_subfolders(args["output_folder"], data["FileExtension"], data["FileExtension"])
 
 
 if __name__ == "__main__":

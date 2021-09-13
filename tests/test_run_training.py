@@ -2,7 +2,7 @@ import json
 import os
 
 import seg_metrics.seg_metrics as sg
-from k8s_DP.utils.file_utils import subfiles
+from Hive.utils.file_utils import subfiles
 
 
 def test_training_command():

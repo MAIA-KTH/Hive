@@ -1,7 +1,10 @@
 import sys
-from pathlib import Path
 from argparse import ArgumentParser
-from k8s_DP.utils.log_utils import (
+from pathlib import Path
+
+import pytest
+
+from Hive.utils.log_utils import (
     add_verbosity_options_to_argparser,
     get_logger,
     log_lvl_from_verbosity_args,
@@ -9,7 +12,6 @@ from k8s_DP.utils.log_utils import (
     DEBUG2,
     WARN,
 )
-import pytest
 
 
 def get_test_logger(message_level, log_format):

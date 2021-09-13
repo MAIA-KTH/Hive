@@ -1,5 +1,6 @@
-from dotenv import dotenv_values
 import os
+
+from dotenv import dotenv_values
 
 
 def load_env(dot_env_file):
@@ -8,5 +9,5 @@ def load_env(dot_env_file):
         os.environ[env_var] = env_dict[env_var]
 
 
-dot_env_file_path = "../docker/.env"
+dot_env_file_path = "../docker/nnUNet/.env"
 load_env(dot_env_file_path)

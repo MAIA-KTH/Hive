@@ -4,8 +4,8 @@ import setuptools
 from setuptools import setup
 
 setup(
-    name="k8s_DP",
-    version="1.1",
+    name="Hive",
+    version="2.0",
     url="https://github.com/SimoneBendazzoli93/Hive.git",
     license="",
     author="Simone Bendazzoli",
@@ -20,15 +20,19 @@ setup(
         "visdom",
         "coloredlogs",
         "numpy",
+        "nptyping",
         "SimpleITK",
         "pandas",
-        "scikit-learn",
+        "scipy",
         "tqdm",
         "MedPy",
         "plotly",
         "kaleido",
         "nbformat",
         "pandasgui",
+        "xlsxwriter",
+        "openpyxl",
     ],
+    extras_require={"Monai-env": ["monai", "pytorch-ignite"], "nnUNet-env": ["nnunet"]},
     scripts=glob.glob("scripts/*"),
 )
