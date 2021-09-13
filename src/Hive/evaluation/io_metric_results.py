@@ -6,10 +6,9 @@ from typing import List, Dict, Any, Literal, Union
 
 import numpy as np
 import pandas as pd
-from pandas import DataFrame
-
 from Hive.evaluation import METRICS_FOLDER_NAME
 from Hive.utils.log_utils import get_logger, DEBUG
+from pandas import DataFrame
 
 logger = get_logger(__name__)
 
@@ -372,6 +371,14 @@ def create_dataframe_for_experiment(
     Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name).mkdir(
         exist_ok=True, parents=True
     )
+
+    subject_list = set(df_flat["Subject"].tolist())
+    subject_id = {subject: str(index) for index, subject in enumerate(subject_list)}
+    with open(
+        Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name, "subject_id.json"), "w"
+    ) as fp:
+        json.dump(subject_id, fp)
+
     df_file_path = str(
         Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name, "{}".format(metric_name))
     )
