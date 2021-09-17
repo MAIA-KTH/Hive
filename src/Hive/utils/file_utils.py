@@ -1,10 +1,12 @@
+import itertools
 import json
 import os
 import random
 import shutil
 from multiprocessing import Pool
+from os import PathLike
 from pathlib import Path
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Union
 
 import SimpleITK as sitk
 import numpy as np
@@ -368,3 +370,30 @@ def move_file_in_subfolders(folder: str, file_suffix: str, file_extension: str):
         for file_id in file_IDs:
             if file_id in file:
                 shutil.move(str(Path(folder).joinpath(file)), str(Path(folder).joinpath(file_id, file)))
+
+
+def match_subject_IDs_by_suffix_length(data_folder: Union[str, PathLike], prefix_length: int) -> List[List[str]]:
+    """
+    Given a data folder containing subjects subfolders, return a list of grouped subjects (as list ), where the grouped subjects
+    share a common initial pattern ID of length **prefix_length**.
+
+    Parameters
+    ----------
+    data_folder : Union[str, PathLike]
+        Data folder path containing subjects subfolders.
+    prefix_length : int
+        Length of the filename prefix, used to match different subject IDs.
+    Returns
+    -------
+    List[List[str]]
+        List of subjects grouped according to the ID prefix.
+    """
+    subjects = subfolders(data_folder, join=False)
+    matching_subjects = []
+    for subject in subjects:
+        matching_IDs = [matching_ID for matching_ID in subjects if matching_ID[:prefix_length] == subject[:prefix_length]]
+        matching_subjects.append(matching_IDs)
+    matching_subjects.sort()
+
+    matching_subjects = [k for k, _ in itertools.groupby(matching_subjects)]
+    return matching_subjects
