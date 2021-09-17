@@ -157,6 +157,21 @@ def get_arg_parser():
         help="Prediction name suffix to find the corresponding prediction files to evaluate. Defaults to ``" "`` ",
     )
 
+    pars.add_argument(
+        "--phase-json-file",
+        type=str,
+        required=False,
+        default=None,
+        help="Breathing phase JSON file, including breathing phase for each subject ID.",
+    )
+
+    pars.add_argument(
+        "--plot-phase",
+        type=str2bool,
+        required=False,
+        default=False,
+        help="Specify to create plots including breathing phase information.",
+    )
     add_verbosity_options_to_argparser(pars)
     return pars
 
@@ -199,8 +214,13 @@ def main():
     if args["upload_visdom_server"] is True:
         vis = visdom.Visdom()
 
+    phase_dict = None
+    if args["phase_json_file"] is not None:
+        with open(args["phase_json_file"]) as json_file:
+            phase_dict = json.load(json_file)
+
     if args["visualize_only"] is not True:
-        create_dataframes(config_dict, metrics, sections, prediction_suffix, file_format)
+        create_dataframes(config_dict, metrics, sections, prediction_suffix, file_format, phase_dict)
 
     df_paths = get_saved_dataframes(config_dict, metrics, sections, file_format)
     if (
@@ -210,7 +230,7 @@ def main():
         or args["show_in_browser"] is True
         or args["upload_visdom_server"] is True
     ):
-        plot_dict = create_plots(config_dict, df_paths, metrics, config_dict["Experiment Name"], sections)
+        plot_dict = create_plots(config_dict, df_paths, metrics, config_dict["Experiment Name"], sections, args["plot_phase"])
 
         if args["save_png"] is True:
             save_plots(config_dict["results_folder"], plot_dict, metrics, sections, "png")

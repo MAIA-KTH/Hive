@@ -6,9 +6,12 @@ from typing import List, Dict, Any, Literal, Union
 
 import numpy as np
 import pandas as pd
+import plotly.graph_objs as go
+from pandas import DataFrame
+from plotly.graph_objects import Figure
+
 from Hive.evaluation import METRICS_FOLDER_NAME
 from Hive.utils.log_utils import get_logger, DEBUG
-from pandas import DataFrame
 
 logger = get_logger(__name__)
 
@@ -27,6 +30,39 @@ ADVANCED_METRICS = {
         "Function": lambda x, y: np.divide(np.abs(np.subtract(y, x)), x) * 100,
     },
 }  # type: Dict[str, Any]
+
+
+def get_subject_table(subject_json_file: Union[str, PathLike]) -> Figure:
+    """
+    Creates and returns a ```Plotly`` :py:class`go.Table` including Subject IDs, according to the given JSON file.
+
+    Parameters
+    ----------
+    subject_json_file : Union[str, PathLike]
+        JSON file path, including dict for Subject IDs.
+
+    Returns
+    -------
+    Figure
+        ```Plotly`` :py:class`go.Table`.
+    """
+    df = pd.DataFrame(columns=["Subject", "ID"])
+    with open(subject_json_file) as json_file:
+        phase_dict = json.load(json_file)
+
+    for key in phase_dict:
+        df = df.append({"Subject": key, "ID": phase_dict[key]}, ignore_index=True)
+
+    fig = go.Figure(
+        data=[
+            go.Table(
+                header=dict(values=["Subject", "ID"], fill_color="paleturquoise", align="left"),
+                cells=dict(values=[df.Subject, df.ID], fill_color="lavender", align="left"),
+            )
+        ]
+    )
+    fig.update_layout(title="Subject IDs")
+    return fig
 
 
 def get_results_summary_filepath(
@@ -105,6 +141,7 @@ def save_metrics(
     section: Literal["validation", "testing"],
     result_suffix: str,
     df_format: Literal["excel", "csv", "pickle"] = "pickle",
+    subject_phase_dict: Dict[str, str] = None,
 ):
     """
     For the specified metric and section, saves a Pandas Dataframe, including the class-wise scores and the case IDs.
@@ -127,6 +164,8 @@ def save_metrics(
         String used to retrieve the JSON result summaries, from where to extract metrics scores.
     df_format : Literal['excel', 'csv', 'pickle']
         File format to save the Pandas DataFrame, can be Excel, CSV or Pickle. Defaults to Pickle.
+    subject_phase_dict : Dict[str, str]
+        Optional Dictionary including breathing Phase for each Subject ID.
 
     """
     pd.options.display.float_format = "{:.2%}".format
@@ -192,6 +231,8 @@ def save_metrics(
             if column_id is not None:
                 df_single_temp["ID"] = Path(df_temp[column_id][0]).name[: -len(config_dict["FileExtension"])]
                 subject_list.append(df_single_temp["ID"][0])
+                if subject_phase_dict is not None:
+                    df_single_temp["Phase"] = subject_phase_dict[df_single_temp["ID"][0]]
             if section == "testing":
                 df_single_temp["Section"] = "Testing"
             else:
@@ -229,16 +270,26 @@ def save_metrics(
     df_flat.reset_index(inplace=True)
     df_flat.columns = ["Subject", "Label", metric_name]
     df_flat["Section"] = section.capitalize()
+    if subject_phase_dict is not None:
+        df_flat["Phase"] = "Not Assigned"
     df_flat["Experiment"] = config_dict["Experiment Name"]
 
     for index, row in df_flat.iterrows():
         df_flat["Subject"][index] = subject_list[int(row["Subject"])]
-
+        if subject_phase_dict is not None:
+            df_flat["Phase"][index] = subject_phase_dict[df_flat["Subject"][index]]
     subject_id = {subject: str(index) for index, subject in enumerate(subject_list)}
     with open(
         Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name, "subject_id.json"), "w"
     ) as fp:
         json.dump(subject_id, fp)
+
+    subject_table = get_subject_table(
+        str(Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name, "subject_id.json"))
+    )
+    subject_table.write_html(
+        str(Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, section, metric_name, "subject_id.html"))
+    )
 
     if df_format == "pickle":
         df_flat.to_pickle(df_output_path + "_flat.pkl")
@@ -306,6 +357,9 @@ def create_dataframe_for_project(
     with open(Path(results_folder).joinpath(METRICS_FOLDER_NAME, "subject_id.json"), "w") as fp:
         json.dump(subject_id, fp)
 
+    subject_table = get_subject_table(str(Path(results_folder).joinpath(METRICS_FOLDER_NAME, "subject_id.json")))
+    subject_table.write_html(str(Path(results_folder).joinpath(METRICS_FOLDER_NAME, "subject_id.html")))
+
     df_file_path = str(Path(results_folder).joinpath(METRICS_FOLDER_NAME, project_name))
 
     if df_format == "excel":
@@ -361,13 +415,6 @@ def create_dataframe_for_experiment(
     df = pd.concat(df_list, ignore_index=True)
     df_flat = pd.concat(df_flat_list, ignore_index=True)
 
-    subject_list = set(df_flat["Subject"].tolist())
-    subject_id = {subject: str(index) for index, subject in enumerate(subject_list)}
-    with open(
-        Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name, "subject_id.json"), "w"
-    ) as fp:
-        json.dump(subject_id, fp)
-
     Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name).mkdir(
         exist_ok=True, parents=True
     )
@@ -378,6 +425,13 @@ def create_dataframe_for_experiment(
         Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name, "subject_id.json"), "w"
     ) as fp:
         json.dump(subject_id, fp)
+
+    subject_table = get_subject_table(
+        str(Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name, "subject_id.json"))
+    )
+    subject_table.write_html(
+        str(Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name, "subject_id.html"))
+    )
 
     df_file_path = str(
         Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name, "{}".format(metric_name))
@@ -402,6 +456,7 @@ def save_dataframes(
     section: Literal["validation", "testing"],
     result_suffix: str,
     df_format: Literal["excel", "csv", "pickle"] = "pickle",
+    subject_phase_dict: Dict[str, str] = None,
 ):
     """
     Given a metric and a section, saves the corresponding DataFrames.
@@ -418,13 +473,15 @@ def save_dataframes(
         String used to retrieve the JSON result summaries, from where to extract metric scores.
     df_format : Literal['excel', 'csv', 'pickle']
         File format to save the Pandas DataFrame, can be Excel, CSV or Pickle. Defaults to Pickle.
+    subject_phase_dict : Dict[str, str]
+        Optional Dictionary including breathing Phase for each Subject ID.
     """
     try:
         summary_filepath = get_results_summary_filepath(config_dict, section, result_suffix)
     except ValueError:
         return
     base_metrics = read_metric_list(summary_filepath, config_dict)
-    save_metrics(config_dict, metric, base_metrics, section, result_suffix, df_format)
+    save_metrics(config_dict, metric, base_metrics, section, result_suffix, df_format, subject_phase_dict)
 
 
 def get_saved_dataframes(
@@ -535,6 +592,7 @@ def create_dataframes(
     sections: List[Literal["validation", "testing", "experiment"]],
     result_suffix: str = "",
     df_format: Literal["excel", "csv", "pickle"] = "pickle",
+    subject_phase_dict: Dict[str, str] = None,
 ):
     """
     Creates set of Pandas dataframes, given a metric list and the prediction suffix, used to retrieve the corresponding
@@ -555,11 +613,12 @@ def create_dataframes(
         String used to retrieve the JSON result summaries, from where to extract metrics scores.
     df_format : Literal['excel', 'csv', 'pickle']
         File format to save the Pandas DataFrame, can be Excel, CSV or Pickle. Defaults to Pickle.
-
+    subject_phase_dict : Dict[str, str]
+        Optional Dictionary including breathing Phase for each Subject ID.
     """
     for metric in metrics:
         for section in sections:
-            save_dataframes(config_dict, metric, section, result_suffix, df_format)
+            save_dataframes(config_dict, metric, section, result_suffix, df_format, subject_phase_dict)
         if "experiment" in sections:
             sections_to_combine = sections.copy()
             sections_to_combine.remove("experiment")

@@ -1,14 +1,186 @@
+import json
 from os import PathLike
 from pathlib import Path
 from typing import Dict, Any, List, Callable, Literal, Optional, Union
 
+import pandas as pd
+import plotly
 import plotly.express as px
-from Hive.evaluation import DEFAULT_METRIC_UNITS, DEFAULT_BAR_CONFIGS, METRICS_FOLDER_NAME
-from Hive.evaluation.io_metric_results import read_dataframe
+import plotly.graph_objs as go
 from pandas import DataFrame
 from plotly.graph_objects import Figure
 
+from Hive.evaluation import DEFAULT_METRIC_UNITS, DEFAULT_BAR_CONFIGS, METRICS_FOLDER_NAME
+from Hive.evaluation.io_metric_results import read_dataframe
+
 BAR_AGGREGATORS = ["min", "max", "mean"]
+
+
+def get_heatmap(
+    df_flat: DataFrame,
+    metric_name: str,
+    metric_measurement_unit: str,
+    section: Literal["testing", "validation", "experiment", "project"],
+    bar_configs: Dict[str, Any],
+    plot_title: str,
+    show_phase: bool = False,
+    **kwargs
+) -> Figure:
+    """
+    Creates and returns a ```Plotly`` :py:class`go.Heatmap`, according to the given DataFrame, metric and section.
+
+    Parameters
+    ----------
+    df_flat : DataFrame
+        Pandas DataFrame used to generate the plot.
+    metric_name : str
+        Specified metric for the plot.
+    metric_measurement_unit : str
+        Metric measurement unit, to be appended in the plot labels.
+    section : Literal['testing', 'validation', 'experiment', 'project']
+        Specified section for the plot.
+    plot_title : str
+        Plot title.
+    bar_configs: Dict [str, Any]
+        Configuration dictionary used to configure the bar colorscale.
+    show_phase : bool
+        Flag to include phase information in plot.
+    kwargs
+
+    Returns
+    -------
+    Figure
+        ```Plotly`` :py:class`go.Heatmap` for the given metric and section.
+    """
+    metric_ID = metric_name
+    if section == "experiment":
+        facet_col = "Section"
+        facet_row = None
+        if show_phase is True:
+            facet_row = "Phase"
+    elif section == "project":
+        facet_col = "Section"
+        if show_phase is True:
+            facet_col = "Phase"
+        facet_row = "Experiment"
+        metric_ID = "Metric_Score"
+    else:
+        facet_col = None
+        if show_phase is True:
+            facet_col = "Phase"
+        facet_row = None
+
+    colors = "Inferno"
+    if bar_configs is not None:
+
+        if "colors" in bar_configs:
+            colors = bar_configs["colors"]
+
+    label_list = list(set(df_flat["Label"].values))
+    label_list = list(df_flat["Label"].values[: len(label_list)])
+
+    heatmap_list = []
+    subplot_titles = []
+
+    facet_col_list = [None]
+    facet_row_list = [None]
+
+    if facet_col is not None:
+        facet_col_list = list(set(df_flat[facet_col].values))
+        subplot_titles = facet_col_list
+        if facet_row is not None:
+            facet_row_list = list(set(df_flat[facet_row].values))
+            subplot_titles = []
+            for facet_row_value in facet_row_list:
+                for facet_col_value in facet_col_list:
+                    subplot_titles.append(facet_row_value + ", " + facet_col_value)
+
+    for facet_row_value in facet_row_list:
+        if facet_row_value is not None:
+            df = df_flat[df_flat[facet_row] == facet_row_value]
+        else:
+            df = df_flat
+        if facet_col is not None:
+            subject_IDs = df[facet_col].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T[0]
+        else:
+            subject_IDs = df[metric_ID].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T[0]
+
+        for facet_col_value in facet_col_list:
+
+            if facet_col_value is not None:
+                subject_IDs_for_value = [i for i, val in enumerate(subject_IDs) if val == facet_col_value]
+            else:
+                subject_IDs_for_value = [i for i, val in enumerate(subject_IDs)]
+
+            if facet_col_value is not None:
+                if facet_row_value is not None:
+                    df = df_flat[(df_flat[facet_col] == facet_col_value) & (df_flat[facet_row] == facet_row_value)]
+
+                else:
+                    df = df_flat[(df_flat[facet_col] == facet_col_value)]
+
+            df = df[metric_ID].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T
+
+            fig_heatmap = go.Heatmap(
+                z=df,
+                y=label_list,
+                x=subject_IDs_for_value,
+                coloraxis="coloraxis",
+                hovertemplate="Subject: %{x}<br>Label: %{y}<br>"
+                + metric_name
+                + " "
+                + metric_measurement_unit
+                + ": %{z}<extra></extra>",
+            )
+            heatmap_list.append(fig_heatmap)
+
+    fig = plotly.subplots.make_subplots(rows=len(facet_row_list), cols=len(facet_col_list), subplot_titles=subplot_titles)
+
+    it = 0
+    for i, facet_row_value in enumerate(facet_row_list):
+        for j, facet_col_value in enumerate(facet_col_list):
+            fig.append_trace(heatmap_list[it], i + 1, j + 1)
+            it += 1
+            fig.update_xaxes(title_text="Subject", row=i + 1, col=j + 1)
+            fig.update_yaxes(title_text="Label", row=i + 1, col=j + 1)
+
+    fig.update_layout(title=plot_title, coloraxis={"colorscale": colors})
+
+    return fig
+
+
+def get_phase_table(phase_json_file: Union[str, PathLike]) -> Figure:
+    """
+    Creates and returns a ```Plotly`` :py:class`go.Table` including Subject IDs and breathing phases, according to the
+    given JSON file.
+
+    Parameters
+    ----------
+    phase_json_file : Union[str, PathLike]
+        JSON file path, including dict for Subject IDs and corresponding Phase.
+
+    Returns
+    -------
+    Figure
+        ```Plotly`` :py:class`go.Table`.
+    """
+    df = pd.DataFrame(columns=["Subject", "Phase"])
+    with open(phase_json_file) as json_file:
+        phase_dict = json.load(json_file)
+
+    for key in phase_dict:
+        df = df.append({"Subject": key, "Phase": phase_dict[key]}, ignore_index=True)
+
+    fig = go.Figure(
+        data=[
+            go.Table(
+                header=dict(values=["Subject", "Phase"], fill_color="paleturquoise", align="left"),
+                cells=dict(values=[df.Subject, df.Phase], fill_color="lavender", align="left"),
+            )
+        ]
+    )
+    fig.update_layout(title="Subjects Breathing Phase")
+    return fig
 
 
 def get_plotly_histo(
@@ -17,6 +189,7 @@ def get_plotly_histo(
     metric_measurement_unit: str,
     section: Literal["testing", "validation", "experiment", "project"],
     plot_title: str,
+    show_phase: bool = False,
     **kwargs
 ) -> Figure:
     """
@@ -35,29 +208,37 @@ def get_plotly_histo(
     plot_title : str
         Plot title.
     kwargs
-
+    show_phase : bool
+        Flag to include phase information in plot.
     Returns
     -------
     Figure
         ```Plotly`` :py:class`px.histogram` for the given metric and section.
     """
     x_value = metric_name
+    facet_col = None
     if section == "experiment":
         color_value = "Section"
         facet = None
+        if show_phase is True:
+            facet = "Phase"
     elif section == "project":
         color_value = "Experiment"
         facet = "Section"
+        if show_phase is True:
+            facet_col = "Phase"
         x_value = "Metric_Score"
     else:
         color_value = "Label"
         facet = None
-
+        if show_phase is True:
+            facet = "Phase"
     fig_histo = px.histogram(
         df_flat,
         x=x_value,
         color=color_value,
         facet_row=facet,
+        facet_col=facet_col,
         labels={
             x_value: metric_name + " " + metric_measurement_unit,
         },
@@ -67,7 +248,7 @@ def get_plotly_histo(
     return fig_histo
 
 
-def get_plotly_average_bar(
+def get_plotly_bar(
     df_flat: DataFrame,
     metric_name: str,
     metric_measurement_unit: str,
@@ -75,6 +256,7 @@ def get_plotly_average_bar(
     plot_title: str,
     bar_configs: Dict[str, Any],
     aggregator: str,
+    show_phase: bool = False,
     **kwargs
 ) -> Figure:
     """
@@ -98,7 +280,8 @@ def get_plotly_average_bar(
     aggregator : str
         Metric aggregator to create the bar plot. Examples: [```mean``, ```max``, ```min``].
     kwargs
-
+    show_phase : bool
+        Flag to include phase information in plot.
     Returns
     -------
     Figure
@@ -120,7 +303,8 @@ def get_plotly_average_bar(
         facet_col = None
 
     key_cols = ["Label", "Section", "Experiment"]
-
+    if show_phase is True:
+        key_cols.append("Phase")
     df_flat = df_flat.groupby(key_cols).agg(aggregator).reset_index()
 
     text = []
@@ -141,6 +325,7 @@ def get_plotly_average_bar(
         color=x_value,
         facet_row=facet_row,
         facet_col=facet_col,
+        hover_data=key_cols,
         barmode="group",
         color_continuous_scale=colors,
         text=text,
@@ -159,6 +344,7 @@ def get_plotly_boxplot(
     metric_measurement_unit: str,
     section: Literal["testing", "validation", "experiment", "project"],
     plot_title: str,
+    show_phase: bool = False,
     **kwargs
 ):
     """
@@ -177,29 +363,37 @@ def get_plotly_boxplot(
     plot_title : str
         Plot title.
     kwargs
-
+    show_phase : bool
+        Flag to include phase information in plot.
     Returns
     -------
     Figure
         ```Plotly`` :py:class`px.box` for the given metric and section.
     """
     y_value = metric_name
+    facet_col = None
     if section == "experiment":
         color_value = "Section"
         facet = None
+        if show_phase is True:
+            facet = "Phase"
     elif section == "project":
         color_value = "Experiment"
         facet = "Section"
         y_value = "Metric_Score"
+        if show_phase is True:
+            facet_col = "Phase"
     else:
         color_value = "Label"
         facet = None
-
+        if show_phase is True:
+            facet = "Phase"
     fig_boxplot = px.box(
         df_flat,
         x="Label",
         y=y_value,
         facet_row=facet,
+        facet_col=facet_col,
         color=color_value,
         labels={
             y_value: metric_name + " " + metric_measurement_unit,
@@ -210,7 +404,12 @@ def get_plotly_boxplot(
     return fig_boxplot
 
 
-PLOTS = {"boxplot": get_plotly_boxplot, "bar": get_plotly_average_bar, "histo": get_plotly_histo}  # type: Dict[str, Callable]
+PLOTS = {
+    "boxplot": get_plotly_boxplot,
+    "bar": get_plotly_bar,
+    "histo": get_plotly_histo,
+    "heatmap": get_heatmap,
+}  # type: Dict[str, Callable]
 
 
 def get_plot_title(
@@ -258,6 +457,7 @@ def create_plots(
     metrics: List[str],
     plot_title: str,
     sections: List[Literal["testing", "validation", "experiment"]],
+    show_phase: bool = False,
 ) -> Dict[str, Figure]:
     """
     Creates and returns ``Plotly`` :py:class:`plotly.graph_objects.Figure`, according to the specified sections and metrics.
@@ -275,6 +475,8 @@ def create_plots(
         String from where to compose the plot title, as described in :py:`get_plot_title`.
     sections : List[Literal['testing', 'validation', 'experiment']]
         Sections to load and create plots.
+    show_phase : bool
+        Flag to include phase information in plot.
     Returns
     -------
     Dict[str, Figure]
@@ -313,6 +515,7 @@ def create_plots(
                 "metric_measurement_unit": measurement_unit,
                 "section": section,
                 "bar_configs": bar_configs,
+                "show_phase": show_phase,
             }
 
             for plot in PLOTS:
@@ -336,6 +539,7 @@ def create_plots_for_project(
     metrics: List[str],
     plot_title: str,
     subsection: Optional[Literal["Validation", "Testing"]] = None,
+    show_phase: bool = False,
 ) -> Dict[str, Figure]:
     """
     Creates and returns ``Plotly`` :py:class:`plotly.graph_objects.Figure` for the project, according to the specified metrics.
@@ -353,6 +557,8 @@ def create_plots_for_project(
         String from where to compose the plot title, as described in :py:`get_plot_title`.
     subsection : Optional[Literal['Validation','Testing']]
         If set, the metric DataFrame is also filtered according to the specific section, ```Testing`` or ``Validation``].
+    show_phase : bool
+        Flag to include phase information in plot.
 
     Returns
     -------
@@ -396,6 +602,7 @@ def create_plots_for_project(
             "metric_measurement_unit": measurement_unit,
             "section": section,
             "bar_configs": bar_configs,
+            "show_phase": show_phase,
         }
 
         for plot in PLOTS:
