@@ -23,18 +23,51 @@ def get_heatmap(
     section: Literal["testing", "validation", "experiment", "project"],
     bar_configs: Dict[str, Any],
     plot_title: str,
+    show_phase: bool = False,
     **kwargs
 ) -> Figure:
+    """
+    Creates and returns a ```Plotly`` :py:class`go.Heatmap`, according to the given DataFrame, metric and section.
+
+    Parameters
+    ----------
+    df_flat : DataFrame
+        Pandas DataFrame used to generate the plot.
+    metric_name : str
+        Specified metric for the plot.
+    metric_measurement_unit : str
+        Metric measurement unit, to be appended in the plot labels.
+    section : Literal['testing', 'validation', 'experiment', 'project']
+        Specified section for the plot.
+    plot_title : str
+        Plot title.
+    bar_configs: Dict [str, Any]
+        Configuration dictionary used to configure the bar colorscale.
+    show_phase : bool
+        Flag to include phase information in plot.
+    kwargs
+
+    Returns
+    -------
+    Figure
+        ```Plotly`` :py:class`go.Heatmap` for the given metric and section.
+    """
     metric_ID = metric_name
     if section == "experiment":
         facet_col = "Section"
         facet_row = None
+        if show_phase is True:
+            facet_row = "Phase"
     elif section == "project":
         facet_col = "Section"
+        if show_phase is True:
+            facet_col = "Phase"
         facet_row = "Experiment"
         metric_ID = "Metric_Score"
     else:
         facet_col = None
+        if show_phase is True:
+            facet_col = "Phase"
         facet_row = None
 
     colors = "Inferno"
@@ -116,7 +149,21 @@ def get_heatmap(
     return fig
 
 
-def get_phase_table(phase_json_file):
+def get_phase_table(phase_json_file: Union[str, PathLike]) -> Figure:
+    """
+    Creates and returns a ```Plotly`` :py:class`go.Table` including Subject IDs and breathing phases, according to the
+    given JSON file.
+
+    Parameters
+    ----------
+    phase_json_file : Union[str, PathLike]
+        JSON file path, including dict for Subject IDs and corresponding Phase.
+
+    Returns
+    -------
+    Figure
+        ```Plotly`` :py:class`go.Table`.
+    """
     df = pd.DataFrame(columns=["Subject", "Phase"])
     with open(phase_json_file) as json_file:
         phase_dict = json.load(json_file)
@@ -142,6 +189,7 @@ def get_plotly_histo(
     metric_measurement_unit: str,
     section: Literal["testing", "validation", "experiment", "project"],
     plot_title: str,
+    show_phase: bool = False,
     **kwargs
 ) -> Figure:
     """
@@ -160,29 +208,37 @@ def get_plotly_histo(
     plot_title : str
         Plot title.
     kwargs
-
+    show_phase : bool
+        Flag to include phase information in plot.
     Returns
     -------
     Figure
         ```Plotly`` :py:class`px.histogram` for the given metric and section.
     """
     x_value = metric_name
+    facet_col = None
     if section == "experiment":
         color_value = "Section"
         facet = None
+        if show_phase is True:
+            facet = "Phase"
     elif section == "project":
         color_value = "Experiment"
         facet = "Section"
+        if show_phase is True:
+            facet_col = "Phase"
         x_value = "Metric_Score"
     else:
         color_value = "Label"
         facet = None
-
+        if show_phase is True:
+            facet = "Phase"
     fig_histo = px.histogram(
         df_flat,
         x=x_value,
         color=color_value,
         facet_row=facet,
+        facet_col=facet_col,
         labels={
             x_value: metric_name + " " + metric_measurement_unit,
         },
@@ -192,7 +248,7 @@ def get_plotly_histo(
     return fig_histo
 
 
-def get_plotly_average_bar(
+def get_plotly_bar(
     df_flat: DataFrame,
     metric_name: str,
     metric_measurement_unit: str,
@@ -200,6 +256,7 @@ def get_plotly_average_bar(
     plot_title: str,
     bar_configs: Dict[str, Any],
     aggregator: str,
+    show_phase: bool = False,
     **kwargs
 ) -> Figure:
     """
@@ -223,7 +280,8 @@ def get_plotly_average_bar(
     aggregator : str
         Metric aggregator to create the bar plot. Examples: [```mean``, ```max``, ```min``].
     kwargs
-
+    show_phase : bool
+        Flag to include phase information in plot.
     Returns
     -------
     Figure
@@ -245,7 +303,8 @@ def get_plotly_average_bar(
         facet_col = None
 
     key_cols = ["Label", "Section", "Experiment"]
-
+    if show_phase is True:
+        key_cols.append("Phase")
     df_flat = df_flat.groupby(key_cols).agg(aggregator).reset_index()
 
     text = []
@@ -285,6 +344,7 @@ def get_plotly_boxplot(
     metric_measurement_unit: str,
     section: Literal["testing", "validation", "experiment", "project"],
     plot_title: str,
+    show_phase: bool = False,
     **kwargs
 ):
     """
@@ -303,29 +363,37 @@ def get_plotly_boxplot(
     plot_title : str
         Plot title.
     kwargs
-
+    show_phase : bool
+        Flag to include phase information in plot.
     Returns
     -------
     Figure
         ```Plotly`` :py:class`px.box` for the given metric and section.
     """
     y_value = metric_name
+    facet_col = None
     if section == "experiment":
         color_value = "Section"
         facet = None
+        if show_phase is True:
+            facet = "Phase"
     elif section == "project":
         color_value = "Experiment"
         facet = "Section"
         y_value = "Metric_Score"
+        if show_phase is True:
+            facet_col = "Phase"
     else:
         color_value = "Label"
         facet = None
-
+        if show_phase is True:
+            facet = "Phase"
     fig_boxplot = px.box(
         df_flat,
         x="Label",
         y=y_value,
         facet_row=facet,
+        facet_col=facet_col,
         color=color_value,
         labels={
             y_value: metric_name + " " + metric_measurement_unit,
@@ -338,7 +406,7 @@ def get_plotly_boxplot(
 
 PLOTS = {
     "boxplot": get_plotly_boxplot,
-    "bar": get_plotly_average_bar,
+    "bar": get_plotly_bar,
     "histo": get_plotly_histo,
     "heatmap": get_heatmap,
 }  # type: Dict[str, Callable]
@@ -389,6 +457,7 @@ def create_plots(
     metrics: List[str],
     plot_title: str,
     sections: List[Literal["testing", "validation", "experiment"]],
+    show_phase: bool = False,
 ) -> Dict[str, Figure]:
     """
     Creates and returns ``Plotly`` :py:class:`plotly.graph_objects.Figure`, according to the specified sections and metrics.
@@ -406,6 +475,8 @@ def create_plots(
         String from where to compose the plot title, as described in :py:`get_plot_title`.
     sections : List[Literal['testing', 'validation', 'experiment']]
         Sections to load and create plots.
+    show_phase : bool
+        Flag to include phase information in plot.
     Returns
     -------
     Dict[str, Figure]
@@ -444,6 +515,7 @@ def create_plots(
                 "metric_measurement_unit": measurement_unit,
                 "section": section,
                 "bar_configs": bar_configs,
+                "show_phase": show_phase,
             }
 
             for plot in PLOTS:
@@ -467,6 +539,7 @@ def create_plots_for_project(
     metrics: List[str],
     plot_title: str,
     subsection: Optional[Literal["Validation", "Testing"]] = None,
+    show_phase: bool = False,
 ) -> Dict[str, Figure]:
     """
     Creates and returns ``Plotly`` :py:class:`plotly.graph_objects.Figure` for the project, according to the specified metrics.
@@ -484,6 +557,8 @@ def create_plots_for_project(
         String from where to compose the plot title, as described in :py:`get_plot_title`.
     subsection : Optional[Literal['Validation','Testing']]
         If set, the metric DataFrame is also filtered according to the specific section, ```Testing`` or ``Validation``].
+    show_phase : bool
+        Flag to include phase information in plot.
 
     Returns
     -------
@@ -527,6 +602,7 @@ def create_plots_for_project(
             "metric_measurement_unit": measurement_unit,
             "section": section,
             "bar_configs": bar_configs,
+            "show_phase": show_phase,
         }
 
         for plot in PLOTS:

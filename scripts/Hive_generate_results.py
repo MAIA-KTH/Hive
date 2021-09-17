@@ -156,6 +156,14 @@ def get_arg_parser():
         help="Specify to upload the metric **Plotly** plots in the running **Visdom** server",
     )
 
+    pars.add_argument(
+        "--plot-phase",
+        type=str2bool,
+        required=False,
+        default=False,
+        help="Specify to create plots including breathing phase information.",
+    )
+
     add_verbosity_options_to_argparser(pars)
     return pars
 
@@ -218,7 +226,9 @@ def main():
         or args["upload_visdom_server"] is True
     ):
         subsection = args["subsection_plot"]
-        plot_dict = create_plots_for_project(summary_dict, df_paths, metrics, summary_dict["ProjectName"], subsection)
+        plot_dict = create_plots_for_project(
+            summary_dict, df_paths, metrics, summary_dict["ProjectName"], subsection, args["plot_phase"]
+        )
         if args["save_png"] is True:
             save_plots(results_folder, plot_dict, metrics, ["project"], "png")
 
