@@ -1,14 +1,139 @@
+import json
 from os import PathLike
 from pathlib import Path
 from typing import Dict, Any, List, Callable, Literal, Optional, Union
 
+import pandas as pd
+import plotly
 import plotly.express as px
-from Hive.evaluation import DEFAULT_METRIC_UNITS, DEFAULT_BAR_CONFIGS, METRICS_FOLDER_NAME
-from Hive.evaluation.io_metric_results import read_dataframe
+import plotly.graph_objs as go
 from pandas import DataFrame
 from plotly.graph_objects import Figure
 
+from Hive.evaluation import DEFAULT_METRIC_UNITS, DEFAULT_BAR_CONFIGS, METRICS_FOLDER_NAME
+from Hive.evaluation.io_metric_results import read_dataframe
+
 BAR_AGGREGATORS = ["min", "max", "mean"]
+
+
+def get_heatmap(
+    df_flat: DataFrame,
+    metric_name: str,
+    metric_measurement_unit: str,
+    section: Literal["testing", "validation", "experiment", "project"],
+    bar_configs: Dict[str, Any],
+    plot_title: str,
+    **kwargs
+) -> Figure:
+    metric_ID = metric_name
+    if section == "experiment":
+        facet_col = "Section"
+        facet_row = None
+    elif section == "project":
+        facet_col = "Section"
+        facet_row = "Experiment"
+        metric_ID = "Metric_Score"
+    else:
+        facet_col = None
+        facet_row = None
+
+    colors = "Inferno"
+    if bar_configs is not None:
+
+        if "colors" in bar_configs:
+            colors = bar_configs["colors"]
+
+    label_list = list(set(df_flat["Label"].values))
+    label_list = list(df_flat["Label"].values[: len(label_list)])
+
+    heatmap_list = []
+    subplot_titles = []
+
+    facet_col_list = [None]
+    facet_row_list = [None]
+
+    if facet_col is not None:
+        facet_col_list = list(set(df_flat[facet_col].values))
+        subplot_titles = facet_col_list
+        if facet_row is not None:
+            facet_row_list = list(set(df_flat[facet_row].values))
+            subplot_titles = []
+            for facet_row_value in facet_row_list:
+                for facet_col_value in facet_col_list:
+                    subplot_titles.append(facet_row_value + ", " + facet_col_value)
+
+    for facet_row_value in facet_row_list:
+        if facet_row_value is not None:
+            df = df_flat[df_flat[facet_row] == facet_row_value]
+        else:
+            df = df_flat
+        if facet_col is not None:
+            subject_IDs = df[facet_col].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T[0]
+        else:
+            subject_IDs = df[metric_ID].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T[0]
+
+        for facet_col_value in facet_col_list:
+
+            if facet_col_value is not None:
+                subject_IDs_for_value = [i for i, val in enumerate(subject_IDs) if val == facet_col_value]
+            else:
+                subject_IDs_for_value = [i for i, val in enumerate(subject_IDs)]
+
+            if facet_col_value is not None:
+                if facet_row_value is not None:
+                    df = df_flat[(df_flat[facet_col] == facet_col_value) & (df_flat[facet_row] == facet_row_value)]
+
+                else:
+                    df = df_flat[(df_flat[facet_col] == facet_col_value)]
+
+            df = df[metric_ID].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T
+
+            fig_heatmap = go.Heatmap(
+                z=df,
+                y=label_list,
+                x=subject_IDs_for_value,
+                coloraxis="coloraxis",
+                hovertemplate="Subject: %{x}<br>Label: %{y}<br>"
+                + metric_name
+                + " "
+                + metric_measurement_unit
+                + ": %{z}<extra></extra>",
+            )
+            heatmap_list.append(fig_heatmap)
+
+    fig = plotly.subplots.make_subplots(rows=len(facet_row_list), cols=len(facet_col_list), subplot_titles=subplot_titles)
+
+    it = 0
+    for i, facet_row_value in enumerate(facet_row_list):
+        for j, facet_col_value in enumerate(facet_col_list):
+            fig.append_trace(heatmap_list[it], i + 1, j + 1)
+            it += 1
+            fig.update_xaxes(title_text="Subject", row=i + 1, col=j + 1)
+            fig.update_yaxes(title_text="Label", row=i + 1, col=j + 1)
+
+    fig.update_layout(title=plot_title, coloraxis={"colorscale": colors})
+
+    return fig
+
+
+def get_phase_table(phase_json_file):
+    df = pd.DataFrame(columns=["Subject", "Phase"])
+    with open(phase_json_file) as json_file:
+        phase_dict = json.load(json_file)
+
+    for key in phase_dict:
+        df = df.append({"Subject": key, "Phase": phase_dict[key]}, ignore_index=True)
+
+    fig = go.Figure(
+        data=[
+            go.Table(
+                header=dict(values=["Subject", "Phase"], fill_color="paleturquoise", align="left"),
+                cells=dict(values=[df.Subject, df.Phase], fill_color="lavender", align="left"),
+            )
+        ]
+    )
+    fig.update_layout(title="Subjects Breathing Phase")
+    return fig
 
 
 def get_plotly_histo(
@@ -141,6 +266,7 @@ def get_plotly_average_bar(
         color=x_value,
         facet_row=facet_row,
         facet_col=facet_col,
+        hover_data=key_cols,
         barmode="group",
         color_continuous_scale=colors,
         text=text,
@@ -210,7 +336,12 @@ def get_plotly_boxplot(
     return fig_boxplot
 
 
-PLOTS = {"boxplot": get_plotly_boxplot, "bar": get_plotly_average_bar, "histo": get_plotly_histo}  # type: Dict[str, Callable]
+PLOTS = {
+    "boxplot": get_plotly_boxplot,
+    "bar": get_plotly_average_bar,
+    "histo": get_plotly_histo,
+    "heatmap": get_heatmap,
+}  # type: Dict[str, Callable]
 
 
 def get_plot_title(
