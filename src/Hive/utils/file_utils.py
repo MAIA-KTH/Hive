@@ -10,6 +10,7 @@ from typing import Dict, Tuple, List, Union
 
 import SimpleITK as sitk
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 from tqdm import tqdm
 
 from .log_utils import get_logger, DEBUG
@@ -397,3 +398,37 @@ def match_subject_IDs_by_suffix_length(data_folder: Union[str, PathLike], prefix
 
     matching_subjects = [k for k, _ in itertools.groupby(matching_subjects)]
     return matching_subjects
+
+
+def convert_nifti_to_qform(filename: Union[str, PathLike], output_filename: Union[str, PathLike]):
+    """
+    Given a NIFTI filenames, converts it in a QFORM representation.
+    Parameters
+    ----------
+    filename : Union[str, PathLike]
+        File path of the NIFTI volume to be converted.
+    output_filename : Union[str, PathLike]
+        File path of the NIFTI converted output volume.
+    """
+    image = sitk.ReadImage(filename)
+
+    row_x = [float(val) for val in image.GetMetaData("srow_x").split(" ")]
+    row_y = [float(val) for val in image.GetMetaData("srow_y").split(" ")]
+    row_z = [float(val) for val in image.GetMetaData("srow_z").split(" ")]
+    image.SetMetaData("qoffset_x", str(row_x[3]))
+    image.SetMetaData("qoffset_y", str(row_y[3]))
+    image.SetMetaData("qoffset_z", str(row_z[3]))
+    row_x = np.array(row_x) / float(image.GetMetaData("pixdim[1]"))
+    row_y = np.array(row_y) / float(image.GetMetaData("pixdim[2]"))
+    row_z = np.array(row_z) / float(image.GetMetaData("pixdim[3]"))
+
+    r = R.from_matrix([row_x[:3], row_y[:3], row_z[:3]])
+    quat = r.as_quat()
+
+    image.SetMetaData("qform_code", str(2))
+    image.SetMetaData("sform_code", str(0))
+    image.SetMetaData("quatern_b", str(quat[1]))
+    image.SetMetaData("quatern_c", str(quat[2]))
+    image.SetMetaData("quatern_d", str(quat[3]))
+
+    sitk.WriteImage(image, output_filename)
