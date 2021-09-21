@@ -7,14 +7,13 @@ from textwrap import dedent
 
 import plotly.io as pio
 import visdom
-
 from Hive.evaluation.io_metric_results import (
     create_dataframes,
     get_saved_dataframes,
     METRICS_FOLDER_NAME,
     read_dataframe,
 )
-from Hive.evaluation.plotly_plots import create_plots, save_plots, PLOTS, BAR_AGGREGATORS
+from Hive.evaluation.plotly_plots import create_plots, save_plots, PLOTS, BAR_AGGREGATORS, get_phase_table
 from Hive.evaluation.vis import create_log_at
 from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, str2bool
 
@@ -218,7 +217,8 @@ def main():
     if args["phase_json_file"] is not None:
         with open(args["phase_json_file"]) as json_file:
             phase_dict = json.load(json_file)
-
+        phase_table = get_phase_table(args["phase_json_file"])
+        phase_table.write_html(Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "breathing_phase_table.html"))
     if args["visualize_only"] is not True:
         create_dataframes(config_dict, metrics, sections, prediction_suffix, file_format, phase_dict)
 
