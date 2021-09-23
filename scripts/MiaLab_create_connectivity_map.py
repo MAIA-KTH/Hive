@@ -1,14 +1,12 @@
+#! /usr/bin/env python
+
 import json
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
 
 from Hive.utils.file_utils import subfolders
-from Hive.utils.log_utils import (
-    get_logger,
-    add_verbosity_options_to_argparser,
-    log_lvl_from_verbosity_args,
-)
+from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, str2bool
 from Hive.utils.mialab_utils import run_mialab_fuzzy_segmentation_command
 
 DESC = dedent(
@@ -82,6 +80,14 @@ def get_arg_parser():
         required=False,
         help="If specified, only subjects in the listed phases are processed.",
     )
+
+    pars.add_argument(
+        "--skip-existing",
+        type=str2bool,
+        required=False,
+        default=True,
+        help="Specify to rerun the process for already existing output files.",
+    )
     add_verbosity_options_to_argparser(pars)
 
     return pars
@@ -108,6 +114,9 @@ def main():
 
     subjects = subfolders(arguments["data_folder"], join=False)
     for subject in subjects:
+        if arguments["skip_existing"]:
+            if Path(arguments["data_folder"]).joinpath(subject, subject + arguments["output_suffix"]).is_file():
+                continue
         if len(phase_dict.keys()) > 0 and phase_dict[subject] in phases:
             run_mialab_fuzzy_segmentation_command(
                 arguments["mialab_folder"],

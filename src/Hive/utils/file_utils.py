@@ -418,14 +418,12 @@ def convert_nifti_to_qform(filename: Union[str, PathLike], output_filename: Unio
     image.SetMetaData("qoffset_x", str(row_x[3]))
     image.SetMetaData("qoffset_y", str(row_y[3]))
     image.SetMetaData("qoffset_z", str(row_z[3]))
-    row_x = np.array(row_x) / float(image.GetMetaData("pixdim[1]"))
-    row_y = np.array(row_y) / float(image.GetMetaData("pixdim[2]"))
+    row_x = np.array(row_x) / -float(image.GetMetaData("pixdim[1]"))
+    row_y = np.array(row_y) / -float(image.GetMetaData("pixdim[2]"))
     row_z = np.array(row_z) / float(image.GetMetaData("pixdim[3]"))
-
     r = R.from_matrix([row_x[:3], row_y[:3], row_z[:3]])
     quat = r.as_quat()
-
-    image.SetMetaData("qform_code", str(2))
+    image.SetMetaData("qform_code", str(1))
     image.SetMetaData("sform_code", str(0))
     image.SetMetaData("quatern_b", str(quat[1]))
     image.SetMetaData("quatern_c", str(quat[2]))
