@@ -8,6 +8,7 @@ from textwrap import dedent
 from Hive.utils.file_utils import subfolders
 from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, str2bool
 from Hive.utils.mialab_utils import run_mialab_fuzzy_segmentation_command
+from Hive.utils.volume_utils import erode_mask
 
 DESC = dedent(
     """
@@ -88,6 +89,14 @@ def get_arg_parser():
         default=True,
         help="Specify to rerun the process for already existing output files.",
     )
+
+    pars.add_argument(
+        "--erosion-iterations",
+        type=int,
+        required=False,
+        default=0,
+        help="Specify to number of iterations to optionally erode the mask image.",
+    )
     add_verbosity_options_to_argparser(pars)
 
     return pars
@@ -118,22 +127,36 @@ def main():
             if Path(arguments["data_folder"]).joinpath(subject, subject + arguments["output_suffix"]).is_file():
                 continue
         if len(phase_dict.keys()) > 0 and phase_dict[subject] in phases:
+            label_suffix = arguments["label_suffix"]
+            if arguments["erosion_iterations"] > 0:
+                label_suffix = "_eroded_mask.nii.gz"
+                label_filename = str(Path(arguments["data_folder"]).joinpath(subject, subject + arguments["label_suffix"]))
+                eroded_label_filename = str(Path(arguments["data_folder"]).joinpath(subject, subject + label_suffix))
+                erode_mask({"label": label_filename}, arguments["erosion_iterations"], eroded_label_filename)
+
             run_mialab_fuzzy_segmentation_command(
                 arguments["mialab_folder"],
                 arguments["data_folder"],
                 subject,
                 arguments["image_suffix"],
                 arguments["output_suffix"],
-                arguments["label_suffix"],
+                label_suffix,
             )
         elif len(phase_dict.keys()) == 0:
+            label_suffix = arguments["label_suffix"]
+            if arguments["erosion_iterations"] > 0:
+                label_suffix = "_eroded_mask.nii.gz"
+                label_filename = str(Path(arguments["data_folder"]).joinpath(subject, subject + arguments["label_suffix"]))
+                eroded_label_filename = str(Path(arguments["data_folder"]).joinpath(subject, subject + label_suffix))
+                erode_mask({"label": label_filename}, arguments["erosion_iterations"], eroded_label_filename)
+
             run_mialab_fuzzy_segmentation_command(
                 arguments["mialab_folder"],
                 arguments["data_folder"],
                 subject,
                 arguments["image_suffix"],
                 arguments["output_suffix"],
-                arguments["label_suffix"],
+                label_suffix,
             )
 
 
