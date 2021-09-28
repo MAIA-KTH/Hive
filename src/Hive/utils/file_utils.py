@@ -8,9 +8,8 @@ from os import PathLike
 from pathlib import Path
 from typing import Dict, Tuple, List, Union
 
-import SimpleITK as sitk
+import nibabel as nib
 import numpy as np
-from scipy.spatial.transform import Rotation as R
 from tqdm import tqdm
 
 from .log_utils import get_logger, DEBUG
@@ -45,7 +44,7 @@ def subfolders(folder, join=True, sort=True):
 
 
 def get_identifiers_from_splitted_files(folder: str):
-    uniques = np.unique([i for i in subfiles(folder, suffix=".nii.gz", join=False)])
+    uniques = np.unique([i[:-12] for i in subfiles(folder, suffix=".nii.gz", join=False)])
     return uniques
 
 
@@ -96,8 +95,8 @@ def generate_dataset_json(
         "labels": {str(i): labels[i] for i in labels.keys()},
         "numTraining": len(train_identifiers),
         "numTest": len(test_identifiers),
-        "training": [{"image": "./imagesTr/%s" % i, "label": "./labelsTr/%s" % i} for i in train_identifiers],
-        "test": ["./imagesTs/%s" % i for i in test_identifiers],
+        "training": [{"image": "./imagesTr/%s.nii.gz" % i, "label": "./labelsTr/%s.nii.gz" % i} for i in train_identifiers],
+        "test": ["./imagesTs/%s.nii.gz" % i for i in test_identifiers],
     }
 
     if not output_file.endswith("dataset.json"):
@@ -216,12 +215,9 @@ def copy_data_to_dataset_folder(
     input_data_folder: str,
     subjects: List[str],
     output_data_folder: str,
-    image_suffix: str,
     image_subpath: str,
     config_dict: Dict[str, str],
-    label_suffix: str = None,
     labels_subpath: str = None,
-    modality: int = None,
     num_threads: int = None,
 ):
     """
@@ -232,22 +228,14 @@ def copy_data_to_dataset_folder(
     input_data_folder: folder path of the input dataset
     subjects: string list containing subject IDs for train set
     output_data_folder: folder path where to store images ( and labels )
-    image_suffix: file suffix to be used to correctly detect the file to store in imagesTr/imagesTs
+    modality code following the sequential order.
     image_subpath: relative folder name where to store images in nnUNet folder hierarchy: imagesTr/imagesTs
-    label_suffix: file suffix to be used to correctly detect the file to store in labelsTr. If None, label images
     are not stored
-    labels_subpath: relative folder name where to store labels in nnUNet folder hierarchy ( Default: None ). If label_suffix is None,
-    labels are not stored
+    labels_subpath: relative folder name where to store labels in nnUNet folder hierarchy ( Default: None ).
+    If label_suffix is None, labels are not stored
     config_dict: dictionary with dataset and nnUNet configuration parameters
-    modality: integer value indexing the modality in config_dict['modalities'] to be considered ( Default: None ). # noqa: E501
-              If None, no modality code is appended
     """
-
-    if modality is not None:
-        modality_code = "_{0:04d}".format(modality)
-    else:
-        modality_code = ""
-
+    label_suffix = config_dict["label_suffix"]
     if num_threads is None:
         try:
             num_threads = int(os.environ["N_THREADS"])
@@ -264,16 +252,13 @@ def copy_data_to_dataset_folder(
             join=False,
             suffix=config_dict["FileExtension"],
         )
+        image_suffix_list = config_dict["Modalities"].keys()
+        for modality, image_suffix in enumerate(image_suffix_list):
+            modality_code = "_{0:04d}".format(modality)
+            image_filename = directory + image_suffix
 
-        image_filename = directory + image_suffix
-
-        if label_suffix is not None:
-
-            label_filename = directory + label_suffix
-
-            if image_filename in files and label_filename in files:
+            if image_filename in files:
                 updated_image_filename = image_filename.replace(image_suffix, modality_code + config_dict["FileExtension"])
-                updated_label_filename = label_filename.replace(label_suffix, config_dict["FileExtension"])
                 copied_files.append(
                     pool.starmap_async(
                         copy_image_file,
@@ -285,6 +270,16 @@ def copy_data_to_dataset_folder(
                         ),
                     )
                 )
+            else:
+                logger.warning("{} is not found: skipping {} case".format(image_filename, directory))
+        if label_suffix is not None:
+
+            label_filename = directory + label_suffix
+
+            if label_filename in files:
+
+                updated_label_filename = label_filename.replace(label_suffix, config_dict["FileExtension"])
+
                 copied_files.append(
                     pool.starmap_async(
                         copy_label_file,
@@ -297,22 +292,9 @@ def copy_data_to_dataset_folder(
                         ),
                     )
                 )
-
             else:
-                logger.warning("{} or {} are not stored: skipping {} case".format(image_filename, label_filename, directory))
-        else:
-            updated_image_filename = image_filename.replace(image_suffix, modality_code + config_dict["FileExtension"])
-            copied_files.append(
-                pool.starmap_async(
-                    copy_image_file,
-                    (
-                        (
-                            str(Path(input_data_folder).joinpath(directory, image_filename)),
-                            str(Path(output_data_folder).joinpath(image_subpath, updated_image_filename)),
-                        ),
-                    ),
-                )
-            )
+                logger.warning("{} is not found: skipping {} case".format(label_filename, directory))
+
     _ = [i.get() for i in tqdm(copied_files)]
 
 
@@ -339,10 +321,11 @@ def copy_label_file(input_image: str, input_label: str, output_filepath: str):
     input_label: file path for the input label to be copied
     output_filepath: file location where to save the label image
     """
-    label_itk = sitk.ReadImage(input_label)
-    image_itk = sitk.ReadImage(input_image)
-    label_itk.CopyInformation(image_itk)
-    sitk.WriteImage(label_itk, output_filepath)
+    label_nib = nib.load(input_label)
+    image_nib = nib.load(input_image)
+
+    label_nib_out = nib.Nifti1Image(label_nib.get_fdata(), image_nib.affine)
+    nib.save(label_nib_out, output_filepath)
 
 
 def move_file_in_subfolders(folder: str, file_suffix: str, file_extension: str):
@@ -398,35 +381,3 @@ def match_subject_IDs_by_suffix_length(data_folder: Union[str, PathLike], prefix
 
     matching_subjects = [k for k, _ in itertools.groupby(matching_subjects)]
     return matching_subjects
-
-
-def convert_nifti_to_qform(filename: Union[str, PathLike], output_filename: Union[str, PathLike]):
-    """
-    Given a NIFTI filenames, converts it in a QFORM representation.
-    Parameters
-    ----------
-    filename : Union[str, PathLike]
-        File path of the NIFTI volume to be converted.
-    output_filename : Union[str, PathLike]
-        File path of the NIFTI converted output volume.
-    """
-    image = sitk.ReadImage(filename)
-
-    row_x = [float(val) for val in image.GetMetaData("srow_x").split(" ")]
-    row_y = [float(val) for val in image.GetMetaData("srow_y").split(" ")]
-    row_z = [float(val) for val in image.GetMetaData("srow_z").split(" ")]
-    image.SetMetaData("qoffset_x", str(row_x[3]))
-    image.SetMetaData("qoffset_y", str(row_y[3]))
-    image.SetMetaData("qoffset_z", str(row_z[3]))
-    row_x = np.array(row_x) / -float(image.GetMetaData("pixdim[1]"))
-    row_y = np.array(row_y) / -float(image.GetMetaData("pixdim[2]"))
-    row_z = np.array(row_z) / float(image.GetMetaData("pixdim[3]"))
-    r = R.from_matrix([row_x[:3], row_y[:3], row_z[:3]])
-    quat = r.as_quat()
-    image.SetMetaData("qform_code", str(1))
-    image.SetMetaData("sform_code", str(0))
-    image.SetMetaData("quatern_b", str(quat[1]))
-    image.SetMetaData("quatern_c", str(quat[2]))
-    image.SetMetaData("quatern_d", str(quat[3]))
-
-    sitk.WriteImage(image, output_filename)
