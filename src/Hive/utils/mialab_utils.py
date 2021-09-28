@@ -3,7 +3,6 @@ from os import PathLike
 from pathlib import Path
 from typing import Union
 
-from Hive.utils.file_utils import convert_nifti_to_qform
 from Hive.utils.log_utils import DEBUG, get_logger
 
 logger = get_logger(__name__)
@@ -41,7 +40,3 @@ def run_mialab_fuzzy_segmentation_command(
     command += " -OutputImage {}".format(Path(data_folder).joinpath(subject, subject + output_suffix))
     logger.log(DEBUG, "Running {}".format(command))
     os.system(command)
-    convert_nifti_to_qform(
-        str(Path(data_folder).joinpath(subject, subject + output_suffix)),
-        str(Path(data_folder).joinpath(subject, subject + output_suffix)),
-    )
