@@ -381,3 +381,26 @@ def match_subject_IDs_by_suffix_length(data_folder: Union[str, PathLike], prefix
 
     matching_subjects = [k for k, _ in itertools.groupby(matching_subjects)]
     return matching_subjects
+
+
+def save_4D_volume_as_3D(filename: Union[str, PathLike], suffix: str):
+    """
+    Save a 4D volume into separated 3D volumes, appending _idx to the filename.
+
+    Parameters
+    ----------
+    filename : filename: Union[str, PathLike]
+        4D volume filepath.
+    suffix: str
+        filename extension.
+    """
+    img = nib.load(filename)
+
+    affine_transform = img.affine
+
+    img_array = img.get_fdata()
+    img_array = np.transpose(img_array, (3, 0, 1, 2))
+
+    for idx, img_3D in enumerate(img_array):
+        image3D = nib.Nifti1Image(img_3D, affine_transform)
+        nib.save(image3D, filename[: -len(suffix)] + "_{}".format(idx) + suffix)

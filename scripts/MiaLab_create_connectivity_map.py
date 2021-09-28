@@ -5,7 +5,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
 
-from Hive.utils.file_utils import subfolders
+from Hive.utils.file_utils import subfolders, save_4D_volume_as_3D
 from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, str2bool
 from Hive.utils.mialab_utils import run_mialab_fuzzy_segmentation_command
 from Hive.utils.volume_utils import erode_mask
@@ -20,7 +20,7 @@ EPILOG = dedent(
     Example call:
     ::
         {filename} --data-folder /path/to/data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --output-suffix _connectivity_map.nii.gz
-        {filename} --data-folder /path/to/data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --output-suffix _connectivity_map.nii.gz --phase-json-file /path/to/json/phase_file.json
+        {filename} --data-folder /path/to/data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --output-suffix _connectivity_map.nii.gz --phase-json-file /path/to/json/phase_file.json --save-3D-vector-field yes
         {filename} --data-folder /path/to/data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --output-suffix _connectivity_map.nii.gz --phase-json-file /path/to/json/phase_file.json --phases Exhalation
     """.format(  # noqa: E501
         filename=Path(__file__).name
@@ -97,6 +97,14 @@ def get_arg_parser():
         default=0,
         help="Specify to number of iterations to optionally erode the mask image.",
     )
+
+    pars.add_argument(
+        "--save-3D-vector-field",
+        type=str2bool,
+        required=False,
+        default="n",
+        help="Specify to save the 4D vector field as 3 separated 3D volumes.",
+    )
     add_verbosity_options_to_argparser(pars)
 
     return pars
@@ -142,6 +150,10 @@ def main():
                 arguments["output_suffix"],
                 label_suffix,
             )
+            if arguments["save_3D_vector_field"]:
+                save_4D_volume_as_3D(
+                    str(Path(arguments["data_folder"]).joinpath(subject, subject + arguments["output_suffix"])), ".nii.gz"
+                )
         elif len(phase_dict.keys()) == 0:
             label_suffix = arguments["label_suffix"]
             if arguments["erosion_iterations"] > 0:
@@ -158,6 +170,10 @@ def main():
                 arguments["output_suffix"],
                 label_suffix,
             )
+            if arguments["save_3D_vector_field"]:
+                save_4D_volume_as_3D(
+                    str(Path(arguments["data_folder"]).joinpath(subject, subject + arguments["output_suffix"])), ".nii.gz"
+                )
 
 
 if __name__ == "__main__":
