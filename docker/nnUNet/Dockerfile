@@ -12,5 +12,5 @@ COPY start.sh start.sh
 COPY .env .env
 COPY create_nnUNet_conda_env.sh create_nnUNet_conda_env.sh
 
-ENTRYPOINT ["./start.sh"]
+ENTRYPOINT ["sh", "./start.sh"]
 CMD ["/usr/sbin/sshd", "-D"]
