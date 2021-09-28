@@ -36,9 +36,9 @@ EPILOG = dedent(
     """
      Example call:
     ::
-        {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz
-        {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --task-ID 106 --task-name LungLobeSeg25D
-        {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --task-ID 101 --task-name 25D_LungLobeSeg --test-split 30 --config-file LungLobeSeg_2.5D_config.json
+        {filename} --input /path/to/input_data_folder
+        {filename} --input /path/to/input_data_folder --task-ID 106 --task-name LungLobeSeg25D
+        {filename} --input /path/to/input_data_folder --task-ID 101 --task-name 25D_LungLobeSeg --test-split 30 --config-file LungLobeSeg_2.5D_config.json
 
     """.format(  # noqa: E501
         filename=Path(__file__).name
@@ -80,36 +80,29 @@ def main():
         arguments["task_name"],
         arguments["task_ID"],
     )
-    train_dataset, test_dataset = split_dataset(arguments["input_data_folder"], arguments["test_split"],
-                                                config_dict["Seed"])
+    train_dataset, test_dataset = split_dataset(arguments["input_data_folder"], arguments["test_split"], config_dict["Seed"])
 
     copy_data_to_dataset_folder(
         arguments["input_data_folder"],
         train_dataset,
         dataset_path,
-        arguments["image_suffix"],
         "imagesTr",
         config_dict,
-        arguments["label_suffix"],
         "labelsTr",
-        0,
     )
     copy_data_to_dataset_folder(
         arguments["input_data_folder"],
         test_dataset,
         dataset_path,
-        arguments["image_suffix"],
         "imagesTs",
         config_dict,
-        arguments["label_suffix"],
         "labelsTs",
-        0,
     )
     generate_dataset_json(
         str(Path(dataset_path).joinpath("dataset.json")),
         str(Path(dataset_path).joinpath("imagesTr")),
         str(Path(dataset_path).joinpath("imagesTs")),
-        config_dict["Modalities"],
+        list(config_dict["Modalities"].values()),
         config_dict["label_dict"],
         config_dict["DatasetName"],
     )
@@ -118,15 +111,13 @@ def main():
     config_dict["Task_Name"] = arguments["task_name"]
     config_dict["base_folder"] = os.environ["raw_data_base"]
 
-    output_json_basename = config_dict["DatasetName"] + "_" + config_dict["Task_ID"] + "_" + config_dict[
-        "Task_Name"] + ".json"
+    output_json_basename = config_dict["DatasetName"] + "_" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"] + ".json"
 
     try:
         config_dict["results_folder"] = os.environ["RESULTS_FOLDER"]
         config_dict["predictions_path"] = os.environ["RESULTS_FOLDER"]
     except KeyError:
-        logger.warning(
-            "RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
+        logger.warning("RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
         return 1
     try:
         config_dict["preprocessing_folder"] = os.environ["preprocessed_folder"]
@@ -161,20 +152,6 @@ def get_arg_parser():
         type=str,
         default="LungLobeSeg_3D_Single_Modality",
         help="Task Name used in the folder path tree creation (Default: LungLobeSeg_2.5D_Single_Modality)",  # noqa E501
-    )
-
-    parser.add_argument(
-        "--image-suffix",
-        type=str,
-        required=True,
-        help="Image filename suffix to correctly detect the image files in the dataset",
-    )
-
-    parser.add_argument(
-        "--label-suffix",
-        type=str,
-        required=True,
-        help="Label filename suffix to correctly detect the label files in the dataset",
     )
 
     parser.add_argument(

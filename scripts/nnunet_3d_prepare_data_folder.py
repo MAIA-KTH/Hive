@@ -36,9 +36,9 @@ EPILOG = dedent(
     """
     Example call:
     ::
-        {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz
-        {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --task-ID 106 --task-name LungLobeSeg3D
-        {filename} --input /path/to/input_data_folder --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --task-ID 101 --task-name 3D_LungLobeSeg --test-split 30 --config-file LungLobeSeg_nnUNet_3D_config.json
+        {filename} --input /path/to/input_data_folder
+        {filename} --input /path/to/input_data_folder --task-ID 106 --task-name LungLobeSeg3D
+        {filename} --input /path/to/input_data_folder --task-ID 101 --task-name 3D_LungLobeSeg --test-split 30 --config-file LungLobeSeg_nnUNet_3D_config.json
     """.format(  # noqa: E501
         filename=Path(__file__).name
     )
@@ -84,29 +84,23 @@ def main():
         arguments["input_data_folder"],
         train_dataset,
         dataset_path,
-        arguments["image_suffix"],
         "imagesTr",
         config_dict,
-        arguments["label_suffix"],
         "labelsTr",
-        0,
     )
     copy_data_to_dataset_folder(
         arguments["input_data_folder"],
         test_dataset,
         dataset_path,
-        arguments["image_suffix"],
         "imagesTs",
         config_dict,
-        arguments["label_suffix"],
         "labelsTs",
-        0,
     )
     generate_dataset_json(
         str(Path(dataset_path).joinpath("dataset.json")),
         str(Path(dataset_path).joinpath("imagesTr")),
         str(Path(dataset_path).joinpath("imagesTs")),
-        config_dict["Modalities"],
+        list(config_dict["Modalities"].values()),
         config_dict["label_dict"],
         config_dict["DatasetName"],
     )
@@ -180,20 +174,6 @@ def get_arg_parser():
     )
 
     pars.add_argument(
-        "--image-suffix",
-        type=str,
-        required=True,
-        help="Image filename suffix to correctly detect the image files in the dataset",
-    )
-
-    pars.add_argument(
-        "--label-suffix",
-        type=str,
-        required=True,
-        help="Label filename suffix to correctly detect the label files in the dataset",
-    )
-
-    pars.add_argument(
         "--test-split",
         type=int,
         choices=range(0, 101),
@@ -207,7 +187,7 @@ def get_arg_parser():
         type=str,
         required=False,
         default="LungLobeSeg_nnUNet_3D_config.json",
-        help="Configuration JSON file with experiment and dataset parameters " "(Default: LungLobeSeg_nnUNet_3D_config.json)",
+        help="Configuration JSON file with experiment and dataset parameters (Default: LungLobeSeg_nnUNet_3D_config.json)",
     )
 
     add_verbosity_options_to_argparser(pars)
