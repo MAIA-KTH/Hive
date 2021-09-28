@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import json
-from pathlib import Path
 import os
 from argparse import ArgumentParser, RawTextHelpFormatter
+from pathlib import Path
 from textwrap import dedent
 
 from Hive.utils.log_utils import (
@@ -63,6 +63,10 @@ def main():
             "-t",
             data["Task_ID"],
         ]
+
+        os.environ["nnUNet_raw_data_base"] = data["base_folder"]
+        os.environ["nnUNet_preprocessed"] = data["preprocessing_folder"]
+        os.environ["nnUNet_def_n_proc"] = os.environ["N_THREADS"]
 
         arguments.extend(unknown_arguments)
         os.system("nnUNet_plan_and_preprocess " + " ".join(arguments))
