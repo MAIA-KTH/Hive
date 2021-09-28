@@ -7,11 +7,30 @@ from monai.data.nifti_writer import write_nifti
 
 
 class HiveNiftiSaver(NiftiSaver):
+    """
+    Save the data as NIfTI file, it can support single data content or a batch of data.
+    Typically, the data can be segmentation predictions, call `save` for single data
+    or call `save_batch` to save a batch of data together.
+    The name of saved file will be `{input_image_name}_{output_postfix}{output_ext}`,
+    where the input image name is extracted from the provided meta data dictionary.
+    If no meta data provided, use index from 0 as the filename prefix.
+
+    Note: image should include channel dimension: [B],C,H,W,[D].
+
+    """
+
     def __init__(
-            self,
-            output_dir: str = "./",
-            output_postfix: str = "seg",
+        self,
+        output_dir: str = "./",
+        output_postfix: str = "seg",
     ):
+        """
+        Args:
+            output_dir: output image directory.
+            output_postfix: a string appended to all output file names.
+
+
+        """
         super().__init__(output_dir, output_postfix)
 
     def set_output_dir(self, output_dir):
@@ -20,8 +39,7 @@ class HiveNiftiSaver(NiftiSaver):
     def set_output_postfix(self, output_postfix):
         self.output_postfix = output_postfix
 
-    def save_with_path(self, data: Union[torch.Tensor, np.ndarray], path: str,
-                       meta_data: Optional[Dict] = None) -> None:
+    def save_with_path(self, data: Union[torch.Tensor, np.ndarray], path: str, meta_data: Optional[Dict] = None) -> None:
         """
         Save data into a Nifti file.
         The meta_data could optionally have the following keys:
