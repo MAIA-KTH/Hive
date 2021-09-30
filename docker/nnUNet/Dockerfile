@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:1.9.0-cuda10.2-cudnn7-runtime
+FROM pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime
 
 # SSH-PYCHARM
 RUN apt-get update && apt-get install -y openssh-server build-essential
