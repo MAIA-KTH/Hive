@@ -2,6 +2,7 @@
 
 import json
 import os
+import subprocess
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
@@ -78,11 +79,11 @@ def main():
         ]
         arguments.extend(unknown_arguments)
 
-        os.environ["nnUNet_raw_data_base"] = os.environ["raw_data_base"]
-        os.environ["nnUNet_preprocessed"] = os.environ["preprocessed_folder"]
+        os.environ["nnUNet_raw_data_base"] = data["base_folder"]
+        os.environ["nnUNet_preprocessed"] = data["preprocessing_folder"]
         os.environ["nnUNet_def_n_proc"] = os.environ["N_THREADS"]
-
-        os.system("nnUNet_train " + " ".join(arguments))
+        os.environ['MKL_THREADING_LAYER'] = 'GNU'
+        subprocess.run("nnUNet_train " + " ".join(arguments))
         fold_path = str(Path(data["predictions_path"]).joinpath(data["predictions_folder_name"]))
         move_file_in_subfolders(fold_path, data["FileExtension"], data["FileExtension"])
 

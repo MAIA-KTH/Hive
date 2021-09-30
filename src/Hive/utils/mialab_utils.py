@@ -1,4 +1,4 @@
-import os
+import subprocess
 from os import PathLike
 from pathlib import Path
 from typing import Union
@@ -39,4 +39,4 @@ def run_mialab_fuzzy_segmentation_command(
     command += " -MaskImage {}".format(Path(data_folder).joinpath(subject, subject + mask_suffix))
     command += " -OutputImage {}".format(Path(data_folder).joinpath(subject, subject + output_suffix))
     logger.log(DEBUG, "Running {}".format(command))
-    os.system(command)
+    subprocess.run(command)
