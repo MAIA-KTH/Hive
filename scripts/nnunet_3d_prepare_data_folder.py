@@ -138,7 +138,7 @@ def main():
         return 1
     try:
         config_dict["preprocessing_folder"] = os.environ["preprocessed_folder"]
-        Path(config_dict[config_dict["preprocessing_folder"]]).mkdir(parents=True, exist_ok=True)
+        Path(config_dict["preprocessing_folder"]).mkdir(parents=True, exist_ok=True)
 
     except KeyError:
         logger.warning(
