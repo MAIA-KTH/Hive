@@ -1,11 +1,12 @@
 from typing import Any
 
 import numpy as np
-from Hive.monai import ORIENTATION_MAP
-from Hive.monai.transforms.utils import get_quatern_a, get_axis_order_to_RAI
 from monai.config import KeysCollection
 from monai.transforms import MapTransform
 from scipy.spatial.transform import Rotation as R
+
+from Hive.monai import ORIENTATION_MAP
+from Hive.monai.transforms.utils import get_quatern_a, get_axis_order_to_RAI
 
 
 class OrientToRAId(MapTransform):
@@ -68,6 +69,7 @@ class OrientToRAId(MapTransform):
             axis_orientation, flip_axes = get_axis_order_to_RAI(orientation_matrix)
             data["{}_meta_dict".format(key)]["axis_orientation"] = axis_orientation
             data["{}_meta_dict".format(key)]["axis_flip"] = flip_axes
+            data["{}_meta_dict".format(key)]["rotation_affine"] = orientation_matrix
 
             if self.slicing_axes is not None:
                 orientation_index = ORIENTATION_MAP[self.slicing_axes]
