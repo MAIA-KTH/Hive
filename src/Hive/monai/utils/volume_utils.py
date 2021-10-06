@@ -12,8 +12,6 @@ from scipy.ndimage import center_of_mass
 from Hive.monai.transforms import OrientToRAId
 from Hive.utils.volume_utils import apply_affine_transform_to_vector_field
 
-VECTOR_COORDINATES_2D = {"axial": [0, 1], "coronal": [2, 0], "sagittal": [2, 1]}
-
 
 def create_2D_GIF_for_vector_field(
     image_filename: Union[str, PathLike],
@@ -61,9 +59,21 @@ def create_2D_GIF_for_vector_field(
     )
 
     data = transform(data)
+    axis_orientation = data["image_meta_dict"]["axis_orientation_swapped"]
+    vector_field_2D_axes = axis_orientation[1:]
+    plot_origin = "lower"
+
+    if orientation != "axial":
+        plot_origin = "upper"
+        axis_orientation.reverse()
+        vector_field_2D_axes = axis_orientation[:2]
+        data["image"] = np.swapaxes(data["image"], 1, 2)
+        data["vector_field"] = np.swapaxes(data["vector_field"], 2, 3)
+        if "mask" in data:
+            data["mask"] = np.swapaxes(data["mask"], 1, 2)
 
     affine_transform = np.eye(4)
-    affine_transform[:3, :3] = data["image_meta_dict"]["rotation_affine"]
+    affine_transform[:3, :3] = np.transpose(data["image_meta_dict"]["rotation_affine"], (1, 0))
 
     data["vector_field"] = apply_affine_transform_to_vector_field(data["vector_field"], affine_transform)
 
@@ -72,30 +82,33 @@ def create_2D_GIF_for_vector_field(
     def update(frame):
         if mask_filename is not None:
             vector_slice_array = sum_vector_field_with_mask(
-                data["vector_field"][VECTOR_COORDINATES_2D[orientation], frame, :, :], data["mask"][frame, :, :]
+                data["vector_field"][vector_field_2D_axes, frame, :, :], data["mask"][frame, :, :]
             )
         else:
-            vector_slice_array = sum_vector_field(
-                data["vector_field"][VECTOR_COORDINATES_2D[orientation], frame, :, :], grid_spacing
-            )
+            vector_slice_array = sum_vector_field(data["vector_field"][vector_field_2D_axes, frame, :, :], grid_spacing)
 
         plt.clf()
         plt.axis("off")
-        plt.imshow(data["image"][frame, :, :], cmap="gray", origin="lower")
+        plt.imshow(data["image"][frame, :, :], cmap="gray", origin=plot_origin)
         if mask_filename is not None:
             plt.imshow(
                 np.ma.masked_where(data["mask"][frame, :, :] < 0.5, data["mask"][frame, :, :]),
                 cmap="gray",
                 alpha=0.6,
-                origin="lower",
+                origin=plot_origin,
             )
 
         for i in range(data["vector_field"].shape[2]):
             for j in range(data["vector_field"].shape[3]):
                 if vector_slice_array[0, i, j] != 0 or vector_slice_array[1, i, j] != 0:
+                    x_pos = i
+                    y_pos = j
+                    if orientation == "axial":
+                        x_pos = j
+                        y_pos = i
                     plt.arrow(
-                        j,
-                        i,
+                        x_pos,
+                        y_pos,
                         vector_slice_array[0, i, j],
                         vector_slice_array[1, i, j],
                         head_width=10,
