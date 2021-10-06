@@ -74,6 +74,9 @@ class OrientToRAId(MapTransform):
             if self.slicing_axes is not None:
                 orientation_index = ORIENTATION_MAP[self.slicing_axes]
                 axis_index = data["{}_meta_dict".format(key)]["axis_orientation"].index(orientation_index)
+                data["{}_meta_dict".format(key)]["axis_orientation_swapped"] = axis_orientation.copy()
+                data["{}_meta_dict".format(key)]["axis_orientation_swapped"][0] = axis_orientation[axis_index]
+                data["{}_meta_dict".format(key)]["axis_orientation_swapped"][axis_index] = axis_orientation[0]
                 axis_to_flip = [axis for axis, flip in enumerate(data["{}_meta_dict".format(key)]["axis_flip"]) if flip]
                 data[key] = np.flip(data[key], axis_to_flip)
                 data[key] = np.swapaxes(data[key], 0, axis_index)
