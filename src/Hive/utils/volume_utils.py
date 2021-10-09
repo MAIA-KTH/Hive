@@ -2,8 +2,10 @@ from os import PathLike
 from pathlib import Path
 from typing import List, Dict, Tuple, Any, Union
 
+import SimpleITK as sitk
 import nibabel as nib
 import numpy as np
+from SimpleITK import Image
 from monai.transforms import (
     LoadImaged,
 )
@@ -248,3 +250,64 @@ def erode_mask(filename_dict: Dict[str, Union[str, PathLike]], iterations: int, 
     eroded_label = binary_erosion(data["label"], iterations=iterations)
     eroded_nib_label = nib.Nifti1Image(eroded_label.astype(np.int32), data["label_meta_dict"]["affine"])
     nib.save(eroded_nib_label, output_filename)
+
+
+def resample_image(itk_image: Image, output_size: List[int], output_spacing: List[float], interpolation: int) -> Image:
+    """
+    Resample a SimpleITK Image according to the given size, spacing and interpolation method.
+
+    Parameters
+    ----------
+    itk_image : Image
+        SimpleITK image to be resampled.
+    output_size : List[int]
+        List of the desired output size.
+    output_spacing : List[float]
+        List of the desired output resolution.
+    interpolation : int
+        Interpolation method to use.
+
+    Returns
+    -------
+    Image
+        Resampled SimpleITK Image.
+    """
+    sz1, origin = itk_image.GetSize(), itk_image.GetOrigin()
+    direction = itk_image.GetDirection()
+    num_dim = len(sz1)
+
+    t = sitk.Transform(num_dim, sitk.sitkScale)
+    scaling_factors = [1.0] * num_dim
+    t.SetParameters(scaling_factors)
+
+    itk_image = sitk.Resample(
+        itk_image, output_size, t, interpolation, origin, output_spacing, direction, 0.0, itk_image.GetPixelID()
+    )
+
+    return itk_image
+
+
+def stack_images_to_4D_channel(image_filename_list: List[Union[str, PathLike]], output_filename: Union[str, PathLike]):
+    """
+    Concatenate a list of given 3D images along a new axes, created in the last spatial dimension. The resulting 4D
+    image is then saved.
+
+    Parameters
+    ----------
+    image_filename_list : List[Union[str, PathLike]]
+        List of image files to concatenate.
+    output_filename : Union[str, PathLike]
+        Filename where to save the 4D output.
+    """
+    image_data_array_list = []
+    for image_filename in image_filename_list:
+        itk_image = sitk.ReadImage(image_filename)
+        image_data_array_list.append(sitk.GetArrayFromImage(itk_image))
+
+    image_data = np.stack(image_data_array_list, axis=-1)
+    itk_image_4D = sitk.GetImageFromArray(image_data)
+    itk_image_4D.SetDirection(itk_image.GetDirection())
+    itk_image_4D.SetSpacing(itk_image.GetSpacing())
+    itk_image_4D.SetOrigin(itk_image.GetOrigin())
+
+    sitk.WriteImage(itk_image_4D, output_filename)
