@@ -36,8 +36,7 @@ EPILOG = dedent(
     """
     Example call:
     ::
-        {filename} --input /path/to/input_data_folder
-        {filename} --input /path/to/input_data_folder --task-ID 106 --task-name LungLobeSeg3D
+        {filename} -i /path/to/input_data_folder --task-ID 106 --task-name LungLobeSeg3D  --config-file LungLobeSeg_nnUNet_3D_config.json
         {filename} --input /path/to/input_data_folder --task-ID 101 --task-name 3D_LungLobeSeg --test-split 30 --config-file LungLobeSeg_nnUNet_3D_config.json
     """.format(  # noqa: E501
         filename=Path(__file__).name
