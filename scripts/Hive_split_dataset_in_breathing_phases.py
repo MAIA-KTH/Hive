@@ -14,16 +14,18 @@ TIMESTAMP = "{:%Y-%m-%d_%H-%M-%S}".format(datetime.datetime.now())
 
 DESC = dedent(
     """
-
+    Match and group the Dataset volumes, according to the given Minimum Filename Pattern Length that they must share and
+    according to the number of volumes that should be included in the single groups. For each formed group, the volumes
+    are assigned to the "Inhalation" category or to the "Exhalation" category, according to the volume size.
+    A JSON summary in then saved, including the information for each case and to which category it is assigned.
     """  # noqa: E501
 )
 EPILOG = dedent(
     """
     Example call:
     ::
-        {filename} --config-file LungLobeSeg_2.5D_config.json
-        {filename} --config-file LungLobeSeg_2.5D_config.json --n-workers 4
-        {filename} --config-file LungLobeSeg_2.5D_config.json --n-cache 10
+        {filename} --data-folder /PATH/TO/DATA_FOLDER --image-suffix _image.nii.gz --label-suffix _mask.nii.gz
+        {filename} --data-folder /PATH/TO/DATA_FOLDER --image-suffix _image.nii.gz --label-suffix _mask.nii.gz --group-size 2 --matching-pattern-length 8
     """.format(  # noqa: E501
         filename=Path(__file__).name
     )
