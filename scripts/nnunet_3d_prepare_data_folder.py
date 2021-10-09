@@ -169,8 +169,8 @@ def get_arg_parser():
     pars.add_argument(
         "--task-name",
         type=str,
-        default="LungLobeSeg_3D_Single_Modality",
-        help="Task Name used in the folder path tree creation (Default: LungLobeSeg_3D_Single_Modality)",  # noqa E501
+        required=True,
+        help="Task Name used in the folder path tree creation.",  # noqa E501
     )
 
     pars.add_argument(
@@ -185,9 +185,8 @@ def get_arg_parser():
     pars.add_argument(
         "--config-file",
         type=str,
-        required=False,
-        default="LungLobeSeg_nnUNet_3D_config.json",
-        help="Configuration JSON file with experiment and dataset parameters (Default: LungLobeSeg_nnUNet_3D_config.json)",
+        required=True,
+        help="Configuration JSON file with experiment and dataset parameters.",
     )
 
     add_verbosity_options_to_argparser(pars)
