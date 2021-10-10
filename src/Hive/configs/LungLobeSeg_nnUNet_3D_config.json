@@ -33,5 +33,9 @@
       "Jaccard",
       "Relative Volumetric Difference"
     ]
-  }
+  },
+  "3D_validation_idx": [
+    0
+  ],
+  "n_folds": 5
 }
