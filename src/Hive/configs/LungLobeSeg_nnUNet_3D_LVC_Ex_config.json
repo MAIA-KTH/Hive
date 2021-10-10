@@ -1,0 +1,44 @@
+{
+  "label_suffix": "_mask.nii.gz",
+  "label_dict": {
+    "0": "Background",
+    "1": "LU",
+    "2": "LL",
+    "3": "RU",
+    "4": "RM",
+    "5": "RL"
+  },
+  "Modalities": {
+    "_image.nii.gz": "CT",
+    "_LVC_map_0.nii.gz": "LVC_X",
+    "_LVC_map_1.nii.gz": "LVC_Y",
+    "_LVC_map_2.nii.gz": "LVC_Z"
+  },
+  "FileExtension": ".nii.gz",
+  "DatasetName": "LungLobeSeg",
+  "Experiment Name": "nnUNet_3D_fullres_LVC_Ex",
+  "TRAINING_CONFIGURATION": "3d_fullres",
+  "TRAINER_CLASS_NAME": "nnUNetTrainerHive",
+  "TRAINER_PLAN": "nnUNetPlansv2.1",
+  "predictions_folder_name": "validation_raw_postprocessed",
+  "Seed": 6,
+  "Metrics_save_configs": {
+    "ID_column": "reference",
+    "Save_stats": true,
+    "Metrics_dict": [
+      "Dice",
+      "Avg. Surface Distance",
+      "Precision",
+      "Recall",
+      "Accuracy",
+      "Specificity",
+      "Hausdorff Distance 95",
+      "Jaccard",
+      "Relative Volumetric Difference"
+    ]
+  },
+  "3D_validation_idx": [
+    0
+  ],
+  "n_folds": 5
+}
