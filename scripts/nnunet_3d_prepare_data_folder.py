@@ -107,7 +107,6 @@ def main():
     config_dict["Task_ID"] = arguments["task_ID"]
     config_dict["Task_Name"] = arguments["task_name"]
     config_dict["base_folder"] = os.environ["raw_data_base"]
-    config_dict["n_folds"] = 5
 
     output_json_basename = (
         config_dict["DatasetName"]
