@@ -136,7 +136,7 @@ class Hive2Dto3DTensorBoardImageHandler(TensorBoardImageHandler):
             indexes = [
                 iteration_index
                 for iteration_index in range(0, self.batch_transform(engine.state.batch)[0].shape[0])
-                if iteration_indexes[iteration_index] in self.label_dict[volume_id]["indexes"]
+                if iteration_indexes[iteration_index] in self.volume_id_map[volume_id]["indexes"]
             ]
 
             if len(indexes) == 0:
