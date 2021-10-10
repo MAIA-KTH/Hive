@@ -1,7 +1,7 @@
 import json
 from os import PathLike
 from pathlib import Path
-from typing import Dict, Any, List, Callable, Literal, Optional, Union
+from typing import Dict, Any, List, Callable, Optional, Union
 
 import pandas as pd
 import plotly
@@ -20,7 +20,7 @@ def get_heatmap(
     df_flat: DataFrame,
     metric_name: str,
     metric_measurement_unit: str,
-    section: Literal["testing", "validation", "experiment", "project"],
+    section: str,
     bar_configs: Dict[str, Any],
     plot_title: str,
     show_phase: bool = False,
@@ -37,8 +37,8 @@ def get_heatmap(
         Specified metric for the plot.
     metric_measurement_unit : str
         Metric measurement unit, to be appended in the plot labels.
-    section : Literal['testing', 'validation', 'experiment', 'project']
-        Specified section for the plot.
+    section : str
+        Specified section for the plot. Accepted values: [`validation`, `testing`, `experiment`, `project`].
     plot_title : str
         Plot title.
     bar_configs: Dict [str, Any]
@@ -187,7 +187,7 @@ def get_plotly_histo(
     df_flat: DataFrame,
     metric_name: str,
     metric_measurement_unit: str,
-    section: Literal["testing", "validation", "experiment", "project"],
+    section: str,
     plot_title: str,
     show_phase: bool = False,
     **kwargs
@@ -203,8 +203,8 @@ def get_plotly_histo(
         Specified metric for the plot.
     metric_measurement_unit : str
         Metric measurement unit, to be appended in the plot labels.
-    section : Literal['testing', 'validation', 'experiment', 'project']
-        Specified section for the plot.
+    section : str
+        Specified section for the plot. Accepted values: [`validation`, `testing`, `experiment`, `project`].
     plot_title : str
         Plot title.
     kwargs
@@ -252,7 +252,7 @@ def get_plotly_bar(
     df_flat: DataFrame,
     metric_name: str,
     metric_measurement_unit: str,
-    section: Literal["testing", "validation", "experiment", "project"],
+    section: str,
     plot_title: str,
     bar_configs: Dict[str, Any],
     aggregator: str,
@@ -271,8 +271,8 @@ def get_plotly_bar(
         Specified metric for the plot.
     metric_measurement_unit : str
         Metric measurement unit, to be appended in the plot labels.
-    section : Literal['testing', 'validation', 'experiment', 'project']
-        Specified section for the plot.
+    section : str
+        Specified section for the plot. Accepted values: [`validation`, `testing`, `experiment`, `project`].
     plot_title : str
         Plot title.
     bar_configs: Dict [str, Any]
@@ -342,7 +342,7 @@ def get_plotly_boxplot(
     df_flat: DataFrame,
     metric_name: str,
     metric_measurement_unit: str,
-    section: Literal["testing", "validation", "experiment", "project"],
+    section: str,
     plot_title: str,
     show_phase: bool = False,
     **kwargs
@@ -359,7 +359,7 @@ def get_plotly_boxplot(
     metric_measurement_unit : str
         Metric measurement unit, to be appended in the plot labels.
     section : str
-        Specified section for the plot.
+        Specified section for the plot. Accepted values: [`validation`, `testing`, `experiment`, `project`].
     plot_title : str
         Plot title.
     kwargs
@@ -414,9 +414,9 @@ PLOTS = {
 
 def get_plot_title(
     main_title: str,
-    section: Literal["testing", "validation", "experiment", "project"],
+    section: str,
     metric: str,
-    aggr: Optional[Literal["max", "min", "mean"]] = None,
+    aggr: Optional[str] = None,
 ) -> str:
     """
     Compose and return the plot title, according to the specified metric and section.
@@ -428,11 +428,11 @@ def get_plot_title(
     ----------
     main_title : str
         Initial strings for the title, to be prepended.
-    section : Literal['testing', 'validation', 'experiment', 'project']
-        Section for the title.
+    section : str
+        Section for the title. Accepted values: [`validation`, `testing`, `experiment`, `project`].
     metric: str
         Metric for the title.
-    aggr: Optional[Literal['max', 'min', 'mean']]
+    aggr: Optional[str]
         Optional metric aggregator. Examples: [```mean``, ```max``, ```min``].
 
     Returns
@@ -456,7 +456,7 @@ def create_plots(
     df_paths: Dict[str, str],
     metrics: List[str],
     plot_title: str,
-    sections: List[Literal["testing", "validation", "experiment"]],
+    sections: List[str],
     show_phase: bool = False,
 ) -> Dict[str, Figure]:
     """
@@ -473,8 +473,8 @@ def create_plots(
         List of metrics to create ``Plotly`` plots.
     plot_title : str
         String from where to compose the plot title, as described in :py:`get_plot_title`.
-    sections : List[Literal['testing', 'validation', 'experiment']]
-        Sections to load and create plots.
+    sections : List[str]
+        Sections to load and create plots. Accepted values: [`validation`, `testing`, `experiment`].
     show_phase : bool
         Flag to include phase information in plot.
     Returns
@@ -538,7 +538,7 @@ def create_plots_for_project(
     df_paths: Dict[str, str],
     metrics: List[str],
     plot_title: str,
-    subsection: Optional[Literal["Validation", "Testing"]] = None,
+    subsection: Optional[str] = None,
     show_phase: bool = False,
 ) -> Dict[str, Figure]:
     """
@@ -555,7 +555,7 @@ def create_plots_for_project(
         List of metrics to create ``Plotly`` plots.
     plot_title : str
         String from where to compose the plot title, as described in :py:`get_plot_title`.
-    subsection : Optional[Literal['Validation','Testing']]
+    subsection : Optional[str]
         If set, the metric DataFrame is also filtered according to the specific section, ```Testing`` or ``Validation``].
     show_phase : bool
         Flag to include phase information in plot.
@@ -627,8 +627,8 @@ def save_plots(
     results_folder: Union[str, PathLike],
     plot_dict: Dict[str, Figure],
     metrics: List[str],
-    sections: List[Literal["testing", "validation", "experiment", "project"]],
-    file_format: Literal["png", "html", "json"] = "png",
+    sections: List[str],
+    file_format: str = "png",
 ):
     """
     Save the ```Plotly`` **Figure** stored in *plot_dict*, according to the specified file format. Accepted formats are:
@@ -642,9 +642,9 @@ def save_plots(
         Map of available ```Plotly`` figures.
     metrics : List[str]
         List of metrics to save as plots.
-    sections : List[Literal['testing', 'validation', 'experiment', 'project']]
-        Sections to save plots.
-    file_format : Literal['png', 'html', 'json']
+    sections : List[str]
+        Sections to save plots. Accepted values: [`validation`, `testing`, `experiment`, `project`].
+    file_format : str
         File format to save the plots.
     """
     if file_format not in list(SAVE_PLOT_DICT.keys()):
