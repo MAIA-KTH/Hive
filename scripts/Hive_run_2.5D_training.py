@@ -215,7 +215,7 @@ def run_2d_training_for_fold_and_orientation(fold, orientation, config_dict):
     )
 
     trainer = HiveSupervisedTrainer(config_dict, fold_results_path)
-
+    trainer.set_orientation(orientation)
     trainer.prepare_trainer_event_handlers(True, model_checkpoints_path=model_checkpoint_path, tb_log_path=tb_log_path)
 
     post_pred = Compose([EnsureType(), Activations(softmax=True), AsDiscrete(threshold_values=True)])
