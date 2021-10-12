@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from Hive.monai.transforms import OrientToRAId
 from Hive.utils.volume_utils import apply_affine_transform_to_vector_field
 from matplotlib.animation import FuncAnimation
@@ -353,18 +354,131 @@ def get_vector_field_summary_for_case(
     return case_vector_field_summary
 
 
-def create_plotly_3D_vector_field(case_summary_filename: Union[str, PathLike], output_filename: Union[str, PathLike]):
+def create_plotly_3D_vector_field(
+    subject_ID: str,
+    image_filename: Union[str, PathLike],
+    case_summary_filename: Union[str, PathLike],
+    output_filename: Union[str, PathLike],
+):
     """
     For a given Subject vector field summary, creates and saves the HTML plotly plot of the vector field.
 
     Parameters
     ----------
+    subject_ID : str
+        Subject ID.
+    image_filename : Union[str, PathLike]
+        Image file path, used to render the volume in the HTML Plotly output.
     case_summary_filename : Union[str, PathLike]
         File path of the subject vector field summary.
     output_filename : : Union[str, PathLike]
         HTML output file path.
     """
-    df = pd.read_excel(case_summary_filename)
+    vector_scale = 50
+    data = {"image": image_filename}
+
+    transform = Compose(
+        [
+            LoadImaged(keys=["image"]),
+            OrientToRAId(keys=["image"], slicing_axes="sagittal"),
+        ]
+    )
+
+    data = transform(data)
+    volume = data["image"]
+    volume = np.transpose(volume, (2, 1, 0))
+    r, c = volume[0].shape
+
+    nb_frames = volume.shape[0]
+
+    fig = go.Figure(
+        frames=[
+            go.Frame(
+                data=go.Surface(z=k * np.ones((r, c)), surfacecolor=volume[k], cmin=-1000, cmax=1000),
+                name=str(k),  # you need to name the frame for the animation to behave properly
+            )
+            for k in range(0, nb_frames, 50)
+        ]
+    )
+
+    # Add data to be displayed before animation starts
+    fig.add_trace(
+        go.Surface(
+            z=0 * np.ones((r, c)),
+            surfacecolor=volume[0],
+            colorscale="Gray",
+            cmin=-1000,
+            cmax=1000,
+            showscale=False,
+            colorbar=dict(thickness=20, ticklen=4),
+        )
+    )
+
+    def frame_args(duration):
+        return {
+            "frame": {"duration": duration},
+            "mode": "immediate",
+            "fromcurrent": True,
+            "transition": {"duration": duration, "easing": "linear"},
+        }
+
+    sliders = [
+        {
+            "pad": {"b": 10, "t": 60},
+            "len": 0.9,
+            "x": 0.1,
+            "y": 0,
+            "steps": [
+                {
+                    "args": [[f.name], frame_args(0)],
+                    "label": f.name,
+                    "method": "animate",
+                }
+                for k, f in enumerate(fig.frames)
+            ],
+        }
+    ]
+
+    # Layout
+    fig.update_layout(
+        width=1440,
+        height=810,
+        scene=dict(
+            zaxis=dict(range=[-1, nb_frames - 1], autorange=False),
+            aspectratio=dict(x=1, y=1, z=1),
+        ),
+        updatemenus=[
+            {
+                "buttons": [
+                    {
+                        "args": [None, frame_args(50)],
+                        "label": "&#9654;",  # play symbol
+                        "method": "animate",
+                    },
+                    {
+                        "args": [[None], frame_args(0)],
+                        "label": "&#9724;",  # pause symbol
+                        "method": "animate",
+                    },
+                ],
+                "direction": "left",
+                "pad": {"r": 10, "t": 70},
+                "type": "buttons",
+                "x": 0.1,
+                "y": 0,
+            }
+        ],
+        sliders=sliders,
+    )
+
+    if case_summary_filename.endswith(".xlsx"):
+        df = pd.read_excel(case_summary_filename)
+    elif case_summary_filename.endswith(".csv"):
+        df = pd.read_csv(case_summary_filename)
+    elif case_summary_filename.endswith(".pkl"):
+        df = pd.read_pickle(case_summary_filename)
+    else:
+        raise ValueError("Case summary file format not recognized, expected one of: '.xslx', '.csv', '.pkl' ")
 
     df_copy = df.copy(deep=True)
     label_dict = {"0": "Background", "1": "LU", "2": "LL", "3": "RU", "4": "RM", "5": "RL"}
@@ -374,12 +488,13 @@ def create_plotly_3D_vector_field(case_summary_filename: Union[str, PathLike], o
 
     for index, row in df.iterrows():
         row_copy = row.copy(deep=True)
-        row_copy["CM_x"] = row["CM_x"] + row["V_x"] / 100
-        row_copy["CM_y"] = row["CM_y"] + row["V_y"] / 100
-        row_copy["CM_z"] = row["CM_z"] + row["V_z"] / 100
+        row_copy["CM_x"] = row["CM_x"] + row["V_x"] / vector_scale
+        row_copy["CM_y"] = row["CM_y"] + row["V_y"] / vector_scale
+        row_copy["CM_z"] = row["CM_z"] + row["V_z"] / vector_scale
         df_copy = df_copy.append(row_copy, ignore_index=True)
 
-    fig = px.line_3d(df_copy, x="CM_x", y="CM_y", z="CM_z", color="Label")
+    fig_line3D = px.line_3d(df_copy, x="CM_x", y="CM_y", z="CM_z", color="Label", width=50)
+    fig.add_traces(data=fig_line3D.data)
     for index, row in df.iterrows():
         position = val_list.index(row["Label"])
 
@@ -387,12 +502,12 @@ def create_plotly_3D_vector_field(case_summary_filename: Union[str, PathLike], o
             data=[
                 {
                     "type": "cone",
-                    "x": [row["CM_x"] + row["V_x"] / 100],
-                    "y": [row["CM_y"] + row["V_y"] / 100],
-                    "z": [row["CM_z"] + row["V_z"] / 100],
-                    "u": [row["V_x"] / 300],
-                    "v": [row["V_y"] / 300],
-                    "w": [row["V_z"] / 300],
+                    "x": [row["CM_x"] + row["V_x"] / vector_scale],
+                    "y": [row["CM_y"] + row["V_y"] / vector_scale],
+                    "z": [row["CM_z"] + row["V_z"] / vector_scale],
+                    "u": [row["V_x"] / (vector_scale * 3)],
+                    "v": [row["V_y"] / (vector_scale * 3)],
+                    "w": [row["V_z"] / (vector_scale * 3)],
                     "colorscale": [
                         [0, px.colors.qualitative.Plotly[int(key_list[position]) - 1]],
                         [1, px.colors.qualitative.Plotly[int(key_list[position]) - 1]],
@@ -405,12 +520,12 @@ def create_plotly_3D_vector_field(case_summary_filename: Union[str, PathLike], o
         )
 
     fig.update_layout(
-        title="LVC Vector Field",
+        title="{} LVC Vector Field".format(subject_ID),
         scene={
             "camera": {"eye": {"x": -0.76, "y": 1.8, "z": 0.92}},
-            "xaxis": {"title": "x", "nticks": 20, "range": [0, 500]},
-            "yaxis": {"title": "y", "nticks": 20, "range": [0, 500]},
-            "zaxis": {"title": "z", "nticks": 20, "range": [0, 500]},
+            "xaxis": {"title": "x", "nticks": 20, "range": [0, volume.shape[2]]},
+            "yaxis": {"title": "y", "nticks": 20, "range": [0, volume.shape[1]]},
+            "zaxis": {"title": "z", "nticks": 20, "range": [0, volume.shape[0]]},
         },
     )
 
@@ -428,7 +543,14 @@ def create_plotly_3D_vector_field_summary(summary_filename: Union[str, PathLike]
     output_filename : : Union[str, PathLike]
         HTML output file path.
     """
-    df = pd.read_excel(summary_filename)
+    if summary_filename.endswith(".xlsx"):
+        df = pd.read_excel(summary_filename)
+    elif summary_filename.endswith(".csv"):
+        df = pd.read_csv(summary_filename)
+    elif summary_filename.endswith(".pkl"):
+        df = pd.read_pickle(summary_filename)
+    else:
+        raise ValueError("Summary file format not recognized, expected one of: '.xslx', '.csv', '.pkl' ")
 
     for index, row in df.iterrows():
         magnitude = math.sqrt(math.pow(row["V_x"], 2) + math.pow(row["V_y"], 2) + math.pow(row["V_z"], 2))
