@@ -53,7 +53,7 @@ def get_arg_parser():
         "-o",
         "--output-folder",
         type=str,
-        required=not ("--in-place" in sys.argv and sys.argv[sys.argv.index("--in-place") + 1] == "yes"),
+        required=not ("--in-place" in sys.argv and str2bool(sys.argv[sys.argv.index("--in-place") + 1])),
         help="Output folder where to save the ordered Dataset",
     )
 
@@ -70,6 +70,15 @@ def get_arg_parser():
         required=False,
         default="no",
         help='if set to "yes", the output folder matches the input folder',
+    )
+
+    parser.add_argument(
+        "--create-subject-subfolders",
+        type=str2bool,
+        required=False,
+        default="yes",
+        help='if set to "yes", individual subject subfolders are created, with the corresponding files stored. If set '
+        'to "no", all the files are directly saved in the main data folder.',
     )
 
     add_verbosity_options_to_argparser(parser)
@@ -90,7 +99,8 @@ def main():
         args["output_folder"] = args["input_folder"]
 
     order_data_in_single_folder(args["input_folder"], args["output_folder"])
-    order_data_folder_by_patient(args["output_folder"], args["patient_suffix"])
+    if args["create_subject_subfolders"]:
+        order_data_folder_by_patient(args["output_folder"], args["patient_suffix"])
 
 
 if __name__ == "__main__":
