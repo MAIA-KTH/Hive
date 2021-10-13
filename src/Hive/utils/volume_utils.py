@@ -220,13 +220,15 @@ def compute_subject_summary(filename_dict: Dict[str, Union[str, PathLike]], labe
     labels = [int(label) for label in label_dict]
     labels = labels[1:]
     subject_summary["ID"] = Path(filename_dict["image"]).parent.name
-    subject_summary["Resolution"] = data["image_meta_dict"]["pixdim"][1:4]
-    subject_summary["Dimension"] = data["image_meta_dict"]["dim"][1:4]
+    for dim in range(3):
+        subject_summary["Resolution_{}".format(dim)] = data["image_meta_dict"]["pixdim"][dim + 1]
+        subject_summary["Dimension_{}".format(dim)] = data["image_meta_dict"]["dim"][dim + 1]
     label_CM = compute_center_of_mass(data["label"], data["image_meta_dict"], labels)
     label_avg_intensity = compute_label_avg_intensity(data["image"], data["label"], labels)
     label_volume = compute_label_volumes(data["label"], data["image_meta_dict"], labels)
     for index, label in enumerate(labels):
-        subject_summary["CM_{}".format(label_dict[str(label)])] = label_CM[index]
+        for dim in range(3):
+            subject_summary["CM_{}_{}".format(label_dict[str(label)], dim)] = label_CM[index][dim]
         subject_summary["Average Intensity_{}".format(label_dict[str(label)])] = label_avg_intensity[index]
         subject_summary["Lobe_Volumes_{}".format(label_dict[str(label)])] = label_volume[index]
 
