@@ -1,0 +1,44 @@
+{
+  "label_suffix": "_mask_5mmZ.nii.gz",
+  "label_dict": {
+    "0": "Background",
+    "1": "LU",
+    "2": "LL",
+    "3": "RU",
+    "4": "RM",
+    "5": "RL"
+  },
+  "Modalities": {
+    "_image_5mmZ.nii.gz": "CT",
+    "_LVC_map_0_5mmZ.nii.gz": "LVC_X",
+    "_LVC_map_1_5mmZ.nii.gz": "LVC_Y",
+    "_LVC_map_2_5mmZ.nii.gz": "LVC_Z"
+  },
+  "FileExtension": ".nii.gz",
+  "DatasetName": "LungLobeSeg_Ex_5mmZ",
+  "Experiment Name": "nnUNet_3D_LVC",
+  "TRAINING_CONFIGURATION": "3d_fullres",
+  "TRAINER_CLASS_NAME": "nnUNetTrainerHive",
+  "TRAINER_PLAN": "nnUNetPlansv2.1",
+  "predictions_folder_name": "validation_raw_postprocessed",
+  "Seed": 6,
+  "Metrics_save_configs": {
+    "ID_column": "reference",
+    "Save_stats": true,
+    "Metrics_dict": [
+      "Dice",
+      "Avg. Surface Distance",
+      "Precision",
+      "Recall",
+      "Accuracy",
+      "Specificity",
+      "Hausdorff Distance 95",
+      "Jaccard",
+      "Relative Volumetric Difference"
+    ]
+  },
+  "3D_validation_idx": [
+    0
+  ],
+  "n_folds": 5
+}
