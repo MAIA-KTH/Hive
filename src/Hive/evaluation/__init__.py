@@ -8,7 +8,7 @@ DEFAULT_BAR_CONFIGS = {
     "Accuracy": {"colors": ["red", "orange", "green"]},
     "Specificity": {"colors": ["red", "orange", "green"]},
     "Jaccard": {"colors": ["red", "orange", "green"]},
-    "Relative Volumetric Difference": {"colors": ["red", "orange", "green"]},
+    "Relative Volumetric Difference": {"colors": ["green", "orange", "red"]},
 }
 
 DEFAULT_METRIC_UNITS = {
