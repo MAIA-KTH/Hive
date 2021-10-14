@@ -27,9 +27,9 @@ EPILOG = dedent(
     """
     Example call:
     ::
-        {filename} --config-file LungLobeSeg_2.5D_config.json
-        {filename} --config-file LungLobeSeg_2.5D_config.json --n-workers 4
-        {filename} --config-file LungLobeSeg_2.5D_config.json --n-cache 10
+        {filename} --data-folder /PATH/TO/DATA_FOLDER --input-suffix _image.nii.gz --output-suffix _image_512x.nii.gz  -output-size 512 -1 -1
+        {filename} --data-folder /PATH/TO/DATA_FOLDER --input-suffix _image.nii.gz --output-suffix _image_5x.nii.gz  -output-spacing 5 -1 -1  --interpolation-method linear
+        {filename} --data-folder /PATH/TO/DATA_FOLDER --input-suffix _image.nii.gz --output-suffix _image_3x.nii.gz  -output-scale 3 1 1
     """.format(  # noqa: E501
         filename=Path(__file__).name
     )
