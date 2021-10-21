@@ -26,7 +26,6 @@ EPILOG = dedent(
     Example call:
     ::
         {filename} --data-folder /path/to/data_folder --config-file LungLobeSeg_2.5D_config.json  --image-modality CT --summary-csv-file /path/to/summary.json
- 
     """.format(  # noqa: E501
         filename=Path(__file__).name
     )
@@ -85,9 +84,10 @@ def main():
     subjects = subfolders(arguments["data_folder"], join=False)
     df_summary = pd.DataFrame()
     for subject in subjects:
-        subject_dict = {"image": str(Path(arguments["data_folder"]).joinpath(subject, subject + image_suffix)),
-                        "label": str(
-                            Path(arguments["data_folder"]).joinpath(subject, subject + config_dict["label_suffix"]))}
+        subject_dict = {
+            "image": str(Path(arguments["data_folder"]).joinpath(subject, subject + image_suffix)),
+            "label": str(Path(arguments["data_folder"]).joinpath(subject, subject + config_dict["label_suffix"])),
+        }
         subject_summary = compute_subject_summary(subject_dict, config_dict["label_dict"])
         df_summary = df_summary.append(subject_summary, ignore_index=True)
 

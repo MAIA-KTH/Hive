@@ -53,6 +53,30 @@ def main():
         name=Path(__file__).name,
         level=log_lvl_from_verbosity_args(arguments),
     )
+
+    try:
+        with open(arguments["config_file"]) as json_file:
+            config_dict = json.load(json_file)
+    except FileNotFoundError:
+        with importlib.resources.path(Hive.configs, arguments["config_file"]) as json_path:
+            with open(json_path) as json_file:
+                config_dict = json.load(json_file)
+
+    os.environ["raw_data_base"] = str(
+        Path(os.environ["root_experiment_folder"]).joinpath(
+            config_dict["Experiment Name"], config_dict["Experiment Name"] + "_base"
+        )
+    )
+    os.environ["preprocessed_folder"] = str(
+        Path(os.environ["root_experiment_folder"]).joinpath(
+            config_dict["Experiment Name"], config_dict["Experiment Name"] + "_preprocess"
+        )
+    )
+    os.environ["RESULTS_FOLDER"] = str(
+        Path(os.environ["root_experiment_folder"]).joinpath(
+            config_dict["Experiment Name"], config_dict["Experiment Name"] + "_results"
+        )
+    )
     try:
         dataset_path = str(
             Path(os.environ["raw_data_base"]).joinpath(
@@ -64,14 +88,6 @@ def main():
     except KeyError:
         logger.error("raw_data_base is not set as environment variable")
         return 1
-
-    try:
-        with open(arguments["config_file"]) as json_file:
-            config_dict = json.load(json_file)
-    except FileNotFoundError:
-        with importlib.resources.path(Hive.configs, arguments["config_file"]) as json_path:
-            with open(json_path) as json_file:
-                config_dict = json.load(json_file)
 
     create_nnunet_data_folder_tree(
         os.environ["raw_data_base"],
@@ -108,16 +124,7 @@ def main():
     config_dict["Task_Name"] = arguments["task_name"]
     config_dict["base_folder"] = os.environ["raw_data_base"]
 
-    output_json_basename = (
-        config_dict["DatasetName"]
-        + "_"
-        + config_dict["TRAINING_CONFIGURATION"]
-        + "_"
-        + config_dict["Task_ID"]
-        + "_"
-        + config_dict["Task_Name"]
-        + ".json"
-    )
+    output_json_basename = config_dict["Task_Name"] + "_" + config_dict["Task_ID"] + ".json"
 
     try:
         full_task_name = "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"]
