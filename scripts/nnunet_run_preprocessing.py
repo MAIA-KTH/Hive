@@ -67,7 +67,7 @@ def main():
         os.environ["nnUNet_raw_data_base"] = data["base_folder"]
         os.environ["nnUNet_preprocessed"] = data["preprocessing_folder"]
         os.environ["nnUNet_def_n_proc"] = os.environ["N_THREADS"]
-
+        os.environ["RESULTS_FOLDER"] = data["results_folder"]
         arguments.extend(unknown_arguments)
         os.system("nnUNet_plan_and_preprocess " + " ".join(arguments))
 

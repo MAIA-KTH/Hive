@@ -87,6 +87,7 @@ def main():
 
         os.environ["nnUNet_raw_data_base"] = data["base_folder"]
         os.environ["nnUNet_preprocessed"] = data["preprocessing_folder"]
+        os.environ["RESULTS_FOLDER"] = data["results_folder"]
         os.environ["nnUNet_def_n_proc"] = os.environ["N_THREADS"]
         os.environ["MKL_THREADING_LAYER"] = "GNU"
         os.environ["nnunet_use_progress_bar"] = "1"
