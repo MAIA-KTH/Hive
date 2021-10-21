@@ -7,13 +7,15 @@ replicaCount: 1
 extraHostVolumes:
   - name: hive
     hostPath: /home/simone/Documents/Projects/Hive
+  - name: nnunet
+    hostPath: /home/simone/Documents/GitHub/nnUNet
 extraSecretVolumes:
   - name: secret-git-key
     secretName: ssh-key-secret
 
 extraNFSVolumes:
   - name: nfs-data-volume
-    hostPath: /hdd/nfs_share/Data/LungLobeSeg
+    hostPath: /mnt/nfs_share/Data/LungLobeSeg
     server: 130.237.84.230
 
 extraVolumeMounts:
@@ -21,6 +23,8 @@ extraVolumeMounts:
     mountPath: /home/LungLobeSeg
   - name: hive
     mountPath: /home/Hive
+  - name: nnunet
+    mountPath: /home/nnUNet
   - mountPath: /dev/shm
     name: dshm
   - name: secret-git-key
@@ -42,10 +46,10 @@ extraEnv:
 resources:
   requests:
     memory: "54Gi"
-    cpu: "15000m"
+    cpu: "18000m"
   limits:
     memory: "54Gi"
-    cpu: "15000m"
+    cpu: "18000m"
     nvidia.com/gpu: "1"
 
 image:
@@ -78,6 +82,11 @@ service:
       targetPort: 22
       nodePort: 30022
       name: 'ssh'
+    - port: 6006
+      targetPort: 6006
+      nodePort: 30006
+      name: 'tensorboard'
+
 
 nodeSelector: { }
 
