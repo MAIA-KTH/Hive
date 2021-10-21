@@ -13,7 +13,7 @@
   },
   "FileExtension": ".nii.gz",
   "DatasetName": "LungLobeSeg_Ex_5mmZ",
-  "Experiment Name": "nnUNet_3D_LVC",
+  "Experiment Name": "nnUNet_3D",
   "TRAINING_CONFIGURATION": "3d_fullres",
   "TRAINER_CLASS_NAME": "nnUNetTrainerHive",
   "TRAINER_PLAN": "nnUNetPlansv2.1",
