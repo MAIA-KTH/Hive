@@ -6,13 +6,13 @@ import SimpleITK as sitk
 import nibabel as nib
 import numpy as np
 from SimpleITK import Image
-from monai.transforms import (
-    LoadImaged,
-)
+from monai.transforms import LoadImaged, Compose, AddChanneld
 from nptyping import NDArray
 from scipy.ndimage import binary_erosion
 from scipy.ndimage import center_of_mass
 
+from Hive.monai.data.nifti_saver import HiveNiftiSaver
+from Hive.monai.transforms import LungLobeMapToFissureMaskd
 from Hive.utils.log_utils import get_logger
 
 logger = get_logger(__name__)
@@ -313,3 +313,33 @@ def stack_images_to_4D_channel(image_filename_list: List[Union[str, PathLike]], 
     itk_image_4D.SetOrigin(itk_image.GetOrigin())
 
     sitk.WriteImage(itk_image_4D, output_filename)
+
+
+def convert_lung_label_map_to_fissure_mask(
+    label_filename: Union[str, PathLike], fissure_mask_filename: Union[str, PathLike], dilation_iterations: int = 1
+):
+    """
+    Convert a lung lobe label map file into a fissure binary mask and save it.
+
+    Parameters
+    ----------
+    label_filename : Union[str, PathLike]
+        Label map filename.
+    fissure_mask_filename : Union[str, PathLike]
+        Output fissure mask filename.
+    dilation_iterations : int
+        Number of dilation iterations to perform.
+    """
+    data = {"label": label_filename}
+
+    transform = Compose(
+        [
+            LoadImaged(keys="label"),
+            LungLobeMapToFissureMaskd(keys="label", dilation_iterations=dilation_iterations, n_labels=5),
+            AddChanneld(keys="label"),
+        ]
+    )
+
+    saver = HiveNiftiSaver()
+    output_data = transform(data)
+    saver.save_with_path(output_data["label"], meta_data=output_data["label_meta_dict"], path=fissure_mask_filename)

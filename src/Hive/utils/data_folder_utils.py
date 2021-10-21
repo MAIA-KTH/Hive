@@ -28,8 +28,7 @@ def order_data_in_single_folder(root_path: Union[str, PathLike], output_path: Un
     """
     logger.log(DEBUG, "Creating folder at '{}'".format(output_path))
     for file_path in Path(root_path).glob("*/*"):
-        logger.log(DEBUG,
-                   "Moving '{}' file to '{}'".format(file_path, Path(output_path).joinpath(Path(file_path).name)))
+        logger.log(DEBUG, "Moving '{}' file to '{}'".format(file_path, Path(output_path).joinpath(Path(file_path).name)))
         Path(file_path).rename(Path(output_path).joinpath(Path(file_path).name))
     remove_empty_folder_recursive(root_path)
 
@@ -93,7 +92,7 @@ def order_data_folder_by_patient(folder_path: Union[str, PathLike], file_pattern
 
 
 def copy_subject_folder_to_data_folder(
-        input_data_folder: Union[str, PathLike], subjects: List[str], data_folder: Union[str, PathLike]
+    input_data_folder: Union[str, PathLike], subjects: List[str], data_folder: Union[str, PathLike]
 ):
     """
     Copy all the specified subject sub-folders to a new data folder.
