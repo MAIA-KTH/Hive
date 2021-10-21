@@ -3,12 +3,14 @@ services:
   nnunet:
     image: "nnunet"
     container_name: nnunet-environment
-    shm_size: 512m
+    shm_size: 32g
     env_file: credentials.env
     ports:
       - "30022:22"
+      - "30006:6006"
     volumes:
-      - D:/GitHub/Windows/Hive:/home/Hive
+      - /home/simone/Documents/Projects/Hive:/home/Hive
+      - /home/simone/Documents/GitHub/nnUNet:/home/nnUNet
       - /mnt/nfs_share/Data/LungLobeSeg:/home/LungLobeSeg
     deploy:
       resources:
