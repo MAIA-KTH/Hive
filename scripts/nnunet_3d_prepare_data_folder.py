@@ -95,6 +95,12 @@ def main():
         arguments["task_ID"],
     )
     train_dataset, test_dataset = split_dataset(arguments["input_data_folder"], arguments["test_split"], config_dict["Seed"])
+    if "Cascade" in config_dict and config_dict["Cascade"]:
+        cascade_step = arguments["cascade_step"]
+        config_dict["label_suffix"] = config_dict["step_{}".format(cascade_step)]["label_suffix"]
+        config_dict["label_dict"] = config_dict["step_{}".format(cascade_step)]["label_dict"]
+        config_dict["Modalities"] = config_dict["step_{}".format(cascade_step)]["Modalities"]
+
     copy_data_to_dataset_folder(
         arguments["input_data_folder"],
         train_dataset,
@@ -137,6 +143,16 @@ def main():
                 config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
             )
         )
+        if "Cascade" in config_dict and config_dict["Cascade"]:
+            for cascade_step in range(config_dict["Cascade_steps"]):
+                config_dict["predictions_step_{}_path".format(cascade_step)] = str(
+                    Path(os.environ["RESULTS_FOLDER"]).joinpath(
+                        "nnUNet",
+                        "step_{}".format(cascade_step),
+                        full_task_name,
+                        config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
+                    )
+                )
         Path(config_dict["results_folder"]).mkdir(parents=True, exist_ok=True)
     except KeyError:
         logger.warning("RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
@@ -185,6 +201,14 @@ def get_arg_parser():
         metavar="[0-100]",
         default=20,
         help="Split value ( in %% ) to create Test set from Dataset (Default: 20)",
+    )
+
+    pars.add_argument(
+        "--cascade-step",
+        type=int,
+        required=False,
+        default=0,
+        help="Optional value to indicate which cascade step to run the data folder preparation.",
     )
 
     pars.add_argument(

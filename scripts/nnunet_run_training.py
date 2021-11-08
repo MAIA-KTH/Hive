@@ -96,9 +96,17 @@ def main():
         os.environ["receiver_email"] = "simonebendazzoli93@gmail.com"
 
         subprocess.run(arguments)
-        fold_path = str(
-            Path(data["predictions_path"]).joinpath("fold_{}".format(args["run_fold"]), data["predictions_folder_name"])
-        )
+        if "--cascade-step" in arguments:
+            cascade_step = arguments[arguments.index("--cascade-step") + 1]
+            fold_path = str(
+                Path(data["predictions_step_{}_path".format(cascade_step)]).joinpath(
+                    "fold_{}".format(args["run_fold"]), data["predictions_folder_name"]
+                )
+            )
+        else:
+            fold_path = str(
+                Path(data["predictions_path"]).joinpath("fold_{}".format(args["run_fold"]), data["predictions_folder_name"])
+            )
         move_file_in_subfolders(fold_path, data["FileExtension"], data["FileExtension"])
 
 
