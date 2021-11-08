@@ -6,6 +6,14 @@ from typing import Dict, Any, Union, List
 
 import monai
 import torch
+from ignite.contrib.handlers.tqdm_logger import ProgressBar
+from ignite.engine import create_supervised_trainer, Events, create_supervised_evaluator, Engine
+from ignite.handlers import ModelCheckpoint
+from monai.data import decollate_batch
+from monai.handlers import TensorBoardStatsHandler, StatsHandler
+from monai.transforms import LoadImaged, Compose, Transform
+from torch.utils.data import DataLoader
+
 from Hive.monai.engines.utils import (
     prepare_batch,
     create_validation_metric_dict,
@@ -17,13 +25,7 @@ from Hive.monai.engines.utils import (
 )
 from Hive.monai.handlers import Hive2Dto3DTensorBoardImageHandler
 from Hive.monai.transforms import OrientToRAId
-from ignite.contrib.handlers.tqdm_logger import ProgressBar
-from ignite.engine import create_supervised_trainer, Events, create_supervised_evaluator, Engine
-from ignite.handlers import ModelCheckpoint
-from monai.data import decollate_batch
-from monai.handlers import TensorBoardStatsHandler, StatsHandler
-from monai.transforms import LoadImaged, Compose, Transform
-from torch.utils.data import DataLoader
+from Hive.monai.utils.email_utils import send_email
 
 
 def get_id_volume_map(
@@ -117,6 +119,30 @@ class HiveSupervisedTrainer:
 
         self.evaluator = None
         self.key_score_name = None
+        self.swap_HW = False
+        self.orientation = None
+
+    def set_swap_HW(self, swap_HW: bool):
+        """
+        Set Flag to Swap HW dimensions at TensorBoard GIF creation Handler call.
+
+        Parameters
+        ----------
+        swap_HW : bool
+            Flag to swap HW dimensions.
+        """
+        self.swap_HW = swap_HW
+
+    def set_orientation(self, orientation: str):
+        """
+        Set training orientation as class parameter.
+
+        Parameters
+        ----------
+        orientation : str
+            Training orientation.
+        """
+        self.orientation = orientation
 
     def _resume_training(self):
         self.resume_epoch = reload_checkpoint(
@@ -321,6 +347,8 @@ class HiveSupervisedTrainer:
                     volume_id_map=volume_id_map,
                     output_dir=output_dir,
                     log_dir=tb_log_path,
+                    swapHW=self.swap_HW,
+                    orientation=self.orientation,
                     batch_transform=lambda x: (x["image"], x["label"]),
                     output_transform=lambda x: x[0],
                     epoch_level=False,
@@ -359,3 +387,4 @@ class HiveSupervisedTrainer:
         self._resume_training()
         state = self.trainer.run(train_loader, self.config_dict["train_epochs"])
         save_final_state_summary(self.training_result_folder, state, self.evaluator)
+        send_email()  # TODO AS Handler ?
