@@ -57,6 +57,30 @@ def main():
     )
 
     try:
+        with open(arguments["config_file"]) as json_file:
+            config_dict = json.load(json_file)
+    except FileNotFoundError:
+        with importlib.resources.path(Hive.configs, arguments["config_file"]) as json_path:
+            with open(json_path) as json_file:
+                config_dict = json.load(json_file)
+
+    os.environ["raw_data_base"] = str(
+        Path(os.environ["root_experiment_folder"]).joinpath(
+            config_dict["Experiment Name"], config_dict["Experiment Name"] + "_base"
+        )
+    )
+    os.environ["preprocessed_folder"] = str(
+        Path(os.environ["root_experiment_folder"]).joinpath(
+            config_dict["Experiment Name"], config_dict["Experiment Name"] + "_preprocess"
+        )
+    )
+    os.environ["RESULTS_FOLDER"] = str(
+        Path(os.environ["root_experiment_folder"]).joinpath(
+            config_dict["Experiment Name"], config_dict["Experiment Name"] + "_results"
+        )
+    )
+
+    try:
         dataset_path = str(
             Path(os.environ["raw_data_base"]).joinpath(
                 "Task" + arguments["task_ID"] + "_" + arguments["task_name"],
@@ -66,14 +90,6 @@ def main():
     except KeyError:
         logger.error("raw_data_base is not set as environment variable")
         return 1
-
-    try:
-        with open(arguments["config_file"]) as json_file:
-            config_dict = json.load(json_file)
-    except FileNotFoundError:
-        with importlib.resources.path(Hive.configs, arguments["config_file"]) as json_path:
-            with open(json_path) as json_file:
-                config_dict = json.load(json_file)
 
     create_data_folder_tree(
         os.environ["raw_data_base"],
@@ -98,6 +114,11 @@ def main():
         config_dict,
         "labelsTs",
     )
+
+    n_tasks = 1
+    if type(config_dict["label_suffix"]) == list:
+        n_tasks = len(config_dict["label_suffix"])
+
     generate_dataset_json(
         str(Path(dataset_path).joinpath("dataset.json")),
         str(Path(dataset_path).joinpath("imagesTr")),
@@ -105,17 +126,19 @@ def main():
         list(config_dict["Modalities"].values()),
         config_dict["label_dict"],
         config_dict["DatasetName"],
+        n_tasks=n_tasks,
     )
 
     config_dict["Task_ID"] = arguments["task_ID"]
     config_dict["Task_Name"] = arguments["task_name"]
     config_dict["base_folder"] = os.environ["raw_data_base"]
 
-    output_json_basename = config_dict["DatasetName"] + "_" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"] + ".json"
+    output_json_basename = config_dict["Task_Name"] + "_" + config_dict["Task_ID"] + ".json"
 
     try:
         config_dict["results_folder"] = os.environ["RESULTS_FOLDER"]
         config_dict["predictions_path"] = os.environ["RESULTS_FOLDER"]
+        Path(config_dict["results_folder"]).mkdir(parents=True, exist_ok=True)
     except KeyError:
         logger.warning("RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
         return 1
@@ -150,8 +173,8 @@ def get_arg_parser():
     parser.add_argument(
         "--task-name",
         type=str,
-        default="LungLobeSeg_3D_Single_Modality",
-        help="Task Name used in the folder path tree creation (Default: LungLobeSeg_2.5D_Single_Modality)",  # noqa E501
+        required=True,
+        help="Task Name used in the folder path tree creation",  # noqa E501
     )
 
     parser.add_argument(
@@ -166,9 +189,8 @@ def get_arg_parser():
     parser.add_argument(
         "--config-file",
         type=str,
-        required=False,
-        default="LungLobeSeg_2.5D_config.json",
-        help="Configuration JSON file with experiment and dataset parameters " "( Default:LungLobeSeg_2.5D_config.json )",
+        required=True,
+        help="Configuration JSON file with experiment and dataset parameters",
     )
 
     add_verbosity_options_to_argparser(parser)
