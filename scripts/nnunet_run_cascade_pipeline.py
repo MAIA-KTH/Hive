@@ -20,8 +20,8 @@ TIMESTAMP = "{:%Y-%m-%d_%H-%M-%S}".format(datetime.datetime.now())
 
 DESC = dedent(
     """
-    Run nnUNet pipeline:
-        Data and folder preparation -> Preprocessing -> Training -> Testing set Prediction -> Testing Set Metric Evaluation.
+    Run nnUNet cascade pipeline:
+        Data and folder preparation -> Preprocessing -> Cascade Training -> Testing set Prediction -> Testing Set Metric Evaluation.
 
     """  # noqa: E501
 )
@@ -97,6 +97,10 @@ def run_data_and_folder_preparation_step(arguments):
         "--config-file",
         arguments["config_file"],
     ]
+    if "cascade_step" in arguments:
+        args.append("--cascade-step")
+        args.append(arguments["cascade_step"])
+
     return args
 
 
@@ -113,10 +117,11 @@ def run_preprocessing_step(config_file):
         "-tf",
         os.environ["N_THREADS"],
     ]
+
     return args
 
 
-def run_training_step(config_file, folds):
+def run_training_step(config_file, folds, cascade_step):
     arg_list = []
     for fold in folds:
         args = [
@@ -126,7 +131,9 @@ def run_training_step(config_file, folds):
             "--run-fold",
             str(fold),
             "--npz",
-        ]  # "--run-validation-only", "y"
+            "--cascade-step",
+            cascade_step,
+        ]
         arg_list.append(args)
     return arg_list
 
@@ -158,13 +165,21 @@ def main():
     )
     output_json_config_file = str(Path(os.environ["RESULTS_FOLDER"]).joinpath(output_json_config_filename))
 
+    cascade_steps = config_dict["Cascade_steps"]
+
     pipeline_steps = []
-    pipeline_steps.append(run_data_and_folder_preparation_step(arguments))
-    pipeline_steps.append(run_preprocessing_step(output_json_config_file))
-    [pipeline_steps.append(step) for step in run_training_step(output_json_config_file, range(config_dict["n_folds"]))]
-    # "nnunet_run_prediction.py"
-    # "Hive_evaluate_predictions.py"
-    # "Hive_generate_experiment_results.py"
+    for cascade_step in range(cascade_steps):
+        arguments["cascade_step"] = str(cascade_step)
+        pipeline_steps.append(run_data_and_folder_preparation_step(arguments))
+        pipeline_steps.append(run_preprocessing_step(output_json_config_file))
+        [
+            pipeline_steps.append(step)
+            for step in run_training_step(output_json_config_file, list(range(config_dict["n_folds"])), str(cascade_step))
+        ]
+        # Cascade Cross-Validation
+        # "nnunet_run_prediction.py"
+        # "Hive_evaluate_predictions.py"
+        # "Hive_generate_experiment_results.py"
 
     pipeline_steps_summary = open(
         Path(os.environ["root_experiment_folder"]).joinpath(
