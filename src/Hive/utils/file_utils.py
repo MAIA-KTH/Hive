@@ -55,6 +55,7 @@ def generate_dataset_json(
     modalities: Tuple,
     labels: dict,
     dataset_name: str,
+    n_tasks: int = 1,
     license: str = "hands off!",
     dataset_description: str = "",
     dataset_reference="",
@@ -92,12 +93,35 @@ def generate_dataset_json(
         "licence": license,
         "release": dataset_release,
         "modality": {str(i): modalities[i] for i in range(len(modalities))},
-        "labels": {str(i): labels[i] for i in labels.keys()},
+        "labels": labels,  # {str(i): labels[i] for i in labels.keys()},
         "numTraining": len(train_identifiers),
         "numTest": len(test_identifiers),
-        "training": [{"image": "./imagesTr/%s.nii.gz" % i, "label": "./labelsTr/%s.nii.gz" % i} for i in train_identifiers],
+        "training": [{"image": "./imagesTr/%s_0000.nii.gz" % i, "label": "./labelsTr/%s.nii.gz" % i} for i in train_identifiers],
         "test": ["./imagesTs/%s.nii.gz" % i for i in test_identifiers],
     }
+
+    if len(modalities) > 1 or n_tasks > 1:
+        training_list = []
+        for i in train_identifiers:
+            training_case = {}
+            for id, modality in enumerate(modalities):
+                id_modality = "{0:04d}".format(id)
+                training_case["image_{}".format(id)] = "./imagesTr/{}_{}.nii.gz".format(i, id_modality)
+            for id, task in enumerate(range(n_tasks)):
+                id_task = "{0:04d}".format(id)
+                training_case["label_{}".format(id)] = "./labelsTr/{}_{}.nii.gz".format(i, id_task)
+            training_list.append(training_case)
+        json_dict["training"] = training_list
+
+        testing_list = []
+        for i in test_identifiers:
+            test_case = {}
+            for id, modality in enumerate(modalities):
+                id_modality = "{0:04d}".format(id)
+                test_case["image_{}".format(id)] = "./imagesTs/{}_{}.nii.gz".format(i, id_modality)
+
+            testing_list.append(test_case)
+        json_dict["test"] = testing_list
 
     if not output_file.endswith("dataset.json"):
         print(
@@ -272,7 +296,7 @@ def copy_data_to_dataset_folder(
                 )
             else:
                 logger.warning("{} is not found: skipping {} case".format(image_filename, directory))
-        if label_suffix is not None:
+        if label_suffix is not None and type(label_suffix) != list:
 
             label_filename = directory + label_suffix
 
@@ -294,6 +318,30 @@ def copy_data_to_dataset_folder(
                 )
             else:
                 logger.warning("{} is not found: skipping {} case".format(label_filename, directory))
+
+        elif type(label_suffix) == list:  # Multi Label
+            for task_id, label_s in enumerate(label_suffix):
+                task_code = "_{0:04d}".format(task_id)
+                label_filename = directory + label_s
+
+                if label_filename in files:
+
+                    updated_label_filename = label_filename.replace(label_s, task_code + config_dict["FileExtension"])
+
+                    copied_files.append(
+                        pool.starmap_async(
+                            copy_label_file,
+                            (
+                                (
+                                    str(Path(input_data_folder).joinpath(directory, directory + image_suffix)),
+                                    str(Path(input_data_folder).joinpath(directory, directory + label_s)),
+                                    str(Path(output_data_folder).joinpath(labels_subpath, updated_label_filename)),
+                                ),
+                            ),
+                        )
+                    )
+                else:
+                    logger.warning("{} is not found: skipping {} case".format(label_filename, directory))
 
     _ = [i.get() for i in tqdm(copied_files)]
 
