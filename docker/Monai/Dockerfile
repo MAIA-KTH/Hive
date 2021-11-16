@@ -1,5 +1,5 @@
+#FROM nvcr.io/nvidia/pytorch:21.06-py3
 FROM projectmonai/monai:0.6.0
-
 # SSH-PYCHARM
 RUN apt-get update && apt-get install -y openssh-server build-essential
 RUN apt-get install -y sudo screen git nano tmux vim curl

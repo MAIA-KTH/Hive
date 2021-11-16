@@ -3,7 +3,7 @@ services:
   nnunet:
     image: "monai"
     container_name: monai-environment
-    shm_size: 512m
+    shm_size: 32g
     env_file: credentials.env
     ports:
       - "30022:22"
