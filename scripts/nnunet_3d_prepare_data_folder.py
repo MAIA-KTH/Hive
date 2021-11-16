@@ -144,6 +144,14 @@ def main():
             )
         )
         if "Cascade" in config_dict and config_dict["Cascade"]:
+            config_dict["predictions_path"] = str(
+                Path(os.environ["RESULTS_FOLDER"]).joinpath(
+                    "nnUNet",
+                    "cascade",
+                    full_task_name,
+                    config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
+                )
+            )
             for cascade_step in range(config_dict["Cascade_steps"]):
                 config_dict["predictions_step_{}_path".format(cascade_step)] = str(
                     Path(os.environ["RESULTS_FOLDER"]).joinpath(
@@ -201,14 +209,6 @@ def get_arg_parser():
         metavar="[0-100]",
         default=20,
         help="Split value ( in %% ) to create Test set from Dataset (Default: 20)",
-    )
-
-    pars.add_argument(
-        "--cascade-step",
-        type=int,
-        required=False,
-        default=0,
-        help="Optional value to indicate which cascade step to run the data folder preparation.",
     )
 
     pars.add_argument(
