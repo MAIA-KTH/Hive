@@ -7,11 +7,10 @@ from typing import List, Dict, Any, Union
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
-from pandas import DataFrame
-from plotly.graph_objects import Figure
-
 from Hive.evaluation import METRICS_FOLDER_NAME
 from Hive.utils.log_utils import get_logger, DEBUG
+from pandas import DataFrame
+from plotly.graph_objects import Figure
 
 logger = get_logger(__name__)
 
@@ -125,7 +124,10 @@ def read_metric_list(summary_filepath: Union[str, PathLike], config_dict: Dict[s
     with open(summary_filepath) as json_file:
         results_summary_data = json.load(json_file)
 
-    label_dict = config_dict["label_dict"]
+    if "Cascade" in config_dict and config_dict["Cascade"]:
+        label_dict = config_dict["step_{}".format(str(int(config_dict["Cascade_steps"]) - 1))]["label_dict"]
+    else:
+        label_dict = config_dict["label_dict"]
     label_dict.pop("0", None)
     metric_list = list(results_summary_data["results"]["all"][0][list(label_dict.keys())[0]].keys())
 
@@ -183,7 +185,10 @@ def save_metrics(
     else:
         raise ValueError("Invalid section. Expected one of: [ validation, testing ]")
 
-    label_dict = config_dict["label_dict"]
+    if "Cascade" in config_dict and config_dict["Cascade"]:
+        label_dict = config_dict["step_{}".format(str(int(config_dict["Cascade_steps"]) - 1))]["label_dict"]
+    else:
+        label_dict = config_dict["label_dict"]
     label_dict.pop("0", None)
 
     df = pd.DataFrame()
