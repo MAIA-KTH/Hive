@@ -13,6 +13,7 @@ from monai.data import decollate_batch
 from monai.handlers import TensorBoardStatsHandler, StatsHandler
 from monai.transforms import LoadImaged, Compose, Transform
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from Hive.monai.engines.utils import (
     prepare_batch,
@@ -145,8 +146,10 @@ class HiveSupervisedTrainer:
         self.orientation = orientation
 
     def _resume_training(self):
-        self.resume_epoch = reload_checkpoint(
-            str(Path(self.training_result_folder).joinpath("checkpoints")), self.net, self.optimizer, self.trainer
+        self.resume_epoch = int(
+            reload_checkpoint(
+                str(Path(self.training_result_folder).joinpath("checkpoints")), self.net, self.optimizer, self.trainer
+            )
         )
         logging.getLogger("trainer").info("Resuming training at epoch {}".format(self.resume_epoch + 1))
 
@@ -238,6 +241,15 @@ class HiveSupervisedTrainer:
         if tb_log_path is not None:
             train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=tb_log_path, output_transform=lambda x: x)
             train_tensorboard_stats_handler.attach(self.trainer)
+
+            writer = SummaryWriter(tb_log_path)
+            input_shape = [1, len(self.config_dict["Modalities"].keys())]
+            if "patch_size" in self.config_dict:
+                _ = [input_shape.append(dim_size) for dim_size in self.config_dict["patch_size"]]
+            elif "slice_size_2d" in self.config_dict:
+                _ = [input_shape.append(dim_size) for dim_size in self.config_dict["slice_size_2d"][self.orientation]]
+            writer.add_graph(self.net, torch.zeros(tuple(input_shape)).to(self.device))
+            writer.close()
 
     def create_evaluator(
         self,
