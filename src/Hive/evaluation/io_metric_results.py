@@ -7,10 +7,11 @@ from typing import List, Dict, Any, Union
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
-from Hive.evaluation import METRICS_FOLDER_NAME
-from Hive.utils.log_utils import get_logger, DEBUG
 from pandas import DataFrame
 from plotly.graph_objects import Figure
+
+from Hive.evaluation import METRICS_FOLDER_NAME
+from Hive.utils.log_utils import get_logger, DEBUG
 
 logger = get_logger(__name__)
 
@@ -126,6 +127,8 @@ def read_metric_list(summary_filepath: Union[str, PathLike], config_dict: Dict[s
 
     if "Cascade" in config_dict and config_dict["Cascade"]:
         label_dict = config_dict["step_{}".format(str(int(config_dict["Cascade_steps"]) - 1))]["label_dict"]
+    elif isinstance(config_dict["label_dict"], list):
+        label_dict = config_dict["label_dict"][0]
     else:
         label_dict = config_dict["label_dict"]
     label_dict.pop("0", None)
@@ -187,6 +190,8 @@ def save_metrics(
 
     if "Cascade" in config_dict and config_dict["Cascade"]:
         label_dict = config_dict["step_{}".format(str(int(config_dict["Cascade_steps"]) - 1))]["label_dict"]
+    elif isinstance(config_dict["label_dict"], list):
+        label_dict = config_dict["label_dict"][0]
     else:
         label_dict = config_dict["label_dict"]
     label_dict.pop("0", None)
@@ -236,7 +241,10 @@ def save_metrics(
 
             if column_id is not None:
                 df_single_temp["ID"] = Path(df_temp[column_id][0]).name[: -len(config_dict["FileExtension"])]
-                subject_list.append(df_single_temp["ID"][0])
+                if isinstance(config_dict["label_dict"], list):
+                    subject_list.append(df_single_temp["ID"][0][:-5])
+                else:
+                    subject_list.append(df_single_temp["ID"][0])
                 if subject_phase_dict is not None:
                     df_single_temp["Phase"] = subject_phase_dict[df_single_temp["ID"][0]]
             if section == "testing":
