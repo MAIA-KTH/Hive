@@ -37,5 +37,6 @@
   "3D_validation_idx": [
     0
   ],
-  "n_folds": 5
+  "n_folds": 5,
+  "cv_name": "In"
 }
