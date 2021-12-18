@@ -49,6 +49,14 @@ def get_arg_parser():
     )
 
     pars.add_argument(
+        "--cv-data-folder",
+        type=str,
+        required=False,
+        default=None,
+        help="Cross-Validation Dataset folder",
+    )
+
+    pars.add_argument(
         "--task-ID",
         type=str,
         default="100",
@@ -97,7 +105,28 @@ def run_data_and_folder_preparation_step(arguments):
         "--config-file",
         arguments["config_file"],
     ]
+
+    if "cascade_step" in arguments:
+        args.append("--cascade-step")
+        args.append(arguments["cascade_step"])
+
     return args
+
+
+def run_cross_validation(arguments, config_file, folds):
+    arg_list = []
+    for fold in folds:
+        args = [
+            "nnunet_run_cross_validation.py",
+            "--config-file",
+            config_file,
+            "--run-fold",
+            str(fold),
+            "-i",
+            arguments["cv_data_folder"],
+        ]  # "--run-validation-only", "y"
+        arg_list.append(args)
+    return arg_list
 
 
 def run_preprocessing_step(config_file):
@@ -116,7 +145,7 @@ def run_preprocessing_step(config_file):
     return args
 
 
-def run_training_step(config_file, folds):
+def run_training_step(config_file, folds, cascade_step=None):
     arg_list = []
     for fold in folds:
         args = [
@@ -127,6 +156,9 @@ def run_training_step(config_file, folds):
             str(fold),
             "--npz",
         ]  # "--run-validation-only", "y"
+        if cascade_step is not None:
+            args.append("--cascade-step")
+            args.append(cascade_step)
         arg_list.append(args)
     return arg_list
 
@@ -158,14 +190,35 @@ def main():
     )
     output_json_config_file = str(Path(os.environ["RESULTS_FOLDER"]).joinpath(output_json_config_filename))
 
+    cascade_steps = 1
+    if "Cascade_steps" in config_dict:
+        cascade_steps = config_dict["Cascade_steps"]
+
     pipeline_steps = []
-    pipeline_steps.append(run_data_and_folder_preparation_step(arguments))
-    pipeline_steps.append(run_preprocessing_step(output_json_config_file))
-    [pipeline_steps.append(step) for step in run_training_step(output_json_config_file, range(config_dict["n_folds"]))]
+    for cascade_step in range(cascade_steps):
+        if cascade_steps > 1:
+            arguments["cascade_step"] = str(cascade_step)
+
+        pipeline_steps.append(run_data_and_folder_preparation_step(arguments))
+        pipeline_steps.append(run_preprocessing_step(output_json_config_file))
+        if cascade_steps > 1:
+            [
+                pipeline_steps.append(step)
+                for step in run_training_step(output_json_config_file, range(config_dict["n_folds"]), str(cascade_step))
+            ]
+        else:
+            [pipeline_steps.append(step) for step in run_training_step(output_json_config_file, range(config_dict["n_folds"]))]
+        if arguments["cv_data_folder"] is not None:
+            [
+                pipeline_steps.append(step)
+                for step in run_cross_validation(arguments, output_json_config_file, range(config_dict["n_folds"]))
+            ]
+        # "Hive_evaluate_predictions.py"
+        # "Hive_generate_experiment_results.py"
     # "nnunet_run_prediction.py"
     # "Hive_evaluate_predictions.py"
     # "Hive_generate_experiment_results.py"
-
+    Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]).mkdir(exist_ok=True, parents=True)
     pipeline_steps_summary = open(
         Path(os.environ["root_experiment_folder"]).joinpath(
             config_dict["Experiment Name"], "Task_" + arguments["task_ID"] + "_" + TIMESTAMP + ".txt"
