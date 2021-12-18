@@ -1,28 +1,27 @@
 #!/usr/bin/env python
-
+import copy
 import json
 import os
+import shutil
 from argparse import ArgumentParser, RawTextHelpFormatter
-from distutils.dir_util import copy_tree
 from pathlib import Path
 from textwrap import dedent
 
 from Hive.evaluation.io_metric_results import get_results_summary_filepath
-from Hive.utils.file_utils import subfolders
 from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
 
 DESC = dedent(
     """
-    Script used to copy and save Experiment predictions, from the original experiment folder to the specified output folder.
+    Script used to copy and save Experiment JSON summary results, from the original experiment folder to the specified output folder.
     """  # noqa: E501 W291 W605
 )
 EPILOG = dedent(
     """
-    Example call:
-    ::
-        {filename} --config-file /path/to/config_file.json --output-experiment-folder /home/Experiment_Predictions
-        {filename} --config-file /path/to/config_file.json --output-experiment-folder /home/Experiment_Predictions --sections validation
-        {filename} --config-file /path/to/config_file.json --output-experiment-folder /home/Experiment_Predictions --sections validation --prediction-suffix post
+     Example call:
+     ::
+         {filename} --config-file /path/to/config_file.json --output-experiment-folder /home/Experiment_Predictions
+         {filename} --config-file /path/to/config_file.json --output-experiment-folder /home/Experiment_Predictions --sections validation
+         {filename} --config-file /path/to/config_file.json --output-experiment-folder /home/Experiment_Predictions --sections validation --prediction-suffix post  
     """.format(  # noqa: E501 W291
         filename=Path(__file__).name
     )
@@ -110,19 +109,27 @@ def main():
     if args["sections"]:
         sections = args["sections"]
 
+    config_dict_out = copy.deepcopy(config_dict)
+    config_dict_out["predictions_path"] = config_dict["predictions_path"].replace(config_dict["root_results_folder"], "")
+    config_dict_out["predictions_path"] = config_dict_out["predictions_path"][1:]
+
+    config_dict_out["results_folder"] = config_dict["results_folder"].replace(config_dict["root_results_folder"], "")
+    config_dict_out["results_folder"] = config_dict_out["results_folder"][1:]
+    config_dict_out["root_results_folder"] = output_path
+    config_file_out = args["config_file"].replace(config_dict["root_results_folder"], output_path)
+
+    if config_file_out != args["config_file"]:
+        Path(config_file_out).parent.mkdir(parents=True, exist_ok=True)
+        with open(config_file_out, "w") as output_file:
+            json.dump(config_dict_out, output_file)
+
     for fold in range(n_folds):
         for section in sections:
             json_summary = get_results_summary_filepath(config_dict, section, prediction_suffix, fold)
-            prediction_parent_directory = Path(json_summary).parent
-            prediction_parent_directory_out = Path(output_path).joinpath(config_dict["Experiment Name"], section)
-            Path(prediction_parent_directory_out).parent.mkdir(parents=True, exist_ok=True)
-            if prediction_parent_directory.is_dir():
-                predictions = subfolders(prediction_parent_directory, join=False)
-                for prediction_folder in predictions:
-                    copy_tree(
-                        str(Path(prediction_parent_directory).joinpath(prediction_folder)),
-                        str(Path(prediction_parent_directory_out).joinpath(prediction_folder)),
-                    )
+            if Path(json_summary).is_file():
+                json_summary_out = json_summary.replace(config_dict["root_results_folder"], output_path)
+                Path(json_summary_out).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(json_summary, json_summary_out)
 
 
 if __name__ == "__main__":
