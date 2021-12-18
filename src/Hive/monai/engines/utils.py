@@ -11,13 +11,14 @@ import monai.networks.utils
 import torch
 import torch.nn as nn
 import torch.optim
-from Hive.monai.config.default_metrics import val_metrics
-from Hive.utils.file_utils import subfiles
 from ignite.engine import _prepare_batch, Engine
 from ignite.engine.events import State
 from ignite.metrics.confusion_matrix import ConfusionMatrix
 from monai.handlers import CheckpointLoader
 from torch.utils.tensorboard import SummaryWriter
+
+from Hive.monai.config.default_metrics import val_metrics
+from Hive.utils.file_utils import subfiles
 
 
 def save_final_state_summary(results_folder_path: Union[str, PathLike], trainer_state: State, evaluator: Engine):
@@ -278,13 +279,21 @@ def epoch_printer(engine: Engine):
     logging.getLogger("evaluator").info(out_str)
 
 
-def reload_checkpoint(checkpoint_folder: Union[str, PathLike], net: nn.Module, opt: torch.optim, trainer: Engine) -> int:
+def reload_checkpoint(
+    checkpoint_folder: Union[str, PathLike],
+    net: nn.Module,
+    opt: torch.optim,
+    lr_scheduler: torch.optim.lr_scheduler,
+    trainer: Engine,
+) -> int:
     """
     Callable to be attached to an Ignite engine to reload any saved checkpoint in the checkpoint folder.
     Returns the epoch number from where to restore the state.
 
     Parameters
     ----------
+    lr_scheduler: torch.optim.lr_scheduler
+        Torch Learning rate scheduler
     checkpoint_folder : Union[str, PathLike]
         Folder where to search checkpoint files.
     net : nn.Module
@@ -310,6 +319,10 @@ def reload_checkpoint(checkpoint_folder: Union[str, PathLike], net: nn.Module, o
                 resume_epoch = temp_resume_epoch
         checkpoint_filepath = str(Path(checkpoint_folder).joinpath(prefix + "{}".format(resume_epoch) + suffix))
 
-        CheckpointLoader(load_path=checkpoint_filepath, load_dict={"net": net, "opt": opt}).attach(trainer)
-
+        if lr_scheduler is None:
+            CheckpointLoader(load_path=checkpoint_filepath, load_dict={"net": net, "opt": opt}).attach(trainer)
+        else:
+            CheckpointLoader(
+                load_path=checkpoint_filepath, load_dict={"net": net, "opt": opt, "lr_scheduler": lr_scheduler}
+            ).attach(trainer)
     return resume_epoch
