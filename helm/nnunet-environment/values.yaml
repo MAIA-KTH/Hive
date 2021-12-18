@@ -8,7 +8,7 @@ extraHostVolumes:
   - name: hive
     hostPath: /home/simone/Documents/Projects/Hive
   - name: nnunet
-    hostPath: /home/simone/Documents/GitHub/nnUNet
+    hostPath: /home/simone/Documents/Projects/nnUNet
 extraSecretVolumes:
   - name: secret-git-key
     secretName: ssh-key-secret
