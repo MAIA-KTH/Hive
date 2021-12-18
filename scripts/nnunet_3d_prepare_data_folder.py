@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import csv
 import datetime
 import importlib.resources
 import json
@@ -7,6 +8,9 @@ import os
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
+
+import numpy as np
+from sklearn.model_selection import KFold
 
 import Hive.configs
 from Hive.utils.file_utils import (
@@ -95,6 +99,31 @@ def main():
         arguments["task_ID"],
     )
     train_dataset, test_dataset = split_dataset(arguments["input_data_folder"], arguments["test_split"], config_dict["Seed"])
+
+    dataset_split = []
+    for test_subject in test_dataset:
+        dataset_split_dict = {"Subject": test_subject, "Split": "Testing"}
+        dataset_split.append(dataset_split_dict)
+
+    train_dataset_sorted = np.sort(train_dataset)
+    kfold = KFold(n_splits=config_dict["n_folds"], shuffle=True, random_state=12345)  # self.config_dict["Seed"])
+    for i, (train_idx, test_idx) in enumerate(kfold.split(train_dataset_sorted)):
+        for test in test_idx:
+            dataset_split_dict = {"Subject": train_dataset_sorted[test], "Split": "Validation_fold_{}".format(i)}
+            dataset_split.append(dataset_split_dict)
+
+    dataset_split_summary = Path(os.environ["root_experiment_folder"]).joinpath(
+        config_dict["Experiment Name"], "dataset_split.csv"
+    )
+
+    with open(dataset_split_summary, "w") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=["Subject", "Split"])
+        writer.writeheader()
+        for data in dataset_split:
+            writer.writerow(data)
+
+    config_dict["dataset_folder"] = arguments["input_data_folder"]
+
     if "Cascade" in config_dict and config_dict["Cascade"]:
         cascade_step = arguments["cascade_step"]
         config_dict["label_suffix"] = config_dict["step_{}".format(cascade_step)]["label_suffix"]
@@ -117,6 +146,10 @@ def main():
         config_dict,
         "labelsTs",
     )
+    n_tasks = 1
+    if type(config_dict["label_suffix"]) == list:
+        n_tasks = len(config_dict["label_suffix"])
+
     generate_dataset_json(
         str(Path(dataset_path).joinpath("dataset.json")),
         str(Path(dataset_path).joinpath("imagesTr")),
@@ -124,10 +157,12 @@ def main():
         list(config_dict["Modalities"].values()),
         config_dict["label_dict"],
         config_dict["DatasetName"],
+        n_tasks=n_tasks,
     )
 
     config_dict["Task_ID"] = arguments["task_ID"]
     config_dict["Task_Name"] = arguments["task_name"]
+    config_dict["train_test_split"] = arguments["test_split"]
     config_dict["base_folder"] = os.environ["raw_data_base"]
 
     output_json_basename = config_dict["Task_Name"] + "_" + config_dict["Task_ID"] + ".json"
