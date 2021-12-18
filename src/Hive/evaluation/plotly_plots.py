@@ -24,6 +24,7 @@ def get_heatmap(
     bar_configs: Dict[str, Any],
     plot_title: str,
     show_phase: bool = False,
+    read_from_complete_table: bool = False,
     **kwargs
 ) -> Figure:
     """
@@ -31,6 +32,8 @@ def get_heatmap(
 
     Parameters
     ----------
+    read_from_complete_table: bool
+        Flag to set if df_flat DataFrame is including multiple metrics.
     df_flat : DataFrame
         Pandas DataFrame used to generate the plot.
     metric_name : str
@@ -69,7 +72,8 @@ def get_heatmap(
         if show_phase is True:
             facet_col = "Phase"
         facet_row = None
-
+    if read_from_complete_table:
+        metric_ID = "Metric_Score"
     colors = "Inferno"
     if bar_configs is not None:
 
@@ -190,6 +194,7 @@ def get_plotly_histo(
     section: str,
     plot_title: str,
     show_phase: bool = False,
+    read_from_complete_table: bool = False,
     **kwargs
 ) -> Figure:
     """
@@ -197,6 +202,8 @@ def get_plotly_histo(
 
     Parameters
     ----------
+    read_from_complete_table: bool
+        Flag to set if df_flat DataFrame is including multiple metrics.
     df_flat : DataFrame
         Pandas DataFrame used to generate the plot.
     metric_name : str
@@ -233,6 +240,8 @@ def get_plotly_histo(
         facet = None
         if show_phase is True:
             facet = "Phase"
+    if read_from_complete_table:
+        x_value = "Metric_Score"
     fig_histo = px.histogram(
         df_flat,
         x=x_value,
@@ -257,6 +266,7 @@ def get_plotly_bar(
     bar_configs: Dict[str, Any],
     aggregator: str,
     show_phase: bool = False,
+    read_from_complete_table: bool = False,
     **kwargs
 ) -> Figure:
     """
@@ -265,6 +275,8 @@ def get_plotly_bar(
 
     Parameters
     ----------
+    read_from_complete_table: bool
+        Flag to set if df_flat DataFrame is including multiple metrics.
     df_flat : DataFrame
         Pandas DataFrame used to generate the plot.
     metric_name : str
@@ -301,7 +313,8 @@ def get_plotly_bar(
         y_value = "Label"
         facet_row = None
         facet_col = None
-
+    if read_from_complete_table:
+        x_value = "Metric_Score"
     key_cols = ["Label", "Section", "Experiment"]
     if show_phase is True:
         key_cols.append("Phase")
@@ -345,6 +358,7 @@ def get_plotly_boxplot(
     section: str,
     plot_title: str,
     show_phase: bool = False,
+    read_from_complete_table: bool = False,
     **kwargs
 ):
     """
@@ -352,6 +366,8 @@ def get_plotly_boxplot(
 
     Parameters
     ----------
+    read_from_complete_table: bool
+        Flag to set if df_flat DataFrame is including multiple metrics.
     df_flat : DataFrame
         Pandas DataFrame used to generate the plot.
     metric_name : str
@@ -388,6 +404,8 @@ def get_plotly_boxplot(
         facet = None
         if show_phase is True:
             facet = "Phase"
+    if read_from_complete_table:
+        y_value = "Metric_Score"
     fig_boxplot = px.box(
         df_flat,
         x="Label",
