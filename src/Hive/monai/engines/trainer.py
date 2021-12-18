@@ -1,16 +1,18 @@
 import importlib
 import logging
+import pickle
 from os import PathLike
 from pathlib import Path
 from typing import Dict, Any, Union, List
 
 import monai
+import numpy as np
 import torch
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.engine import create_supervised_trainer, Events, create_supervised_evaluator, Engine
 from ignite.handlers import ModelCheckpoint
 from monai.data import decollate_batch
-from monai.handlers import TensorBoardStatsHandler, StatsHandler
+from monai.handlers import TensorBoardStatsHandler, StatsHandler, LrScheduleHandler
 from monai.transforms import LoadImaged, Compose, Transform
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -97,12 +99,14 @@ class HiveSupervisedTrainer:
             Folder path where to save any training and evluation event.
         """
         self.config_dict = config_dict
+        self.epoch_iterations = 250
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.training_result_folder = training_result_folder
         self.net = self._load_net()
         self.loss = self._load_loss()
         self.optimizer = self._load_optim(self.net)
-
+        self.lr_scheduler = self._load_lr_scheduler()
+        self.checkpoint_path = None
         self.trainer = create_supervised_trainer(
             self.net,
             self.optimizer,
@@ -113,10 +117,59 @@ class HiveSupervisedTrainer:
         )
         self.resume_epoch = 0
 
+        self.train_loss_MA = []
+        self.train_epoch_loss_MA = []
+        self.train_loss_MA_alpha = 0.93
+        self.train_loss_MA_eps = 5e-4
+        self.patience = 30
+        self.patience_counter = 0
+
         @self.trainer.on(Events.STARTED)
         def resume_training(engine: Engine):
-            engine.state.iteration = self.resume_epoch * len(engine.state.dataloader)
+            engine.state.iteration = self.resume_epoch * self.epoch_iterations  # len(engine.state.dataloader)
             engine.state.epoch = self.resume_epoch
+
+            if self.checkpoint_path is not None and self.resume_epoch != 0:
+                output = open(Path(self.checkpoint_path).joinpath("checkpoint_{}.pkl".format(self.resume_epoch)), "rb")
+                checkpoint_dict = pickle.load(output)
+                output.close()
+                self.train_epoch_loss_MA = checkpoint_dict["Train_loss_MA"]
+                self.patience_counter = checkpoint_dict["Patience_lvl"]
+
+        @self.trainer.on(Events.ITERATION_COMPLETED)
+        def update_MA_loss(engine: Engine):
+            if len(self.train_loss_MA) == 0:
+                self.train_loss_MA.append(engine.state.output)
+            else:
+                self.train_loss_MA.append(
+                    self.train_loss_MA_alpha * self.train_loss_MA[-1] + (1 - self.train_loss_MA_alpha) * engine.state.output
+                )
+
+        @self.trainer.on(Events.EPOCH_COMPLETED)
+        def check_patience(engine: Engine):
+            average_loss_epoch = np.mean(self.train_loss_MA[-self.epoch_iterations :])
+
+            if len(self.train_epoch_loss_MA) == 0:
+                self.train_epoch_loss_MA.append(average_loss_epoch)
+            else:
+                self.train_epoch_loss_MA.append(
+                    self.train_loss_MA_alpha * self.train_epoch_loss_MA[-1] + (1 - self.train_loss_MA_alpha) * average_loss_epoch
+                )
+                if np.abs(self.train_epoch_loss_MA[-1] - self.train_epoch_loss_MA[-2]) < self.train_loss_MA_eps:
+                    self.patience_counter = self.patience_counter + 1
+                else:
+                    self.patience_counter = 0
+                logging.getLogger("trainer").info("Train Loss MA: {}".format(self.train_epoch_loss_MA[-1]))
+                logging.getLogger("trainer").info("Patience: {}/{}".format(self.patience_counter, self.patience))
+                if self.patience_counter >= self.patience:
+                    print("Patience limit reached!")
+                    self.lr_scheduler.step(self.train_epoch_loss_MA[-1])
+
+            if self.checkpoint_path is not None:
+                checkpoint_dict = {"Train_loss_MA": self.train_epoch_loss_MA, "Patience_lvl": self.patience_counter}
+                output = open(Path(self.checkpoint_path).joinpath("checkpoint_{}.pkl".format(self.trainer.state.epoch)), "wb")
+                pickle.dump(checkpoint_dict, output)
+                output.close()
 
         self.evaluator = None
         self.key_score_name = None
@@ -148,7 +201,11 @@ class HiveSupervisedTrainer:
     def _resume_training(self):
         self.resume_epoch = int(
             reload_checkpoint(
-                str(Path(self.training_result_folder).joinpath("checkpoints")), self.net, self.optimizer, self.trainer
+                str(Path(self.training_result_folder).joinpath("checkpoints")),
+                self.net,
+                self.optimizer,
+                self.lr_scheduler,
+                self.trainer,
             )
         )
         logging.getLogger("trainer").info("Resuming training at epoch {}".format(self.resume_epoch + 1))
@@ -194,6 +251,25 @@ class HiveSupervisedTrainer:
         else:
             raise AttributeError("{} has no attribute {}".format(import_class, self.config_dict["optim_config"]["class_name"]))
 
+    def _load_lr_scheduler(self):
+        if "lr_scheduler_config" not in self.config_dict:
+            return None
+
+        if "class_import" in self.config_dict["lr_scheduler_config"]:
+            import_class = importlib.import_module(self.config_dict["lr_scheduler_config"]["class_import"])
+        else:
+            import_class = torch.optim.lr_scheduler
+
+        if hasattr(import_class, self.config_dict["lr_scheduler_config"]["class_name"]):
+            lr_scheduler = getattr(import_class, self.config_dict["lr_scheduler_config"]["class_name"])(
+                self.optimizer, **self.config_dict["lr_scheduler_config"]["class_params"]
+            )
+            return lr_scheduler
+        else:
+            raise AttributeError(
+                "{} has no attribute {}".format(import_class, self.config_dict["lr_scheduler_config"]["class_name"])
+            )
+
     def prepare_trainer_event_handlers(
         self,
         progress_bar: bool = True,
@@ -216,6 +292,9 @@ class HiveSupervisedTrainer:
         tb_log_path : Union[str, PathLike]
             Folder where to save the TensorBoard summary log.
         """
+        if self.lr_scheduler is not None:
+            lr_scheduler_handler = LrScheduleHandler(self.lr_scheduler, step_transform=lambda x: self.train_epoch_loss_MA[-1])
+            lr_scheduler_handler.attach(self.trainer)
         if model_checkpoints_path is not None:
             checkpoint_handler = ModelCheckpoint(
                 model_checkpoints_path,
@@ -224,11 +303,14 @@ class HiveSupervisedTrainer:
                 require_empty=False,
                 global_step_transform=lambda x, y: self.trainer.state.epoch,
             )
-
+            self.checkpoint_path = model_checkpoints_path
+            save_dict = {"net": self.net, "opt": self.optimizer}
+            if self.lr_scheduler is not None:
+                save_dict["lr_scheduler"] = self.lr_scheduler
             self.trainer.add_event_handler(
                 event_name=Events.EPOCH_COMPLETED,
                 handler=checkpoint_handler,
-                to_save={"net": self.net, "opt": self.optimizer},
+                to_save=save_dict,
             )
 
         if progress_bar:
@@ -355,6 +437,7 @@ class HiveSupervisedTrainer:
                 output_dir = None
                 if tb_image_log_path is not None:
                     output_dir = tb_image_log_path
+                    Path(output_dir).mkdir(parents=True, exist_ok=True)
                 val_tensorboard_image_handler = Hive2Dto3DTensorBoardImageHandler(
                     volume_id_map=volume_id_map,
                     output_dir=output_dir,
@@ -380,10 +463,13 @@ class HiveSupervisedTrainer:
                 require_empty=False,
             )
 
+            save_dict = {"net": self.net, "opt": self.optimizer}
+            if self.lr_scheduler is not None:
+                save_dict["lr_scheduler"] = self.lr_scheduler
             self.evaluator.add_event_handler(
                 event_name=Events.EPOCH_COMPLETED,
                 handler=checkpoint_handler_val,
-                to_save={"net": self.net, "opt": self.optimizer},
+                to_save=save_dict,
             )
 
     def run_training(self, train_loader: DataLoader):
@@ -397,6 +483,6 @@ class HiveSupervisedTrainer:
              torch DataLoader with the data used to run the training.
         """
         self._resume_training()
-        state = self.trainer.run(train_loader, self.config_dict["train_epochs"])
+        state = self.trainer.run(train_loader, self.config_dict["train_epochs"], self.epoch_iterations)
         save_final_state_summary(self.training_result_folder, state, self.evaluator)
         send_email()  # TODO AS Handler ?
