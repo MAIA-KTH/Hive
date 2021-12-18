@@ -193,6 +193,10 @@ def main():
     with open(args["config_file"]) as json_file:
         config_dict = json.load(json_file)
 
+    if "root_results_folder" in config_dict:
+        config_dict["results_folder"] = Path(config_dict["root_results_folder"]).joinpath(config_dict["results_folder"])
+        config_dict["predictions_path"] = Path(config_dict["root_results_folder"]).joinpath(config_dict["predictions_path"])
+
     metrics = []
 
     if "Metrics_save_configs" in config_dict and "Metrics_dict" in config_dict["Metrics_save_configs"]:

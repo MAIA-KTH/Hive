@@ -186,6 +186,10 @@ def main():
         with open(config_file) as json_file:
             config_dict = json.load(json_file)
 
+        if "root_results_folder" in config_dict:
+            config_dict["results_folder"] = Path(config_dict["root_results_folder"]).joinpath(config_dict["results_folder"])
+            config_dict["predictions_path"] = Path(config_dict["root_results_folder"]).joinpath(config_dict["predictions_path"])
+
         experiments.append(config_dict["Experiment Name"])
 
     metrics = []
