@@ -96,32 +96,10 @@ def generate_dataset_json(
         "labels": labels,  # {str(i): labels[i] for i in labels.keys()},
         "numTraining": len(train_identifiers),
         "numTest": len(test_identifiers),
-        "training": [{"image": "./imagesTr/%s_0000.nii.gz" % i, "label": "./labelsTr/%s.nii.gz" % i} for i in train_identifiers],
+        "n_tasks": n_tasks,
+        "training": [{"image": "./imagesTr/%s.nii.gz" % i, "label": "./labelsTr/%s.nii.gz" % i} for i in train_identifiers],
         "test": ["./imagesTs/%s.nii.gz" % i for i in test_identifiers],
     }
-
-    if len(modalities) > 1 or n_tasks > 1:
-        training_list = []
-        for i in train_identifiers:
-            training_case = {}
-            for id, modality in enumerate(modalities):
-                id_modality = "{0:04d}".format(id)
-                training_case["image_{}".format(id)] = "./imagesTr/{}_{}.nii.gz".format(i, id_modality)
-            for id, task in enumerate(range(n_tasks)):
-                id_task = "{0:04d}".format(id)
-                training_case["label_{}".format(id)] = "./labelsTr/{}_{}.nii.gz".format(i, id_task)
-            training_list.append(training_case)
-        json_dict["training"] = training_list
-
-        testing_list = []
-        for i in test_identifiers:
-            test_case = {}
-            for id, modality in enumerate(modalities):
-                id_modality = "{0:04d}".format(id)
-                test_case["image_{}".format(id)] = "./imagesTs/{}_{}.nii.gz".format(i, id_modality)
-
-            testing_list.append(test_case)
-        json_dict["test"] = testing_list
 
     if not output_file.endswith("dataset.json"):
         print(
