@@ -89,8 +89,8 @@ def main():
     pool = Pool(arguments["n_workers"])
     lung_lobe_conversions = []
     for subject in subjects:
-        label_filename = Path(arguments["data_folder"]).joinpath(subject, subject + arguments["label_suffix"])
-        fissure_filename = Path(arguments["data_folder"]).joinpath(subject, subject + arguments["fissure_suffix"])
+        label_filename = str(Path(arguments["data_folder"]).joinpath(subject, subject + arguments["label_suffix"]))
+        fissure_filename = str(Path(arguments["data_folder"]).joinpath(subject, subject + arguments["fissure_suffix"]))
         lung_lobe_conversions.append(
             pool.starmap_async(
                 convert_lung_label_map_to_fissure_mask,
