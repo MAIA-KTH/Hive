@@ -91,9 +91,8 @@ def main():
         os.environ["nnUNet_def_n_proc"] = os.environ["N_THREADS"]
         os.environ["MKL_THREADING_LAYER"] = "GNU"
         os.environ["nnunet_use_progress_bar"] = "1"
-        os.environ["email_account"] = "simonebendazzoli93@gmail.com"
-        os.environ["email_password"] = "wtdlstmbiylihyst"
-        os.environ["receiver_email"] = "simonebendazzoli93@gmail.com"
+        if "receiver_email" in data:
+            os.environ["receiver_email"] = data["receiver_email"]
 
         subprocess.run(arguments)
         if "--cascade-step" in arguments:
