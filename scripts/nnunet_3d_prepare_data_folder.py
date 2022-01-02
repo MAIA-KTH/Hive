@@ -5,6 +5,7 @@ import datetime
 import importlib.resources
 import json
 import os
+import re
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
@@ -20,11 +21,7 @@ from Hive.utils.file_utils import (
     save_config_json,
     generate_dataset_json,
 )
-from Hive.utils.log_utils import (
-    get_logger,
-    add_verbosity_options_to_argparser,
-    log_lvl_from_verbosity_args,
-)
+from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, INFO
 
 TIMESTAMP = "{:%Y-%m-%d_%H-%M-%S}".format(datetime.datetime.now())
 
@@ -65,6 +62,18 @@ def main():
         with importlib.resources.path(Hive.configs, arguments["config_file"]) as json_path:
             with open(json_path) as json_file:
                 config_dict = json.load(json_file)
+
+    if "receiver_email" not in os.environ:
+        try:
+            user_email = input("Please Enter a valid e-mail to receive experiments updates:\n")
+            regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
+            if re.fullmatch(regex, user_email):
+                logger.log(INFO, "Using {} for e-mail updates.".format(user_email))
+                config_dict["receiver_email"] = user_email
+            else:
+                logger.log(INFO, "{} not valid, disabling e-mail updates.".format(user_email))
+        except KeyboardInterrupt:
+            logger.log(INFO, "Disabling e-mail updates.")
 
     os.environ["raw_data_base"] = str(
         Path(os.environ["root_experiment_folder"]).joinpath(
@@ -122,7 +131,7 @@ def main():
         for data in dataset_split:
             writer.writerow(data)
 
-    config_dict["dataset_folder"] = arguments["input_data_folder"]
+    config_dict["dataset_folder"] = Path(arguments["input_data_folder"]).stem.replace("_", " ")
 
     if "Cascade" in config_dict and config_dict["Cascade"]:
         cascade_step = arguments["cascade_step"]
