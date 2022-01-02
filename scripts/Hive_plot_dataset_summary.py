@@ -38,7 +38,7 @@ def get_arg_parser():
         "--data-folder",
         type=str,
         required=True,
-        help=" ",
+        help="Dataset folder.",
     )
 
     pars.add_argument(
@@ -46,7 +46,7 @@ def get_arg_parser():
         type=str,
         required=False,
         default="_summary.xlsx",
-        help="Filepath where to save JSON summary file.",
+        help="Filepath used to save the dataset summary file.",
     )
 
     add_verbosity_options_to_argparser(pars)

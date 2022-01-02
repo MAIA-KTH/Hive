@@ -71,7 +71,7 @@ def get_arg_parser():
         type=str,
         required=False,
         default=".nii.gz",
-        help="",
+        help="File extension for the dataset files. Default: .nii.gz ",
     )
 
     add_verbosity_options_to_argparser(pars)
