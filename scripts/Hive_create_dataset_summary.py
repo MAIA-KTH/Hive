@@ -7,6 +7,7 @@ from pathlib import Path
 from textwrap import dedent
 
 import pandas as pd
+import tqdm
 
 from Hive.utils.file_utils import subfolders
 from Hive.utils.log_utils import add_verbosity_options_to_argparser, get_logger, log_lvl_from_verbosity_args
@@ -43,13 +44,6 @@ def get_arg_parser():
     )
 
     pars.add_argument(
-        "--config-file",
-        type=str,
-        required=True,
-        help="Configuration JSON file with experiment and dataset parameters ",
-    )
-
-    pars.add_argument(
         "--image-modality",
         type=str,
         required=True,
@@ -57,9 +51,10 @@ def get_arg_parser():
     )
 
     pars.add_argument(
-        "--summary-csv-file",
+        "--summary-file-suffix",
         type=str,
-        required=True,
+        required=False,
+        default="_summary.xlsx",
         help="Filepath where to save JSON summary file.",
     )
 
@@ -77,21 +72,53 @@ def main():
         level=log_lvl_from_verbosity_args(arguments),
     )
 
-    with open(arguments["config_file"]) as json_file:
+    dataset_name = Path(arguments["data_folder"]).stem.replace("_", " ")
+
+    with open(Path(arguments["data_folder"]).joinpath("data_config.json")) as json_file:
         config_dict = json.load(json_file)
 
-    image_suffix = config_dict["Modalities"][arguments["image_modality"]]
+    image_suffix = list(config_dict["Modalities"].keys())[
+        list(config_dict["Modalities"].values()).index(arguments["image_modality"])
+    ]
     subjects = subfolders(arguments["data_folder"], join=False)
     df_summary = pd.DataFrame()
-    for subject in subjects:
-        subject_dict = {
-            "image": str(Path(arguments["data_folder"]).joinpath(subject, subject + image_suffix)),
-            "label": str(Path(arguments["data_folder"]).joinpath(subject, subject + config_dict["label_suffix"])),
-        }
-        subject_summary = compute_subject_summary(subject_dict, config_dict["label_dict"])
-        df_summary = df_summary.append(subject_summary, ignore_index=True)
+    for subject in tqdm.tqdm(subjects, desc="Subject Summary"):
+        output_summary_path = Path(arguments["data_folder"]).joinpath(subject, subject + arguments["summary_file_suffix"])
+        if output_summary_path.is_file():
+            if arguments["summary_file_suffix"].endswith(".xlsx"):
+                subject_summary_pd = pd.read_excel(output_summary_path, index_col=0)
+            elif arguments["summary_file_suffix"].endswith(".csv"):
+                subject_summary_pd = pd.read_csv(output_summary_path, index_col=0)
+            elif arguments["summary_file_suffix"].endswith(".pkl"):
+                subject_summary_pd = pd.read_pickle(output_summary_path, index_col=0)
+            else:
+                raise ValueError("Output file format not recognized, expected one of: '.xslx', '.csv', '.pkl' ")
+            df_summary = df_summary.append(subject_summary_pd, ignore_index=True)
+        else:
+            subject_dict = {
+                "image": str(Path(arguments["data_folder"]).joinpath(subject, subject + image_suffix)),
+                "label": str(Path(arguments["data_folder"]).joinpath(subject, subject + config_dict["label_suffix"][0])),
+            }
+            subject_summary = compute_subject_summary(subject_dict, config_dict["label_dict"][0])
+            if arguments["summary_file_suffix"].endswith(".xlsx"):
+                pd.DataFrame([subject_summary]).to_excel(output_summary_path)
+            elif arguments["summary_file_suffix"].endswith(".csv"):
+                pd.DataFrame([subject_summary]).to_csv(str(output_summary_path))
+            elif arguments["summary_file_suffix"].endswith(".pkl"):
+                pd.DataFrame([subject_summary]).to_pickle(str(output_summary_path))
+            else:
+                raise ValueError("Output file format not recognized, expected one of: '.xslx', '.csv', '.pkl' ")
 
-    df_summary.to_csv(arguments["summary_csv_file"])
+            df_summary = df_summary.append(subject_summary, ignore_index=True)
+
+    if arguments["summary_file_suffix"].endswith(".xlsx"):
+        df_summary.to_excel(Path(arguments["data_folder"]).joinpath(dataset_name + arguments["summary_file_suffix"]))
+    elif arguments["summary_file_suffix"].endswith(".csv"):
+        df_summary.to_csv(Path(arguments["data_folder"]).joinpath(dataset_name + arguments["summary_file_suffix"]))
+    elif arguments["summary_file_suffix"].endswith(".pkl"):
+        df_summary.to_pickle(str(Path(arguments["data_folder"]).joinpath(dataset_name + arguments["summary_file_suffix"])))
+    else:
+        raise ValueError("Output file format not recognized, expected one of: '.xslx', '.csv', '.pkl' ")
 
 
 if __name__ == "__main__":
