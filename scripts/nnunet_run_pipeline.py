@@ -95,7 +95,7 @@ def run_data_and_folder_preparation_step(arguments):
                 config_dict = json.load(json_file)
 
     args = [
-        "nnunet_3d_prepare_data_folder.py",
+        "nnunet_prepare_data_folder.py",
         "--input-data-folder",
         arguments["input_data_folder"],
         "--task-ID",
@@ -163,6 +163,23 @@ def run_training_step(config_file, folds, cascade_step=None):
     return arg_list
 
 
+def run_testing_prediction(config_file, config_dict):
+    args = [
+        "nnunet_run_prediction.py",
+        "--config-file",
+        config_file,
+        "-i",
+        str(
+            Path(config_dict["base_folder"]).joinpath(
+                "nnUNet_raw_data", "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"]
+            )
+        ),
+        "-o",
+        str(Path(config_dict["predictions_path"]).joinpath("predictions_folder_name")),
+    ]
+    return args
+
+
 def main():
     parser = get_arg_parser()
 
@@ -213,8 +230,9 @@ def main():
                 pipeline_steps.append(step)
                 for step in run_cross_validation(arguments, output_json_config_file, range(config_dict["n_folds"]))
             ]
-        # "Hive_evaluate_predictions.py"
-        # "Hive_generate_experiment_results.py"
+    run_testing_prediction(output_json_config_file, config_dict)
+    # "Hive_evaluate_predictions.py"
+    # "Hive_generate_experiment_results.py"
     # "nnunet_run_prediction.py"
     # "Hive_evaluate_predictions.py"
     # "Hive_generate_experiment_results.py"
