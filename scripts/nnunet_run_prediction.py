@@ -6,7 +6,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
 
-from Hive.utils.file_utils import move_file_in_subfolders
+from Hive.utils.file_utils import move_file_in_subfolders, rename_files_with_suffix
 from Hive.utils.log_utils import (
     get_logger,
     add_verbosity_options_to_argparser,
@@ -76,6 +76,13 @@ def main():
     with open(config_file) as json_file:
         data = json.load(json_file)
 
+        os.environ["nnUNet_raw_data_base"] = data["base_folder"]
+        os.environ["nnUNet_preprocessed"] = data["preprocessing_folder"]
+        os.environ["RESULTS_FOLDER"] = data["results_folder"]
+        os.environ["nnUNet_def_n_proc"] = os.environ["N_THREADS"]
+        os.environ["MKL_THREADING_LAYER"] = "GNU"
+        os.environ["nnunet_use_progress_bar"] = "1"
+        Path(args["output_folder"]).mkdir(parents=True, exist_ok=True)
         arguments_list = [
             "-i",
             args["input_folder"],
@@ -85,10 +92,14 @@ def main():
             data["TRAINING_CONFIGURATION"],
             "-t",
             "Task" + data["Task_ID"] + "_" + data["Task_Name"],
+            "-tr",
+            data["TRAINER_CLASS_NAME"],
         ]
         arguments_list.extend(unknown_arguments)
         os.system("nnUNet_predict " + " ".join(arguments_list))
-        move_file_in_subfolders(args["output_folder"], data["FileExtension"], data["FileExtension"])
+        move_file_in_subfolders(args["output_folder"], "_post" + data["FileExtension"], data["FileExtension"])
+        rename_files_with_suffix(args["output_folder"], ".nii.gz", "_raw.nii.gz")
+        rename_files_with_suffix(args["output_folder"], "_post.nii.gz", ".nii.gz")
 
 
 if __name__ == "__main__":
