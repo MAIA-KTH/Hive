@@ -8,11 +8,10 @@ from pathlib import Path
 from typing import List, Dict, Union, Any
 
 import numpy as np
-from tqdm import tqdm
-
 from Hive.evaluation.metrics import compute_confusion_matrix, METRICS
 from Hive.utils.file_utils import subfiles, subfolders
 from Hive.utils.log_utils import get_logger, DEBUG
+from tqdm import tqdm
 
 logger = get_logger(__name__)
 
@@ -32,11 +31,11 @@ DEFAULT_METRICS = [
 
 
 def compute_metrics_for_case(
-        gt_filename: str,
-        pred_filename: str,
-        labels: List[str],
-        prediction_suffix: str,
-        metrics: List[str] = DEFAULT_METRICS,
+    gt_filename: str,
+    pred_filename: str,
+    labels: List[str],
+    prediction_suffix: str,
+    metrics: List[str] = DEFAULT_METRICS,
 ):
     r"""
     Computes given metrics for the specified subject and labels. The subject is defined by the *ground truth image* and the
@@ -99,13 +98,14 @@ def compute_metrics_for_case(
 
 
 def compute_metrics_for_folder(
-        gt_folder: str,
-        pred_folder: str,
-        labels: List[str],
-        file_suffix: str,
-        metrics: List[str] = DEFAULT_METRICS,
-        num_threads: int = None,
-        prediction_suffix: str = "",
+    gt_folder: str,
+    pred_folder: str,
+    labels: List[str],
+    file_suffix: str,
+    metrics: List[str] = DEFAULT_METRICS,
+    num_threads: int = None,
+    prediction_suffix: str = "",
+    gt_suffix: str = "",
 ):
     """
     Computes given metrics for the specified subjects and labels. The subjects are defined by the *ground truth folder*
@@ -117,6 +117,8 @@ def compute_metrics_for_folder(
 
     Parameters
     ----------
+    gt_suffix : str
+        Ground truth suffix, to be appended to the Subject ID in order to retrieve the correct file from ``gt_folder``.
     gt_folder : str
         Ground truth folder path.
     pred_folder : str
@@ -147,8 +149,7 @@ def compute_metrics_for_folder(
 
     pred_subfolders = subfolders(pred_folder, join=True)
     pred_files = [
-        subfiles(pred_subfolder, join=True, suffix=prediction_suffix + file_suffix)[0] for pred_subfolder in
-        pred_subfolders
+        subfiles(pred_subfolder, join=True, suffix=prediction_suffix + file_suffix)[0] for pred_subfolder in pred_subfolders
     ]
 
     if num_threads is None:
@@ -162,6 +163,7 @@ def compute_metrics_for_folder(
     evaluated_cases = []
     for pred_filepath in pred_files:
         gt_filepath = str(Path(pred_filepath).name).replace(prediction_suffix, "")
+        gt_filepath = gt_filepath[: -len(file_suffix)] + gt_suffix + file_suffix
         if gt_filepath in gt_files:
             if not Path(gt_folder).joinpath(gt_filepath).is_file():
                 logger.warning("{} does not exist".format(Path(gt_folder).joinpath(gt_filepath)))
@@ -259,8 +261,7 @@ def load_json_summaries(pred_folder: str, prediction_suffix: str, file_suffix: s
 
     pred_subfolders = subfolders(pred_folder, join=True)
     pred_files = [
-        subfiles(pred_subfolder, join=True, suffix=prediction_suffix + file_suffix)[0] for pred_subfolder in
-        pred_subfolders
+        subfiles(pred_subfolder, join=True, suffix=prediction_suffix + file_suffix)[0] for pred_subfolder in pred_subfolders
     ]
 
     for pred_filepath in pred_files:
@@ -274,7 +275,7 @@ def load_json_summaries(pred_folder: str, prediction_suffix: str, file_suffix: s
 
 
 def compute_metrics_and_save_json(
-        config_dict: Dict[str, Any], ground_truth_folder: str, prediction_folder: str, prediction_suffix: str = ""
+    config_dict: Dict[str, Any], ground_truth_folder: str, prediction_folder: str, prediction_suffix: str = ""
 ):
     """
     Given a ground truth folder and a prediction folder, computes the evaluation metrics ans store the results in JSON format.
@@ -292,7 +293,15 @@ def compute_metrics_and_save_json(
         ( Example: ``"post"`` ).
     """
     file_suffix = config_dict["FileExtension"]
-    label_dict = config_dict["label_dict"]
+
+    gt_suffix = ""
+    if "Cascade" in config_dict and config_dict["Cascade"]:
+        label_dict = config_dict["step_{}".format(str(int(config_dict["Cascade_steps"]) - 1))]["label_dict"]
+    elif isinstance(config_dict["label_dict"], list):
+        label_dict = config_dict["label_dict"][0]
+        gt_suffix = "_0000"
+    else:
+        label_dict = config_dict["label_dict"]
     label_dict.pop("0", None)
 
     labels = list(label_dict.keys())
@@ -300,8 +309,9 @@ def compute_metrics_and_save_json(
     if prediction_suffix != "":
         prediction_suffix = "_" + prediction_suffix
 
-    compute_metrics_for_folder(ground_truth_folder, prediction_folder, labels, file_suffix,
-                               prediction_suffix=prediction_suffix)
+    compute_metrics_for_folder(
+        ground_truth_folder, prediction_folder, labels, file_suffix, prediction_suffix=prediction_suffix, gt_suffix=gt_suffix
+    )
 
     all_res = load_json_summaries(prediction_folder, prediction_suffix, file_suffix)
     all_scores = order_scores_with_means(all_res)
