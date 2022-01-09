@@ -5,15 +5,14 @@ from typing import List, Dict, Tuple, Any, Union
 import SimpleITK as sitk
 import nibabel as nib
 import numpy as np
+from Hive.monai.data.nifti_saver import HiveNiftiSaver
+from Hive.monai.transforms import LungLobeMapToFissureMaskd
+from Hive.utils.log_utils import get_logger
 from SimpleITK import Image
 from monai.transforms import LoadImaged, Compose, AddChanneld
 from nptyping import NDArray
 from scipy.ndimage import binary_erosion
 from scipy.ndimage import center_of_mass
-
-from Hive.monai.data.nifti_saver import HiveNiftiSaver
-from Hive.monai.transforms import LungLobeMapToFissureMaskd
-from Hive.utils.log_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -343,3 +342,44 @@ def convert_lung_label_map_to_fissure_mask(
     saver = HiveNiftiSaver()
     output_data = transform(data)
     saver.save_with_path(output_data["label"], meta_data=output_data["label_meta_dict"], path=fissure_mask_filename)
+
+
+def combine_annotations_and_generate_label_map(
+    subject: str, data_folder: Union[str, PathLike], annotation_dict: Dict[str, str], label_suffix
+):
+    """
+    Copy all the binary masks specified in ``annotation_dict`` overlapping them over
+    the *base label*, assigning a specific label value for each binary mask.
+    The *base label* is specified by the file suffix in ``annotation_dict[base]``.
+    Each **key:value** pair in ``annotation_dict`` specifies the label value to assign to the binary mask (key) and
+    the corresponding file suffix to locate the file (value).
+    Example:
+        annotation_dict: {  'base' : '_lung_map.nii.gz',
+                            '2' : '_L.nii.gz',
+                            '4' : '_RL.nii.gz'
+                         }
+
+    Parameters
+    ----------
+    subject : str
+        Subject ID.
+    data_folder : Union[str, PathLike]
+        Dataset folder.
+    annotation_dict : Dict[str, str]
+        Annotation map for file suffix and corresponding label value.
+    label_suffix : str
+        Suffix to append to the resulting label map to save it.
+    """
+    base_annotation = Path(data_folder).joinpath(subject, subject + annotation_dict["base"])
+    base_array = sitk.GetArrayFromImage(sitk.ReadImage(str(base_annotation)))
+    for annotation_label in annotation_dict:
+        if annotation_label == "base":
+            continue
+        label_file = Path(data_folder).joinpath(subject, subject + annotation_dict[annotation_label])
+        label_array = sitk.GetArrayFromImage(sitk.ReadImage(str(label_file)))
+        label_array = np.where(label_array > 0, int(annotation_label), 0)
+        base_array = np.where(label_array == int(annotation_label), int(annotation_label), base_array)
+
+    label_image = sitk.GetImageFromArray(base_array)
+    label_image.CopyInformation(sitk.ReadImage(str(base_annotation)))
+    sitk.WriteImage(label_image, str(Path(data_folder).joinpath(subject, subject + label_suffix)))
