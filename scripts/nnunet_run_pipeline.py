@@ -163,19 +163,87 @@ def run_training_step(config_file, folds, cascade_step=None):
     return arg_list
 
 
-def run_testing_prediction(config_file, config_dict):
+def run_testing_prediction(config_file, config_dict, arguments):
+
+    base_folder = str(
+        Path(os.environ["root_experiment_folder"]).joinpath(
+            config_dict["Experiment Name"], config_dict["Experiment Name"] + "_base"
+        )
+    )
+    full_task_name = "Task" + arguments["task_ID"] + "_" + config_dict["DatasetName"] + "_" + config_dict["Experiment Name"]
+    predictions_path = str(
+        Path(os.environ["RESULTS_FOLDER"]).joinpath(
+            "nnUNet",
+            config_dict["TRAINING_CONFIGURATION"],
+            full_task_name,
+            config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
+        )
+    )
+    if "Cascade_steps" in config_dict:
+        predictions_path = str(
+            Path(os.environ["RESULTS_FOLDER"]).joinpath(
+                "nnUNet",
+                "cascade",
+                full_task_name,
+                config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
+            )
+        )
     args = [
         "nnunet_run_prediction.py",
         "--config-file",
         config_file,
         "-i",
         str(
-            Path(config_dict["base_folder"]).joinpath(
-                "nnUNet_raw_data", "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"]
+            Path(base_folder).joinpath(
+                "nnUNet_raw_data",
+                "Task" + arguments["task_ID"] + "_" + config_dict["DatasetName"] + "_" + config_dict["Experiment Name"],
+                "imagesTs",
             )
         ),
         "-o",
-        str(Path(config_dict["predictions_path"]).joinpath("predictions_folder_name")),
+        str(Path(predictions_path).joinpath(config_dict["predictions_folder_name"])),
+    ]
+    return args
+
+
+def run_evaluate_prediction(config_file, config_dict, arguments):
+    base_folder = str(
+        Path(os.environ["root_experiment_folder"]).joinpath(
+            config_dict["Experiment Name"], config_dict["Experiment Name"] + "_base"
+        )
+    )
+    full_task_name = "Task" + arguments["task_ID"] + "_" + config_dict["DatasetName"] + "_" + config_dict["Experiment Name"]
+    predictions_path = str(
+        Path(os.environ["RESULTS_FOLDER"]).joinpath(
+            "nnUNet",
+            config_dict["TRAINING_CONFIGURATION"],
+            full_task_name,
+            config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
+        )
+    )
+    if "Cascade_steps" in config_dict:
+        predictions_path = str(
+            Path(os.environ["RESULTS_FOLDER"]).joinpath(
+                "nnUNet",
+                "cascade",
+                full_task_name,
+                config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
+            )
+        )
+    args = [
+        "Hive_evaluate_predictions.py",
+        "--config-file",
+        config_file,
+        "--ground-truth-folder",
+        str(
+            Path(base_folder).joinpath(
+                "nnUNet_raw_data",
+                "Task" + arguments["task_ID"] + "_" + config_dict["DatasetName"] + "_" + config_dict["Experiment Name"],
+                "labelsTs",
+            )
+        ),
+        "--prediction-folder",
+        str(Path(predictions_path).joinpath(config_dict["predictions_folder_name"])),
     ]
     return args
 
@@ -230,12 +298,9 @@ def main():
                 pipeline_steps.append(step)
                 for step in run_cross_validation(arguments, output_json_config_file, range(config_dict["n_folds"]))
             ]
-    run_testing_prediction(output_json_config_file, config_dict)
-    # "Hive_evaluate_predictions.py"
-    # "Hive_generate_experiment_results.py"
-    # "nnunet_run_prediction.py"
-    # "Hive_evaluate_predictions.py"
-    # "Hive_generate_experiment_results.py"
+    pipeline_steps.append(run_testing_prediction(output_json_config_file, config_dict, arguments))
+    pipeline_steps.append(run_evaluate_prediction(output_json_config_file, config_dict, arguments))
+
     Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]).mkdir(exist_ok=True, parents=True)
     pipeline_steps_summary = open(
         Path(os.environ["root_experiment_folder"]).joinpath(
