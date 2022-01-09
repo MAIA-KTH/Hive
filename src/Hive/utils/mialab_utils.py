@@ -40,3 +40,31 @@ def run_mialab_fuzzy_segmentation_command(
     command += " -OutputImage {}".format(Path(data_folder).joinpath(subject, subject + output_suffix))
     logger.log(DEBUG, "Running {}".format(command))
     subprocess.run(command)
+
+
+def run_mialab_lung_lobe_annotation_command(
+    mialab_folder: Union[str, PathLike],
+    data_folder: Union[str, PathLike],
+    subject: str,
+    file_extension: str,
+):
+    """
+    Run MiaLab Lung Lobe TPS tool on given subject, saving the lung and lobe masks as output.
+
+    Parameters
+    ----------
+    file_extension : str
+        File extension to fully identify the input file (e.g. ``".nii.gz"``).
+    subject : str
+        Subject ID
+    mialab_folder : Union[str, PathLike]
+        Folder to locate MiaLab executable.
+    data_folder : Union[str, PathLike]
+        Dataset folder.
+
+    """
+    command = str(Path(mialab_folder).joinpath("MiaLab")) + " -wl LungLobeTPSSegmentation"
+    command += " -InputImage {}".format(Path(data_folder).joinpath(subject, subject + file_extension))
+
+    logger.log(DEBUG, "Running {}".format(command))
+    subprocess.run(command)
