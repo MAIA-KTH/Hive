@@ -85,13 +85,13 @@ def main():
     prediction_suffix = args["prediction_suffix"]
     if prediction_suffix != "":
         prediction_suffix = "_" + prediction_suffix
-
+    args["config_file"] = str(Path(args["config_file"]).resolve())
     with open(args["config_file"]) as json_file:
         config_dict = json.load(json_file)
 
-    output_path = args["output_experiment_folder"]
+    output_path = str(Path(args["output_experiment_folder"]).resolve())
 
-    if "root_experiment_folder" in args:
+    if args["root_experiment_folder"] is not None:
         config_dict["root_results_folder"] = args["root_experiment_folder"]
     else:
         config_dict["root_results_folder"] = os.environ["root_experiment_folder"]

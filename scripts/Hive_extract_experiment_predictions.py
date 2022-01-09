@@ -92,7 +92,7 @@ def main():
 
     output_path = args["output_experiment_folder"]
 
-    if "root_experiment_folder" in args:
+    if args["root_experiment_folder"] is not None:
         config_dict["root_results_folder"] = args["root_experiment_folder"]
     else:
         config_dict["root_results_folder"] = os.environ["root_experiment_folder"]
