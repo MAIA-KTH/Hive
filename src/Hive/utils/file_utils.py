@@ -430,3 +430,26 @@ def save_4D_volume_as_3D(filename: Union[str, PathLike], suffix: str):
     for idx, img_3D in enumerate(img_array):
         image3D = nib.Nifti1Image(img_3D, affine_transform)
         nib.save(image3D, filename[: -len(suffix)] + "_{}".format(idx) + suffix)
+
+
+def rename_files_with_suffix(data_folder: Union[str, PathLike], file_suffix: str, new_suffix: str):
+    """
+    Rename all the files in ``data_folder``, replacing ``file_suffix`` with ``new_suffix``.
+
+    Parameters
+    ----------
+    data_folder : Union[str, PathLike]
+        Data folder.
+    file_suffix : str
+        File suffix to identify the file to rename.
+    new_suffix : str
+        Suffix to replace the existing ``file_suffix``.
+    """
+    subjects = subfolders(data_folder, join=False)
+
+    for subject in subjects:
+        if Path(data_folder).joinpath(subject, subject + file_suffix).is_file():
+            shutil.move(
+                Path(data_folder).joinpath(subject, subject + file_suffix),
+                Path(data_folder).joinpath(subject, subject + new_suffix),
+            )
