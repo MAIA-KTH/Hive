@@ -51,6 +51,5 @@
   },
   "TRAINING_CONFIGURATION": "3d_fullres",
   "TRAINER_CLASS_NAME": "nnUNetTrainerHiveMT",
-  "TRAINER_PLAN": "nnUNetPlansv2.1",
-  "cv_name": "In"
+  "TRAINER_PLAN": "nnUNetPlansv2.1"
 }
