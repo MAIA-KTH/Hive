@@ -7,11 +7,10 @@ from typing import List, Dict, Any, Union
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
-from pandas import DataFrame
-from plotly.graph_objects import Figure
-
 from Hive.evaluation import METRICS_FOLDER_NAME
 from Hive.utils.log_utils import get_logger, DEBUG
+from pandas import DataFrame
+from plotly.graph_objects import Figure
 
 logger = get_logger(__name__)
 
@@ -444,7 +443,7 @@ def create_dataframe_for_experiment(
             exist_ok=True, parents=True
         )
 
-        subject_list = set(df_flat["Subject"].tolist())
+        subject_list = list(dict.fromkeys(df_flat["Subject"].tolist()))
         subject_id = {subject: str(index) for index, subject in enumerate(subject_list)}
         with open(
             Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "experiment", metric_name, "subject_id.json"), "w"
