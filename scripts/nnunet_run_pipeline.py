@@ -248,6 +248,30 @@ def run_evaluate_prediction(config_file, config_dict, arguments):
     return args
 
 
+def run_extract_results(config_file):
+
+    args = [
+        "Hive_extract_experiment_results.py",
+        "--config-file",
+        config_file,
+        "--output-experiment-folder",
+        str(Path(os.environ["root_experiment_folder"] + "_Results")),
+    ]
+    return args
+
+
+def run_extract_predictions(config_file):
+
+    args = [
+        "Hive_extract_experiment_predictions.py",
+        "--config-file",
+        config_file,
+        "--output-experiment-folder",
+        str(Path(os.environ["root_experiment_folder"] + "_Predictions")),
+    ]
+    return args
+
+
 def main():
     parser = get_arg_parser()
 
@@ -300,6 +324,8 @@ def main():
             ]
     pipeline_steps.append(run_testing_prediction(output_json_config_file, config_dict, arguments))
     pipeline_steps.append(run_evaluate_prediction(output_json_config_file, config_dict, arguments))
+    pipeline_steps.append(run_extract_results(output_json_config_file))
+    pipeline_steps.append(run_extract_predictions(output_json_config_file))
 
     Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]).mkdir(exist_ok=True, parents=True)
     pipeline_steps_summary = open(
