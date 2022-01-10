@@ -31,6 +31,9 @@ EPILOG = dedent(
     )
 )
 
+if "N_THREADS" not in os.environ:
+    os.environ["N_THREADS"] = "1"
+
 
 def get_arg_parser():
     pars = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
