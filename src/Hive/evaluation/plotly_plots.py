@@ -7,11 +7,10 @@ import pandas as pd
 import plotly
 import plotly.express as px
 import plotly.graph_objs as go
-from pandas import DataFrame
-from plotly.graph_objects import Figure
-
 from Hive.evaluation import DEFAULT_METRIC_UNITS, DEFAULT_BAR_CONFIGS, METRICS_FOLDER_NAME
 from Hive.evaluation.io_metric_results import read_dataframe
+from pandas import DataFrame
+from plotly.graph_objects import Figure
 
 BAR_AGGREGATORS = ["min", "max", "mean"]
 
@@ -25,6 +24,7 @@ def get_heatmap(
     plot_title: str,
     show_phase: bool = False,
     read_from_complete_table: bool = False,
+    subject_list: List[str] = None,
     **kwargs
 ) -> Figure:
     """
@@ -104,6 +104,7 @@ def get_heatmap(
             df = df_flat[df_flat[facet_row] == facet_row_value]
         else:
             df = df_flat
+        subjects = df["Subject"].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T[0]
         if facet_col is not None:
             subject_IDs = df[facet_col].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T[0]
         else:
@@ -112,9 +113,20 @@ def get_heatmap(
         for facet_col_value in facet_col_list:
 
             if facet_col_value is not None:
-                subject_IDs_for_value = [i for i, val in enumerate(subject_IDs) if val == facet_col_value]
+                subject_IDs_for_value = []
+                for i, val in enumerate(subject_IDs):
+                    if val == facet_col_value:
+                        if subject_list is not None:
+                            subject_IDs_for_value.append(subject_list.index(subjects[i]))
+                        else:
+                            subject_IDs_for_value.append(i)
             else:
-                subject_IDs_for_value = [i for i, val in enumerate(subject_IDs)]
+                subject_IDs_for_value = []
+                for i, val in enumerate(subject_IDs):
+                    if subject_list is not None:
+                        subject_IDs_for_value.append(subject_list.index(subjects[i]))
+                    else:
+                        subject_IDs_for_value.append(i)
 
             if facet_col_value is not None:
                 if facet_row_value is not None:
@@ -586,6 +598,7 @@ def create_plots_for_project(
     plot_dict = {}
     project_df_flat = read_dataframe(df_paths["{}_flat".format(config_dict["ProjectName"])], sheet_name="Flat")
     section = "project"
+    subjects_list = list(dict.fromkeys(project_df_flat["Subject"].tolist()))
     for metric in metrics:
         if subsection is None:
             df_flat = project_df_flat[project_df_flat.Metric.eq(metric)]
@@ -621,6 +634,7 @@ def create_plots_for_project(
             "section": section,
             "bar_configs": bar_configs,
             "show_phase": show_phase,
+            "subject_list": subjects_list,
         }
 
         for plot in PLOTS:
