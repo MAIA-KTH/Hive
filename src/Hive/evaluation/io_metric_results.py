@@ -345,6 +345,9 @@ def create_dataframe_for_project(
     for config_file in config_files:
         with open(config_file) as json_file:
             config_dict = json.load(json_file)
+        if "root_results_folder" in config_dict:
+            config_dict["results_folder"] = Path(config_dict["root_results_folder"]).joinpath(config_dict["results_folder"])
+            config_dict["predictions_path"] = Path(config_dict["root_results_folder"]).joinpath(config_dict["predictions_path"])
 
         df_paths[config_dict["Experiment Name"]] = get_saved_dataframes(config_dict, metrics, ["experiment"], df_format)
 
@@ -365,7 +368,7 @@ def create_dataframe_for_project(
     df_table = pd.concat(pd_metric_list, ignore_index=True)
     Path(results_folder).joinpath(METRICS_FOLDER_NAME).mkdir(exist_ok=True, parents=True)
 
-    subject_list = set(df_flat["Subject"].tolist())
+    subject_list = list(dict.fromkeys(df_flat["Subject"].tolist()))
     subject_id = {subject: str(index) for index, subject in enumerate(subject_list)}
     with open(Path(results_folder).joinpath(METRICS_FOLDER_NAME, "subject_id.json"), "w") as fp:
         json.dump(subject_id, fp)
