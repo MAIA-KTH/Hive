@@ -1,6 +1,6 @@
 import math
 from os import PathLike
-from typing import Union, Any, Dict, List
+from typing import Union, Any, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,11 +8,15 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from Hive.monai.transforms import OrientToRAId
+from Hive.utils.df_utils import unflatten_dataframe
 from Hive.utils.volume_utils import apply_affine_transform_to_vector_field
 from matplotlib.animation import FuncAnimation
 from monai.transforms import LoadImaged, Compose, AsChannelFirstD
 from nptyping import NDArray
+from pandas import DataFrame
+from scipy import stats
 from scipy.ndimage import center_of_mass
+from statsmodels.multivariate.manova import MANOVA
 
 
 def create_2D_GIF_for_vector_field(
@@ -359,6 +363,7 @@ def create_plotly_3D_vector_field(
     image_filename: Union[str, PathLike],
     case_summary_filename: Union[str, PathLike],
     output_filename: Union[str, PathLike],
+    label_dict: Dict[str, str],
 ):
     """
     For a given Subject vector field summary, creates and saves the HTML plotly plot of the vector field.
@@ -371,8 +376,10 @@ def create_plotly_3D_vector_field(
         Image file path, used to render the volume in the HTML Plotly output.
     case_summary_filename : Union[str, PathLike]
         File path of the subject vector field summary.
-    output_filename : : Union[str, PathLike]
+    output_filename :  Union[str, PathLike]
         HTML output file path.
+    label_dict : Dict[str, str]
+        Dictionary mapping the label values to their corresponding name.
     """
     vector_scale = 50
     data = {"image": image_filename}
@@ -481,7 +488,6 @@ def create_plotly_3D_vector_field(
         raise ValueError("Case summary file format not recognized, expected one of: '.xslx', '.csv', '.pkl' ")
 
     df_copy = df.copy(deep=True)
-    label_dict = {"0": "Background", "1": "LU", "2": "LL", "3": "RU", "4": "RM", "5": "RL"}
 
     key_list = list(label_dict.keys())
     val_list = list(label_dict.values())
@@ -532,7 +538,9 @@ def create_plotly_3D_vector_field(
     fig.write_html(output_filename)
 
 
-def create_plotly_3D_vector_field_summary(summary_filename: Union[str, PathLike], output_filename: Union[str, PathLike]):
+def create_plotly_3D_vector_field_summary(
+    summary_filename: Union[str, PathLike], output_filename: Union[str, PathLike], dataset_name: str
+):
     """
     For a given Dataset vector field summary, creates and saves the HTML plotly plot of the vector field.
 
@@ -540,8 +548,10 @@ def create_plotly_3D_vector_field_summary(summary_filename: Union[str, PathLike]
     ----------
     summary_filename : Union[str, PathLike]
         File path of the dataset vector field summary.
-    output_filename : : Union[str, PathLike]
+    output_filename : Union[str, PathLike]
         HTML output file path.
+    dataset_name : str
+        Dataset string name.
     """
     if summary_filename.endswith(".xlsx"):
         df = pd.read_excel(summary_filename)
@@ -560,5 +570,188 @@ def create_plotly_3D_vector_field_summary(summary_filename: Union[str, PathLike]
 
     fig = px.scatter_3d(df, x="V_x", y="V_y", z="V_z", color="Label", hover_data=["Subject"])
 
-    fig.update_layout(title="LVC Vector Field Summary")
+    fig.update_layout(title="{} LVC Vector Field Summary".format(dataset_name))
     fig.write_html(output_filename)
+
+
+def convert_cartesian_to_spherical_coordinates(
+    x: NDArray[(Any,), float], y: NDArray[(Any,), float], z: NDArray[(Any,), float]
+) -> Tuple[NDArray[(Any,), float], NDArray[(Any,), float], NDArray[(Any,), float]]:
+    """
+    Converts (x,y,z) Numpy arrays of cartesian coordinates into (r, elevationn, azimuth) Numpy arrays of the corresponding
+    spherical coordinates.
+
+    Parameters
+    ----------
+    x : NDArray[(Any,), float]
+        X Cartesian coordinates array
+    y : NDArray[(Any,), float]
+        Y Cartesian coordinates array
+    z : NDArray[(Any,), float]
+        Z Cartesian coordinates array
+
+    Returns
+    -------
+    Tuple[NDArray[(Any,), float], NDArray[(Any, ), float], NDArray[(Any,), float]]
+        Tuple of 3 Numpy array, including the spherical coordinates (r, elevationn, azimuth).
+    """
+    XsqPlusYsq = x ** 2 + y ** 2
+    r = np.sqrt(XsqPlusYsq + z ** 2)  # r
+    elev = np.arctan2(z, np.sqrt(XsqPlusYsq))  # theta
+    az = np.arctan2(y, x)  # phi
+
+    return r, elev, az
+
+
+def get_sphericaL_coordinates_df(df_filepath: Union[str, PathLike], labels: List[str]) -> DataFrame:
+    """
+    Load a DataFrame and converts all the coordinates in the ``V_x_LABEL``, ``V_y_LABEL`` and ``V_z_LABEL`` from
+    cartesian to spherical coordinates, for each LABEL included in ``labels``.
+    Returns a DataFrame with spherical coordinates for each Subject and each Label.
+
+    Parameters
+    ----------
+    df_filepath : Union[str, PathLike]
+        DataFrame file path.
+    labels  : List[str]
+        List of label to be transformed.
+
+    Returns
+    -------
+    DataFrame
+        Pandas DataFrame with Spherical coordinates for the given values, for each label.
+    """
+    if df_filepath.endswith(".xlsx"):
+        df = pd.read_excel(df_filepath)
+    elif df_filepath.endswith(".csv"):
+        df = pd.read_csv(df_filepath)
+    elif df_filepath.endswith(".pkl"):
+        df = pd.read_pickle(df_filepath)
+    else:
+        raise ValueError("Case summary file format not recognized, expected one of: '.xslx', '.csv', '.pkl' ")
+
+    df_vectors = unflatten_dataframe(df, "Label", "Subject", ["V_x", "V_y", "V_z"])
+    subject_list = df_vectors["Subject"].values
+    spherical_coord_list = []
+    for label in labels:
+        r, theta, phi = convert_cartesian_to_spherical_coordinates(
+            df_vectors["V_x_{}".format(label)].values,
+            df_vectors["V_y_{}".format(label)].values,
+            df_vectors["V_z_{}".format(label)].values,
+        )
+        spherical_array_coord = np.vstack((theta, phi)).T
+        for spherical_coord, subject in zip(spherical_array_coord, subject_list):
+            spherical_coord_dict = {
+                "Subject": subject,
+                "Label": label,
+                "Elevation": spherical_coord[0],
+                "Azimuth": spherical_coord[1],
+            }
+            spherical_coord_list.append(spherical_coord_dict)
+    spherical_coord_df = pd.DataFrame(spherical_coord_list)
+    return spherical_coord_df
+
+
+def calculate_z_score(df: DataFrame, labels: List[str], columns: List[str]) -> DataFrame:
+    """
+    Calculates Z scores on the given columns of the DataFrame, for the given labels, and drops the rows where the Z score
+    is > 2.5 .
+    Returns the reduced DataFrame.
+
+    Parameters
+    ----------
+    df  : DataFrame
+        Input DataFrame
+    labels : List[str]
+        List of labels.
+    columns : List[str]
+        List of columns to compute the Z score on.
+
+    Returns
+    -------
+    DataFrame
+        Pandas DataFrame, where rows with Z score > 2.5 are removed.
+    """
+    z_scores = {}
+    df_corrected = df.copy(deep=True)
+    for label in labels:
+        z_scores[label] = []
+        df_label = df[df["Label"] == label]
+        df_label_indexes = df.index[df["Label"] == label].tolist()
+        for column in columns:
+            z_scores[label].append((np.abs(stats.zscore(df_label[column].values)) > 2.5).astype(np.uint8))
+        z_scores[label] = np.sum(z_scores[label], axis=0)
+        for idx, z_score in enumerate(z_scores[label]):
+            if z_score != 0:
+                df_corrected.drop(labels=df_label_indexes[idx], axis=0, inplace=True)
+
+    return df_corrected
+
+
+def plot_spherical_coordinates(
+    df_spherical: DataFrame, output_spherical_plot: Union[str, PathLike], dataset_name: str, label_dict: Dict[str, str]
+) -> DataFrame:
+    """
+    For a given DataFrame with spherical coordinates, generates the corresponding 2D scatter plot (elevation. azimuth),
+    and return a MANOVA DataFrame, including the MANOVA analysis: ``'Elevation + Azimuth ~ Label'``.
+
+    Parameters
+    ----------
+    df_spherical : DataFrame
+        DataFrame with Spherical coordinates.
+    output_spherical_plot : Union[str, PathLike]
+        Output file path to save the scatter 2D plot.
+    dataset_name : str
+        Dataset string name.
+    label_dict : Dict[str, str]
+        Dictionary mapping the label values to their corresponding name.
+
+    Returns
+    -------
+    DataFrame
+        MANOVA DataFrame
+    """
+    mapping = {label_dict[label]: int(label) for label in label_dict if label != "0"}
+
+    key_list = list(label_dict.keys())
+    val_list = list(label_dict.values())
+
+    fig = go.Figure()
+    fig.add_traces(data=px.scatter(df_spherical, x="Elevation", y="Azimuth", color="Label", hover_data=["Subject"]).data)
+
+    labels = df_spherical["Label"].unique()
+    df_spherical_z_corrected = calculate_z_score(df_spherical, labels, ["Elevation", "Azimuth"])
+    label_mean = df_spherical_z_corrected.groupby(["Label"]).mean()
+    label_sd = df_spherical_z_corrected.groupby(["Label"]).std()
+    for label in labels:
+        position = val_list.index(label)
+        min_x = label_mean["Elevation"][label] - 3 * label_sd["Elevation"][label]
+        max_x = label_mean["Elevation"][label] + 3 * label_sd["Elevation"][label]
+        min_y = label_mean["Azimuth"][label] - 3 * label_sd["Azimuth"][label]
+        max_y = label_mean["Azimuth"][label] + 3 * label_sd["Azimuth"][label]
+        fig.add_shape(
+            type="circle",
+            xref="x",
+            yref="y",
+            x0=min_x,
+            y0=min_y,
+            x1=max_x,
+            y1=max_y,
+            opacity=0.2,
+            fillcolor=px.colors.qualitative.Plotly[int(key_list[position]) - 1],
+            line_color=px.colors.qualitative.Plotly[int(key_list[position]) - 1],
+        )
+    df_spherical = df_spherical.replace({"Label": mapping})
+    df_spherical.drop(labels="Subject", axis=1, inplace=True)
+    maov = MANOVA.from_formula("Elevation + Azimuth ~ Label", data=df_spherical)
+    manova_df = maov.mv_test().summary_frame
+    fig.update_layout(
+        title="{} Spherical LVC Vector Field, MANOVA p_value: {}".format(
+            dataset_name, manova_df["Pr > F"]["Label"]["Wilks' lambda"]
+        ),
+        xaxis_title="Elevation",
+        yaxis_title="Azimuth",
+    )
+    fig.write_html(output_spherical_plot)
+
+    return manova_df
