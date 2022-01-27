@@ -9,8 +9,8 @@ RUN mkdir /var/run/sshd
 EXPOSE 22
 
 COPY start.sh start.sh
-COPY .env .env
-COPY create_nnUNet_conda_env.sh create_nnUNet_conda_env.sh
+COPY docker_env/.env .env
+COPY create_Hive_conda_env.sh create_Hive_conda_env.sh
 
 ENTRYPOINT ["sh", "./start.sh"]
 CMD ["/usr/sbin/sshd", "-D"]
