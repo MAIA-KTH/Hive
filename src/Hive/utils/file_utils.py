@@ -124,35 +124,57 @@ def save_config_json(config_dict: Dict[str, str], output_json: str) -> int:
         return 0
 
 
-def create_nnunet_data_folder_tree(data_folder: str, task_name: str, task_id: str):
+def create_nnunet_data_folder_tree(data_folder: str, task_name: str, task_id: str, subfolder: str = None):
     """
     Create nnUNet_raw_data_base folder tree, ready to be populated with the dataset
 
     :param data_folder: folder path corresponding to the nnUNet_raw_data_base ENV variable
     :param task_id: string used as task_id when creating task folder
     :param task_name: string used as task_name when creating task folder
+    :param subfolder: optional subfolder path for the data_folder tree
     """  # noqa E501
     logger.log(DEBUG, ' Creating Dataset tree at "{}"'.format(data_folder))
 
-    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "imagesTr",).mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+    if subfolder is None:
+        Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "imagesTr",).mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
-    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "labelsTr",).mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+        Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "labelsTr",).mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
-    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "imagesTs",).mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+        Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "imagesTs",).mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
-    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "labelsTs",).mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+        Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "labelsTs",).mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+    else:
+        Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, subfolder, "imagesTr",).mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, subfolder, "labelsTr",).mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, subfolder, "imagesTs",).mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, subfolder, "labelsTs",).mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
 
 def create_data_folder_tree(data_folder: str, task_name: str, task_id: str):
