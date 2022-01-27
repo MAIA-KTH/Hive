@@ -73,7 +73,7 @@ def get_arg_parser():
         required=False,
         nargs="+",
         default=None,
-        help="",
+        help="Optional list of sub-steps, to run the script in multi-step contexts(Cascade/2.5D).",
     )
 
     add_verbosity_options_to_argparser(pars)
