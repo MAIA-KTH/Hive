@@ -9,7 +9,6 @@ from textwrap import dedent
 import numpy as np
 from sklearn.model_selection import KFold
 
-from Hive.utils.file_utils import move_file_in_subfolders, rename_files_with_suffix
 from Hive.utils.file_utils import split_dataset, copy_data_to_dataset_folder
 from Hive.utils.log_utils import (
     get_logger,
@@ -68,6 +67,15 @@ def get_arg_parser():
         help="String value representing the cross-validation, to be appended to the Experiment name.",
     )
 
+    pars.add_argument(
+        "--sub-steps",
+        type=str,
+        required=False,
+        nargs="+",
+        default=None,
+        help="",
+    )
+
     add_verbosity_options_to_argparser(pars)
 
     return pars
@@ -113,61 +121,130 @@ def main():
                 for test in test_idx:
                     selected_test_data.append(train_dataset_sorted[test])
 
-    output_base_folder = Path(os.environ["root_experiment_folder"]).joinpath(
-        config_dict["Experiment Name"],
-        config_dict["Experiment Name"] + "_cross_validation",
-        config_dict["Experiment Name"] + "_to_{}".format(cv_name),
-        config_dict["Experiment Name"] + "_to_{}_base".format(cv_name),
-        config_dict["Experiment Name"] + "_to_{}_raw_data".format(cv_name),
-        "Task"
-        + config_dict["Task_ID"]
-        + "_"
-        + config_dict["DatasetName"]
-        + "_"
-        + config_dict["Experiment Name"]
-        + "_to_{}".format(cv_name),
-    )
-    output_base_folder.mkdir(parents=True, exist_ok=True)
+    output_base_folder_list = []
+    if args["sub_steps"] is None:
+        output_base_folder = Path(os.environ["root_experiment_folder"]).joinpath(
+            config_dict["Experiment Name"],
+            config_dict["Experiment Name"] + "_cross_validation",
+            config_dict["Experiment Name"] + "_to_{}".format(cv_name),
+            config_dict["Experiment Name"] + "_to_{}_base".format(cv_name),
+            config_dict["Experiment Name"] + "_to_{}_raw_data".format(cv_name),
+            "Task"
+            + config_dict["Task_ID"]
+            + "_"
+            + config_dict["DatasetName"]
+            + "_"
+            + config_dict["Experiment Name"]
+            + "_to_{}".format(cv_name),
+        )
+        output_base_folder.mkdir(parents=True, exist_ok=True)
 
-    output_base_folder.joinpath("imagesTs").mkdir(parents=True, exist_ok=True)
-    output_base_folder.joinpath("labelsTs").mkdir(parents=True, exist_ok=True)
-    output_results_folder = Path(os.environ["root_experiment_folder"]).joinpath(
-        config_dict["Experiment Name"],
-        config_dict["Experiment Name"] + "_cross_validation",
-        config_dict["Experiment Name"] + "_to_{}".format(cv_name),
-        config_dict["Experiment Name"] + "_to_{}_results".format(cv_name),
-        "nnUNet",
-        config_dict["TRAINING_CONFIGURATION"],
-        "Task"
-        + config_dict["Task_ID"]
-        + "_"
-        + config_dict["DatasetName"]
-        + "_"
-        + config_dict["Experiment Name"]
-        + "_to_{}".format(cv_name),
-        config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
-    )
-    output_results_folder.mkdir(parents=True, exist_ok=True)
+        output_base_folder.joinpath("imagesTs").mkdir(parents=True, exist_ok=True)
+        output_base_folder.joinpath("labelsTs").mkdir(parents=True, exist_ok=True)
 
-    if fold == "test_set" or fold == "All":
-        output_fold_results_folder = output_results_folder.joinpath(config_dict["predictions_folder_name"])
-
-    else:
-        output_fold_results_folder = output_results_folder.joinpath(
-            "fold_{}".format(fold), config_dict["predictions_folder_name"]
+        copy_data_to_dataset_folder(
+            args["input_folder"],
+            selected_test_data,
+            str(output_base_folder),
+            "imagesTs",
+            config_dict,
+            "labelsTs",
         )
 
-    output_fold_results_folder.mkdir(parents=True, exist_ok=True)
-    copy_data_to_dataset_folder(
-        args["input_folder"],
-        selected_test_data,
-        str(output_base_folder),
-        "imagesTs",
-        config_dict,
-        "labelsTs",
-    )
+        output_results_folder = Path(os.environ["root_experiment_folder"]).joinpath(
+            config_dict["Experiment Name"],
+            config_dict["Experiment Name"] + "_cross_validation",
+            config_dict["Experiment Name"] + "_to_{}".format(cv_name),
+            config_dict["Experiment Name"] + "_to_{}_results".format(cv_name),
+            "nnUNet",
+            config_dict["TRAINING_CONFIGURATION"],
+            "Task"
+            + config_dict["Task_ID"]
+            + "_"
+            + config_dict["DatasetName"]
+            + "_"
+            + config_dict["Experiment Name"]
+            + "_to_{}".format(cv_name),
+            config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
+        )
+
+        output_results_folder.mkdir(parents=True, exist_ok=True)
+
+        if fold == "test_set" or fold == "All":
+            output_fold_results_folder = output_results_folder.joinpath(config_dict["predictions_folder_name"])
+
+        else:
+            output_fold_results_folder = output_results_folder.joinpath(
+                "fold_{}".format(fold), config_dict["predictions_folder_name"]
+            )
+
+        output_fold_results_folder.mkdir(parents=True, exist_ok=True)
+    else:
+        for sub_step in args["sub_steps"]:
+            output_base_folder = Path(os.environ["root_experiment_folder"]).joinpath(
+                config_dict["Experiment Name"],
+                config_dict["Experiment Name"] + "_cross_validation",
+                config_dict["Experiment Name"] + "_to_{}".format(cv_name),
+                config_dict["Experiment Name"] + "_to_{}_base".format(cv_name),
+                config_dict["Experiment Name"] + "_to_{}_raw_data".format(cv_name),
+                "Task"
+                + config_dict["Task_ID"]
+                + "_"
+                + config_dict["DatasetName"]
+                + "_"
+                + config_dict["Experiment Name"]
+                + "_to_{}".format(cv_name),
+                sub_step,
+            )
+            output_base_folder.mkdir(parents=True, exist_ok=True)
+            output_base_folder_list.append(output_base_folder)
+            output_base_folder.joinpath("imagesTs").mkdir(parents=True, exist_ok=True)
+            output_base_folder.joinpath("labelsTs").mkdir(parents=True, exist_ok=True)
+
+            config_dict["label_suffix"] = config_dict[sub_step]["label_suffix"]
+            config_dict["label_dict"] = config_dict[sub_step]["label_dict"]
+            config_dict["Modalities"] = config_dict[sub_step]["Modalities"]
+
+            copy_data_to_dataset_folder(
+                args["input_folder"],
+                selected_test_data,
+                str(output_base_folder),
+                "imagesTs",
+                config_dict,
+                "labelsTs",
+            )
+
+        output_results_folder = Path(os.environ["root_experiment_folder"]).joinpath(
+            config_dict["Experiment Name"],
+            config_dict["Experiment Name"] + "_cross_validation",
+            config_dict["Experiment Name"] + "_to_{}".format(cv_name),
+            config_dict["Experiment Name"] + "_to_{}_results".format(cv_name),
+            "cascade",
+            config_dict["TRAINING_CONFIGURATION"],
+            "Task"
+            + config_dict["Task_ID"]
+            + "_"
+            + config_dict["DatasetName"]
+            + "_"
+            + config_dict["Experiment Name"]
+            + "_to_{}".format(cv_name),
+            config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
+        )
+
+        output_results_folder.mkdir(parents=True, exist_ok=True)
+
+        if fold == "test_set" or fold == "All":
+            output_fold_results_folder = output_results_folder.joinpath(config_dict["predictions_folder_name"])
+
+        else:
+            output_fold_results_folder = output_results_folder.joinpath(
+                "fold_{}".format(fold), config_dict["predictions_folder_name"]
+            )
+
+        output_fold_results_folder.mkdir(parents=True, exist_ok=True)
 
     original_experiment_name = config_dict["Experiment Name"]
+    config_dict["dataset_folder"] = Path(args["input_folder"]).stem.replace("_", " ")
     config_dict["Experiment Name"] = config_dict["Experiment Name"] + "_to_{}".format(cv_name)
     original_task_name = config_dict["Task_Name"]
     config_dict["Task_Name"] = config_dict["Task_Name"] + "_to_{}".format(cv_name)
@@ -187,27 +264,50 @@ def main():
     with open(output_json_filepath, "w") as output_json:
         json.dump(config_dict, output_json)
 
-    arguments_list = [
-        "-i",
-        str(output_base_folder.joinpath("imagesTs")),
-        "-o",
-        str(output_fold_results_folder),
-        "-m",
-        config_dict["TRAINING_CONFIGURATION"],
-        "-t",
-        "Task" + config_dict["Task_ID"] + "_" + original_task_name,
-        "-tr",
-        config_dict["TRAINER_CLASS_NAME"],
-    ]
-    if fold != "test_set" and fold != "All":
-        arguments_list.append("-f")
-        arguments_list.append(fold)
-    arguments_list.extend(unknown_arguments)
+    if args["sub_steps"] is None:
+        arguments_list = [
+            "-i",
+            str(output_base_folder.joinpath("imagesTs")),
+            "-o",
+            str(output_fold_results_folder),
+            "-m",
+            config_dict["TRAINING_CONFIGURATION"],
+            "-t",
+            "Task" + config_dict["Task_ID"] + "_" + original_task_name,
+            "-tr",
+            config_dict["TRAINER_CLASS_NAME"],
+        ]
+        if fold != "test_set" and fold != "All":
+            arguments_list.append("-f")
+            arguments_list.append(fold)
+        arguments_list.extend(unknown_arguments)
 
-    os.system("nnUNet_predict " + " ".join(arguments_list))
-    move_file_in_subfolders(str(output_fold_results_folder), "_post" + config_dict["FileExtension"], config_dict["FileExtension"])
-    rename_files_with_suffix(str(output_fold_results_folder), ".nii.gz", "_raw.nii.gz")
-    rename_files_with_suffix(str(output_fold_results_folder), "_post.nii.gz", ".nii.gz")
+        os.system("nnUNet_predict " + " ".join(arguments_list))
+    else:
+        for idx, sub_step in enumerate(args["sub_steps"]):
+            output_folder = str(output_fold_results_folder)
+            if idx != len(args["sub_steps"]) - 1:
+                output_folder = output_folder + "_{}".format(sub_step)
+            arguments_list = [
+                "-i",
+                str(output_base_folder_list[idx].joinpath("imagesTs")),
+                "-o",
+                output_folder,
+                "-m",
+                sub_step,
+                "-t",
+                "Task" + config_dict["Task_ID"] + "_" + original_task_name,
+                "-tr",
+                config_dict["TRAINER_CLASS_NAME"],
+                "--sub-step",
+                sub_step,
+            ]
+            if fold != "test_set" and fold != "All":
+                arguments_list.append("-f")
+                arguments_list.append(fold)
+            arguments_list.extend(unknown_arguments)
+
+            os.system("nnUNet_predict " + " ".join(arguments_list))
 
 
 if __name__ == "__main__":
