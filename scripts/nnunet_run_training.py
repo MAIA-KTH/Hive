@@ -7,7 +7,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
 
-from Hive.utils.file_utils import move_file_in_subfolders
+from Hive.utils.data_folder_utils import order_data_folder_by_patient, order_data_in_single_folder
 from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, str2bool
 
 DESC = dedent(
@@ -53,6 +53,13 @@ def get_arg_parser():
         help="Flag to run only validation part.",
     )
 
+    pars.add_argument(
+        "--run-task",
+        type=str,
+        default=None,
+        help="Optional parameter to select the Primary Task when running Multi-Tasking training",
+    )
+
     add_verbosity_options_to_argparser(pars)
 
     return pars
@@ -83,6 +90,11 @@ def main():
         ]
         if args["run_validation_only"]:
             arguments.append("-val")
+        if args["run_task"] is not None:
+            arguments.append("--val_folder")
+            arguments.append("validation_raw_{}".format(args["run_task"]))
+            arguments.append("--run-task")
+            arguments.append(args["run_task"])
         arguments.extend(unknown_arguments)
 
         os.environ["nnUNet_raw_data_base"] = data["base_folder"]
@@ -95,18 +107,34 @@ def main():
             os.environ["receiver_email"] = data["receiver_email"]
 
         subprocess.run(arguments)
-        if "--cascade-step" in arguments:
-            cascade_step = arguments[arguments.index("--cascade-step") + 1]
+        if "--sub-step" in arguments:
+            sub_step = arguments[arguments.index("--sub-step") + 1]
             fold_path = str(
-                Path(data["predictions_step_{}_path".format(cascade_step)]).joinpath(
+                Path(data["predictions_{}_path".format(sub_step)]).joinpath(
                     "fold_{}".format(args["run_fold"]), data["predictions_folder_name"]
+                )
+            )
+        elif args["run_task"] is not None:
+            fold_path = str(
+                Path(data["predictions_path"]).joinpath(
+                    "fold_{}".format(args["run_fold"]), "validation_raw_{}_postprocessed".format(args["run_task"])
                 )
             )
         else:
             fold_path = str(
                 Path(data["predictions_path"]).joinpath("fold_{}".format(args["run_fold"]), data["predictions_folder_name"])
             )
-        move_file_in_subfolders(fold_path, data["FileExtension"], data["FileExtension"])
+
+        order_data_in_single_folder(fold_path, fold_path)
+        order_data_folder_by_patient(fold_path, data["FileExtension"])
+        if "--sub-step" in arguments:
+            sub_step = arguments[arguments.index("--sub-step") + 1]
+            if sub_step == "step_1":
+                cascade_folder_path = str(
+                    Path(data["predictions_path"]).joinpath("fold_{}".format(args["run_fold"]), data["predictions_folder_name"])
+                )
+                order_data_in_single_folder(cascade_folder_path, cascade_folder_path)
+                order_data_folder_by_patient(cascade_folder_path, data["FileExtension"])
 
 
 if __name__ == "__main__":
