@@ -1,0 +1,42 @@
+{
+  "2d_training": true,
+  "label_suffix": "_mask.nii.gz",
+  "label_dict": {
+    "0": "Background",
+    "1": "LU",
+    "2": "LL",
+    "3": "RU",
+    "4": "RM",
+    "5": "RL"
+  },
+  "Modalities": {
+    "_image.nii.gz": "CT"
+  },
+  "FileExtension": ".nii.gz",
+  "DatasetName": "LungLobeSeg",
+  "Experiment Name": "nnUNet_2.5D_Ex",
+  "Seed": 6,
+  "n_folds": 5,
+  "save_2D_slices_as": ".nii.gz",
+  "predictions_folder_name": "validation_raw_postprocessed",
+  "3D_validation_idx": [0],
+  "Metrics_save_configs": {
+    "ID_column": "reference",
+    "Save_stats": true,
+    "Metrics_dict": [
+      "Dice",
+      "Avg. Surface Distance",
+      "Precision",
+      "Recall",
+      "Accuracy",
+      "Specificity",
+      "Hausdorff Distance 95",
+      "Jaccard",
+      "Relative Volumetric Difference"
+    ]
+  },
+  "orientations": ["axial", "coronal", "sagittal"],
+  "TRAINING_CONFIGURATION": "2d",
+  "TRAINER_CLASS_NAME": "nnUNetTrainerHive",
+  "TRAINER_PLAN": "nnUNetPlansv2.1"
+}
