@@ -7,10 +7,11 @@ import pandas as pd
 import plotly
 import plotly.express as px
 import plotly.graph_objs as go
-from Hive.evaluation import DEFAULT_METRIC_UNITS, DEFAULT_BAR_CONFIGS, METRICS_FOLDER_NAME
-from Hive.evaluation.io_metric_results import read_dataframe
 from pandas import DataFrame
 from plotly.graph_objects import Figure
+
+from Hive.evaluation import DEFAULT_METRIC_UNITS, DEFAULT_BAR_CONFIGS, METRICS_FOLDER_NAME
+from Hive.evaluation.io_metric_results import read_dataframe
 
 BAR_AGGREGATORS = ["min", "max", "mean"]
 
@@ -24,7 +25,6 @@ def get_heatmap(
     plot_title: str,
     show_phase: bool = False,
     read_from_complete_table: bool = False,
-    subject_list: List[str] = None,
     **kwargs
 ) -> Figure:
     """
@@ -98,35 +98,14 @@ def get_heatmap(
             for facet_row_value in facet_row_list:
                 for facet_col_value in facet_col_list:
                     subplot_titles.append(facet_row_value + ", " + facet_col_value)
-
+    subject_list = list(dict.fromkeys(df_flat["Subject"].tolist()))
     for facet_row_value in facet_row_list:
         if facet_row_value is not None:
             df = df_flat[df_flat[facet_row] == facet_row_value]
         else:
             df = df_flat
-        subjects = df["Subject"].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T[0]
-        if facet_col is not None:
-            subject_IDs = df[facet_col].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T[0]
-        else:
-            subject_IDs = df[metric_ID].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T[0]
 
         for facet_col_value in facet_col_list:
-
-            if facet_col_value is not None:
-                subject_IDs_for_value = []
-                for i, val in enumerate(subject_IDs):
-                    if val == facet_col_value:
-                        if subject_list is not None:
-                            subject_IDs_for_value.append(subject_list.index(subjects[i]))
-                        else:
-                            subject_IDs_for_value.append(i)
-            else:
-                subject_IDs_for_value = []
-                for i, val in enumerate(subject_IDs):
-                    if subject_list is not None:
-                        subject_IDs_for_value.append(subject_list.index(subjects[i]))
-                    else:
-                        subject_IDs_for_value.append(i)
 
             if facet_col_value is not None:
                 if facet_row_value is not None:
@@ -134,15 +113,17 @@ def get_heatmap(
 
                 else:
                     df = df_flat[(df_flat[facet_col] == facet_col_value)]
-
+            subjects = df["Subject"].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T
             df = df[metric_ID].values.reshape((int(df.shape[0] / len(label_list)), len(label_list))).T
 
+            subject_IDs = [subject_list.index(subject) for subject in subjects[0]]
             fig_heatmap = go.Heatmap(
                 z=df,
                 y=label_list,
-                x=subject_IDs_for_value,
+                x=subject_IDs,
+                customdata=subjects,
                 coloraxis="coloraxis",
-                hovertemplate="Subject: %{x}<br>Label: %{y}<br>"
+                hovertemplate="Subject: %{customdata}<br>Label: %{y}<br>"
                 + metric_name
                 + " "
                 + metric_measurement_unit
@@ -598,7 +579,6 @@ def create_plots_for_project(
     plot_dict = {}
     project_df_flat = read_dataframe(df_paths["{}_flat".format(config_dict["ProjectName"])], sheet_name="Flat")
     section = "project"
-    subjects_list = list(dict.fromkeys(project_df_flat["Subject"].tolist()))
     for metric in metrics:
         if subsection is None:
             df_flat = project_df_flat[project_df_flat.Metric.eq(metric)]
@@ -634,7 +614,6 @@ def create_plots_for_project(
             "section": section,
             "bar_configs": bar_configs,
             "show_phase": show_phase,
-            "subject_list": subjects_list,
         }
 
         for plot in PLOTS:
