@@ -7,10 +7,11 @@ from typing import List, Dict, Any, Union
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
-from Hive.evaluation import METRICS_FOLDER_NAME
-from Hive.utils.log_utils import get_logger, DEBUG
 from pandas import DataFrame
 from plotly.graph_objects import Figure
+
+from Hive.evaluation import METRICS_FOLDER_NAME
+from Hive.utils.log_utils import get_logger, DEBUG
 
 logger = get_logger(__name__)
 
@@ -396,6 +397,7 @@ def create_dataframe_for_experiment(
     metric_list: List[str],
     sections: List[str],
     df_format: str = "pickle",
+    results_folder: Union[str, PathLike] = None,
 ):
     """
     Given a list of sections, merges the metric results from each DataFrame in a single DataFrame, saving it as **experiment**
@@ -411,6 +413,8 @@ def create_dataframe_for_experiment(
         List of section names to merge. Values accepted: ``validation``, ``testing``.
     df_format : str
         File format to save the Pandas DataFrame, can be Excel, CSV or Pickle. Defaults to Pickle.
+    results_folder : Union[str, PathLike]
+        Folder path where to save Experiment dataframes.
     """
     pd_flat_metric_list_summary = []
     pd_metric_list_summary = []
@@ -480,7 +484,7 @@ def create_dataframe_for_experiment(
     df_table = pd.concat(pd_metric_list_summary, ignore_index=True)
     Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME).mkdir(exist_ok=True, parents=True)
 
-    subject_list = set(df_flat["Subject"].tolist())
+    subject_list = list(dict.fromkeys(df_flat["Subject"].tolist()))
     subject_id = {subject: str(index) for index, subject in enumerate(subject_list)}
     with open(Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "subject_id.json"), "w") as fp:
         json.dump(subject_id, fp)
@@ -489,6 +493,8 @@ def create_dataframe_for_experiment(
     subject_table.write_html(str(Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "subject_id.html")))
 
     df_file_path = str(Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, config_dict["Experiment Name"]))
+    if results_folder is not None:
+        df_file_path = str(Path(results_folder).joinpath(config_dict["Experiment Name"]))
 
     if df_format == "excel":
         writer = pd.ExcelWriter(df_file_path + ".xlsx", engine="xlsxwriter")
@@ -646,6 +652,7 @@ def create_dataframes(
     result_suffix: str = "",
     df_format: str = "pickle",
     subject_phase_dict: Dict[str, str] = None,
+    results_folder: Union[str, PathLike] = None,
 ):
     """
     Creates set of Pandas dataframes, given a metric list and the prediction suffix, used to retrieve the corresponding
@@ -668,6 +675,8 @@ def create_dataframes(
         File format to save the Pandas DataFrame, can be Excel, CSV or Pickle. Defaults to Pickle.
     subject_phase_dict : Dict[str, str]
         Optional Dictionary including breathing Phase for each Subject ID.
+    results_folder : Union[str, PathLike]
+        Folder path where to save Experiment dataframes.
     """
     for metric in metrics:
         for section in sections:
@@ -675,4 +684,4 @@ def create_dataframes(
     if "experiment" in sections:
         sections_to_combine = sections.copy()
         sections_to_combine.remove("experiment")
-        create_dataframe_for_experiment(config_dict, metrics, sections_to_combine, df_format)
+        create_dataframe_for_experiment(config_dict, metrics, sections_to_combine, df_format, results_folder)
