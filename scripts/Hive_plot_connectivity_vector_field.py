@@ -7,8 +7,8 @@ from pathlib import Path
 from textwrap import dedent
 
 import pandas as pd
-
 from tqdm import tqdm
+
 from Hive.utils.file_utils import subfolders
 from Hive.utils.log_utils import add_verbosity_options_to_argparser, get_logger, log_lvl_from_verbosity_args, str2bool
 from Hive.utils.vector_field_plots import (
