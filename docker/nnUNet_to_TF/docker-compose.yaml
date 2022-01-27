@@ -1,0 +1,21 @@
+version: "3.1"
+services:
+  nnunet:
+    image: "nnunet_tf"
+    container_name: nnunet-tf-environment
+    shm_size: 32g
+    env_file: credentials.env
+    ports:
+      - "30022:22" # For SSH Port
+    volumes:
+      - /e/Data/LungLobeSeg:/home/LungLobeSeg/
+    deploy:
+      resources:
+        limits:
+          cpus: '10.0'
+          memory: 32G
+        reservations:
+          devices:
+          - driver: nvidia
+            device_ids: ['0']
+            capabilities: [gpu]
