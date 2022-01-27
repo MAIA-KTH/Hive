@@ -24,14 +24,6 @@
   "Experiment Name": "MT_UNet_3D_LVC_Ex",
   "Seed": 6,
   "n_folds": 5,
-  "validation_metrics": [
-    "Mean_Dice",
-    "val_mean_acc",
-    "val_recall",
-    "val_precision",
-    "val_jaccard",
-    "val_dice"
-  ],
   "predictions_folder_name": "validation_raw_postprocessed",
   "3D_validation_idx": [0],
   "Metrics_save_configs": {
