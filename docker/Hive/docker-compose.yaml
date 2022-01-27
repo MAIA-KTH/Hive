@@ -9,9 +9,10 @@ services:
       - "30022:22"
       - "30006:6006"
     volumes:
-      - /home/simone/Documents/Projects/Hive:/home/Hive
-      - /home/simone/Documents/GitHub/nnUNet:/home/nnUNet
-      - /mnt/nfs_share/Data/LungLobeSeg:/home/LungLobeSeg
+      - ${GIT_KEY_PATH}:/etc/secret-volume/ssh-privatekey
+      - /e/GitHub/Hive:/home/Hive
+      - /e/GitHub/nnUNet:/home/nnUNet
+      - /c/Users/simon/LungLobeSeg:/home/LungLobeSeg/
     deploy:
       resources:
         limits:
