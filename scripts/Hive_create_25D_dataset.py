@@ -2,18 +2,19 @@
 
 import datetime
 import json
-from multiprocessing import Pool
 from argparse import ArgumentParser, RawTextHelpFormatter
+from multiprocessing import Pool
 from pathlib import Path
 from textwrap import dedent
 
+from monai.transforms import LoadImaged, Compose
+from tqdm import tqdm
+
 from Hive.monai.apps.datasets import LungLobeDataset, CrossValidationDataset
 from Hive.monai.transforms import OrientToRAId, Save2DSlicesd
+from Hive.utils.file_utils import generate_dataset_json
 from Hive.utils.log_utils import add_verbosity_options_to_argparser, get_logger, log_lvl_from_verbosity_args
 
-from monai.transforms import LoadImaged, Compose, Resize
-from tqdm import tqdm
-from Hive.utils.file_utils import generate_dataset_json
 TIMESTAMP = "{:%Y-%m-%d_%H-%M-%S}".format(datetime.datetime.now())
 
 DESC = dedent(
@@ -84,11 +85,12 @@ def main():
     n_fold = config_dict["n_folds"]
     slice_2d_extension = config_dict["save_2D_slices_as"]
     file_extension = config_dict["FileExtension"]
-    random_seed = 12345#config_dict["Seed"]
+    random_seed = 12345  # config_dict["Seed"]
     n_workers = arguments["n_workers"]
     n_cache = arguments["n_cache"]
-    dataset_folder = Path(config_dict["base_folder"]).joinpath("nnUNet_raw_data",
-        "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"])
+    dataset_folder = Path(config_dict["base_folder"]).joinpath(
+        "nnUNet_raw_data", "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"]
+    )
     transforms = Compose(
         [
             LoadImaged(keys=["image", "label"]),
@@ -96,7 +98,7 @@ def main():
             Save2DSlicesd(
                 keys=["image", "label"],
                 output_folder=str(dataset_folder),
-                rescale_to_png={"image": True,"label":True},
+                rescale_to_png={"image": True, "label": True},
                 file_extension=file_extension,
                 slicing_axes=orientations,
                 slices_2d_filetype=slice_2d_extension,
@@ -121,10 +123,8 @@ def main():
     transformed_data = []
     for data in dataset:
         transformed_data.append(
-                (
-                    data
-                ),
-            )
+            (data),
+        )
 
     res = pool.starmap_async(transforms, transformed_data)
     pool.close()
@@ -133,13 +133,14 @@ def main():
     pool.join()
 
     for orientation in orientations:
-        generate_dataset_json(str(Path(dataset_folder).joinpath(orientation,"dataset.json")),
-                            str(Path(dataset_folder).joinpath(orientation,"imagesTr")),
-                            None,
-                            list(config_dict["Modalities"].values()),
-                            config_dict["label_dict"],
-                            config_dict["DatasetName"]+"_2D_{}".format(orientation),
-                            )
+        generate_dataset_json(
+            str(Path(dataset_folder).joinpath(orientation, "dataset.json")),
+            str(Path(dataset_folder).joinpath(orientation, "imagesTr")),
+            None,
+            list(config_dict["Modalities"].values()),
+            config_dict["label_dict"],
+            config_dict["DatasetName"] + "_2D_{}".format(orientation),
+        )
 
 
 if __name__ == "__main__":
