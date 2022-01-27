@@ -219,8 +219,8 @@ def main():
             config_dict["Experiment Name"] + "_cross_validation",
             config_dict["Experiment Name"] + "_to_{}".format(cv_name),
             config_dict["Experiment Name"] + "_to_{}_results".format(cv_name),
+            "nnUnet",
             "cascade",
-            config_dict["TRAINING_CONFIGURATION"],
             "Task"
             + config_dict["Task_ID"]
             + "_"
