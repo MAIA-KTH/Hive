@@ -172,6 +172,15 @@ def get_arg_parser():
         default=False,
         help="Specify to create plots including breathing phase information.",
     )
+
+    pars.add_argument(
+        "--results-folder",
+        type=str,
+        required=False,
+        default=None,
+        help="Folder path where to save tables, plots and log files. ",
+    )
+
     add_verbosity_options_to_argparser(pars)
     return pars
 
@@ -225,7 +234,7 @@ def main():
         phase_table = get_phase_table(args["phase_json_file"])
         phase_table.write_html(Path(config_dict["results_folder"]).joinpath(METRICS_FOLDER_NAME, "breathing_phase_table.html"))
     if args["visualize_only"] is not True:
-        create_dataframes(config_dict, metrics, sections, prediction_suffix, file_format, phase_dict)
+        create_dataframes(config_dict, metrics, sections, prediction_suffix, file_format, phase_dict, args["results_folder"])
 
     df_paths = get_saved_dataframes(config_dict, metrics, sections, file_format)
     if (
