@@ -1,6 +1,5 @@
 {
-  "Cascade": true,
-  "Cascade_steps": 2,
+  "Cascade_steps": ["step_0","step_1"],
   "step_0": {
     "label_suffix": "_fissure_mask.nii.gz",
     "label_dict": {
