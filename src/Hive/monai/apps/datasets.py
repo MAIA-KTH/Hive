@@ -72,6 +72,8 @@ class LungLobeDataset(Randomizable, CacheDataset):
     def _generate_data_list(self, dataset_dir: str) -> List[Dict]:
         section = "training" if self.section in ["training", "validation"] else "test"
         datalist = load_decathlon_datalist(os.path.join(dataset_dir, "dataset.json"), True, section)
+        for data in datalist:
+            data["image"] = data["image"][: -len(".nii.gz")] + "_0000.nii.gz"
         return self._split_datalist(datalist)
 
     def _split_datalist(self, datalist: List[Dict]) -> List[Dict]:
