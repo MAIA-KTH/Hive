@@ -10,8 +10,10 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
 
-import Hive.configs
 import numpy as np
+from sklearn.model_selection import KFold
+
+import Hive.configs
 from Hive.utils.file_utils import (
     create_nnunet_data_folder_tree,
     split_dataset,
@@ -20,7 +22,6 @@ from Hive.utils.file_utils import (
     generate_dataset_json,
 )
 from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, INFO
-from sklearn.model_selection import KFold
 
 TIMESTAMP = "{:%Y-%m-%d_%H-%M-%S}".format(datetime.datetime.now())
 
@@ -132,11 +133,13 @@ def main():
 
     config_dict["dataset_folder"] = Path(arguments["input_data_folder"]).stem.replace("_", " ")
 
-    if "Cascade" in config_dict and config_dict["Cascade"]:
-        cascade_step = arguments["cascade_step"]
-        config_dict["label_suffix"] = config_dict["step_{}".format(cascade_step)]["label_suffix"]
-        config_dict["label_dict"] = config_dict["step_{}".format(cascade_step)]["label_dict"]
-        config_dict["Modalities"] = config_dict["step_{}".format(cascade_step)]["Modalities"]
+    if "Cascade_steps" in config_dict:
+        cascade_step = arguments["sub_step"]
+        dataset_path = str(Path(dataset_path).joinpath(cascade_step))
+        create_nnunet_data_folder_tree(os.environ["raw_data_base"], arguments["task_name"], arguments["task_ID"], cascade_step)
+        config_dict["label_suffix"] = config_dict[cascade_step]["label_suffix"]
+        config_dict["label_dict"] = config_dict[cascade_step]["label_dict"]
+        config_dict["Modalities"] = config_dict[cascade_step]["Modalities"]
 
     copy_data_to_dataset_folder(
         arguments["input_data_folder"],
@@ -186,7 +189,7 @@ def main():
                 config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
             )
         )
-        if "Cascade" in config_dict and config_dict["Cascade"]:
+        if "Cascade_steps" in config_dict:
             config_dict["predictions_path"] = str(
                 Path(os.environ["RESULTS_FOLDER"]).joinpath(
                     "nnUNet",
@@ -195,11 +198,11 @@ def main():
                     config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
                 )
             )
-            for cascade_step in range(config_dict["Cascade_steps"]):
-                config_dict["predictions_step_{}_path".format(cascade_step)] = str(
+            for cascade_step in config_dict["Cascade_steps"]:
+                config_dict["predictions_{}_path".format(cascade_step)] = str(
                     Path(os.environ["RESULTS_FOLDER"]).joinpath(
                         "nnUNet",
-                        "step_{}".format(cascade_step),
+                        cascade_step,
                         full_task_name,
                         config_dict["TRAINER_CLASS_NAME"] + "__" + config_dict["TRAINER_PLAN"],
                     )
@@ -262,10 +265,11 @@ def get_arg_parser():
     )
 
     pars.add_argument(
-        "--cascade-step",
+        "--sub-step",
         type=str,
         required=False,
-        help=".",
+        default=None,
+        help="Optional selected sub-step, to run the script in multi-step contexts(Cascade/2.5D).",
     )
 
     add_verbosity_options_to_argparser(pars)
