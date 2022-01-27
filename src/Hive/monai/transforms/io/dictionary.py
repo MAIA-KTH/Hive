@@ -27,21 +27,21 @@ class Save2DSlicesd(MapTransform):
     """
 
     def __init__(
-            self,
-            keys: KeysCollection,
-            output_folder: str,
-            file_extension: str = ".nii.gz",
-            slices_2d_filetype: str = ".npz",
-            slicing_axes: List[str] = None,
-            rescale_to_png: Dict[Hashable, bool] = None,
-            allow_missing_keys: bool = False,
+        self,
+        keys: KeysCollection,
+        output_folder: str,
+        file_extension: str = ".nii.gz",
+        slices_2d_filetype: str = ".npz",
+        slicing_axes: List[str] = None,
+        rescale_to_png: Dict[Hashable, bool] = None,
+        allow_missing_keys: bool = False,
     ) -> None:
         """
         Args:
             keys: keys of the corresponding items to be sliced.
             output_folder: folder path where to store 2D slices
             file_extension: file extension of the 3D Volume
-            slices_2d_filetype: file extension for the 2D slices. Accepted values are .png .npy or .npz
+            slices_2d_filetype: file extension for the 2D slices. Accepted values are .png .npy, .npz or .nii.gz
             slicing_axes: list of string, indicating the axis along which to slice the 3D volume. Accepted string values
             for the axes are 'axial', 'coronal' and 'sagittal'
             rescale_to_png: dict indicating for each key if to rescale the 2D PNGs in the 16-bit range
@@ -75,7 +75,7 @@ class Save2DSlicesd(MapTransform):
             for orientation in self.slicing_axes:
                 orientation_index = ORIENTATION_MAP[orientation]
                 data["{}_meta_dict".format(key)]["filenames_" + orientation] = []
-                output_folder = os.path.join(self.output_folder, orientation, "data", str(key))
+                output_folder = os.path.join(self.output_folder, orientation, str(key) + "sTr")
                 os.makedirs(
                     output_folder,
                     exist_ok=True,
@@ -84,17 +84,36 @@ class Save2DSlicesd(MapTransform):
                 data[key] = np.flip(data[key], axis_to_flip)
                 axis_index = data["{}_meta_dict".format(key)]["axis_orientation"].index(orientation_index)
                 data[key] = np.swapaxes(data[key], 0, axis_index)
+                axis_order = [1, 2, 3]
+                axis_order[0], axis_order[axis_index] = axis_order[axis_index], axis_order[0]
+                pix_dim = (
+                    5,
+                    float(data["{}_meta_dict".format(key)]["pixdim"][axis_order[1]]),
+                    float(data["{}_meta_dict".format(key)]["pixdim"][axis_order[2]]),
+                )
+
                 for index, slice_2d in enumerate(data[key]):
 
-                    output_file = os.path.join(
-                        output_folder,
-                        os.path.basename(data["image_meta_dict"]["filename_or_obj"][: -len(self.file_extension)])
-                        + "_{0:04d}".format(index)
-                        + "{}".format(self.slices_2D_filetype),
-                    )
+                    if str(key) == "image":
+                        output_file = os.path.join(
+                            output_folder,
+                            os.path.basename(data["image_meta_dict"]["filename_or_obj"][: -(len(self.file_extension) + 5)])
+                            + "_{0:04d}_0000".format(index)
+                            + "{}".format(self.slices_2D_filetype),
+                        )
+                    else:
+                        output_file = os.path.join(
+                            output_folder,
+                            os.path.basename(data["image_meta_dict"]["filename_or_obj"][: -(len(self.file_extension) + 5)])
+                            + "_{0:04d}".format(index)
+                            + "{}".format(self.slices_2D_filetype),
+                        )
 
                     file_already_exist = os.path.isfile(output_file)
-
+                    if self.slices_2D_filetype == ".nii.gz" and not file_already_exist:
+                        slice_2d_image = sitk.GetImageFromArray(np.reshape(slice_2d, (1, slice_2d.shape[0], slice_2d.shape[1])))
+                        slice_2d_image.SetSpacing(list(pix_dim)[::-1])
+                        sitk.WriteImage(slice_2d_image, output_file)
                     if self.slices_2D_filetype == ".png" and not file_already_exist:
                         if self.rescale_to_PNG[key]:
                             slice_2d = (slice_2d - np.min(slice_2d)) * 65535 / (np.max(slice_2d) - np.min(slice_2d))
