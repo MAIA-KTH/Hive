@@ -46,7 +46,7 @@ class OrientToRAId(MapTransform):
     def __call__(self, data: Any):
 
         for key in self.keys:
-            if data["{}_meta_dict".format(key)]["qform_code"] > 0:
+            if int(data["{}_meta_dict".format(key)]["qform_code"]) > 0:
                 quaterns = [
                     data["{}_meta_dict".format(key)]["quatern_b"],
                     data["{}_meta_dict".format(key)]["quatern_c"],
@@ -55,13 +55,13 @@ class OrientToRAId(MapTransform):
                 quaterns.insert(0, get_quatern_a(*quaterns))
                 r = R.from_quat(quaterns)
                 orientation_matrix = r.as_matrix()
-            elif data["{}_meta_dict".format(key)]["sform_code"] > 0:
+            elif int(data["{}_meta_dict".format(key)]["sform_code"]) > 0:
 
                 orientation_matrix = np.array(
                     [
-                        data["{}_meta_dict".format(key)]["srow_x"][:-1],
-                        data["{}_meta_dict".format(key)]["srow_y"][:-1],
-                        data["{}_meta_dict".format(key)]["srow_z"][:-1],
+                        data["{}_meta_dict".format(key)]["srow_x"][:-1] / (-data["{}_meta_dict".format(key)]["pixdim"][1]),
+                        data["{}_meta_dict".format(key)]["srow_y"][:-1] / (-data["{}_meta_dict".format(key)]["pixdim"][2]),
+                        data["{}_meta_dict".format(key)]["srow_z"][:-1] / (data["{}_meta_dict".format(key)]["pixdim"][3]),
                     ]
                 )
             else:
