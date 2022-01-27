@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import json
 import os
 from argparse import ArgumentParser, RawTextHelpFormatter
@@ -56,6 +55,14 @@ def get_arg_parser():
         help="File path for the configuration dictionary, used to retrieve experiments variables (Task_ID)",
     )
 
+    pars.add_argument(
+        "--sub-step",
+        type=str,
+        required=False,
+        default=None,
+        help="",
+    )
+
     add_verbosity_options_to_argparser(pars)
 
     return pars
@@ -88,13 +95,16 @@ def main():
             args["input_folder"],
             "-o",
             args["output_folder"],
-            "-m",
-            data["TRAINING_CONFIGURATION"],
             "-t",
             "Task" + data["Task_ID"] + "_" + data["Task_Name"],
             "-tr",
             data["TRAINER_CLASS_NAME"],
         ]
+        if args["sub_step"] is not None:
+            arguments_list.extend(["-m", args["sub_step"]])
+        else:
+            arguments_list.extend(["-m", data["TRAINING_CONFIGURATION"]])
+
         arguments_list.extend(unknown_arguments)
         os.system("nnUNet_predict " + " ".join(arguments_list))
         move_file_in_subfolders(args["output_folder"], "_post" + data["FileExtension"], data["FileExtension"])
