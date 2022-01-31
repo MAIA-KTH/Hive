@@ -7,13 +7,12 @@ from multiprocessing import Pool
 from pathlib import Path
 from textwrap import dedent
 
-from monai.transforms import LoadImaged, Compose
-from tqdm import tqdm
-
 from Hive.monai.apps.datasets import LungLobeDataset, CrossValidationDataset
 from Hive.monai.transforms import OrientToRAId, Save2DSlicesd
 from Hive.utils.file_utils import generate_dataset_json
 from Hive.utils.log_utils import add_verbosity_options_to_argparser, get_logger, log_lvl_from_verbosity_args
+from monai.transforms import LoadImaged, Compose
+from tqdm import tqdm
 
 TIMESTAMP = "{:%Y-%m-%d_%H-%M-%S}".format(datetime.datetime.now())
 
@@ -123,14 +122,13 @@ def main():
     transformed_data = []
     for data in dataset:
         transformed_data.append(
-            (data),
+            pool.starmap_async(
+                transforms,
+                ((data,),),
+            )
         )
 
-    res = pool.starmap_async(transforms, transformed_data)
-    pool.close()
-
-    [res.get() for _ in tqdm(transformed_data, desc="2D Slicing")]
-    pool.join()
+    [res.get() for res in tqdm(transformed_data, desc="2D Slicing")]
 
     for orientation in orientations:
         generate_dataset_json(
