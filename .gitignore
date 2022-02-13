@@ -131,3 +131,6 @@ dmypy.json
 *.env
 
 docs/
+/allow_nodeport.yaml
+/Deep-Modular_ToDoList.txt
+/docs_base/

@@ -10,10 +10,8 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
 
-import numpy as np
-from sklearn.model_selection import KFold
-
 import Hive.configs
+import numpy as np
 from Hive.utils.file_utils import (
     create_nnunet_data_folder_tree,
     split_dataset,
@@ -22,6 +20,7 @@ from Hive.utils.file_utils import (
     generate_dataset_json,
 )
 from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, INFO
+from sklearn.model_selection import KFold
 
 TIMESTAMP = "{:%Y-%m-%d_%H-%M-%S}".format(datetime.datetime.now())
 
