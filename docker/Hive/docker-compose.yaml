@@ -1,8 +1,8 @@
 version: "3.1"
 services:
   nnunet:
-    image: "nnunet"
-    container_name: nnunet-environment
+    image: "hive"
+    container_name: hive-environment
     shm_size: 32g
     env_file: credentials.env
     ports:
