@@ -1,4 +1,4 @@
-# Default values for nnunet-environment.
+# Default values for hive-environment.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -9,9 +9,6 @@ extraHostVolumes:
     hostPath: /home/simone/Documents/Projects/Hive
   - name: nnunet
     hostPath: /home/simone/Documents/Projects/nnUNet
-extraSecretVolumes:
-  - name: secret-git-key
-    secretName: ssh-key-secret
 
 extraNFSVolumes:
   - name: nfs-data-volume
@@ -31,18 +28,6 @@ extraVolumeMounts:
     readOnly: true
     mountPath: "/etc/secret-volume"
 
-extraEnv:
-  - name: user
-    valueFrom:
-      secretKeyRef:
-        key: user
-        name: nnunet-secret
-  - name: password
-    valueFrom:
-      secretKeyRef:
-        key: password
-        name: nnunet-secret
-
 resources:
   requests:
     memory: "54Gi"
@@ -53,12 +38,12 @@ resources:
     nvidia.com/gpu: "1"
 
 image:
-  repository: docker-registry:5000/nnunet
+  repository: docker-registry:5000/hive
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "v1"
 
-imagePullSecrets: [ ]
+imagePullSecrets: [{"name": "reg-cred-secret"} ]
 nameOverride: ""
 fullnameOverride: ""
 
@@ -80,11 +65,11 @@ service:
   ports:
     - port: 22
       targetPort: 22
-      nodePort: 30022
+#      nodePort: 30022
       name: 'ssh'
     - port: 6006
       targetPort: 6006
-      nodePort: 30006
+#      nodePort: 30006
       name: 'tensorboard'
 
 
