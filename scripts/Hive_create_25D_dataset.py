@@ -3,7 +3,6 @@
 import datetime
 import json
 from argparse import ArgumentParser, RawTextHelpFormatter
-from multiprocessing import Pool
 from pathlib import Path
 from textwrap import dedent
 
@@ -86,24 +85,43 @@ def main():
     file_extension = config_dict["FileExtension"]
     random_seed = 12345  # config_dict["Seed"]
     n_workers = arguments["n_workers"]
+    n_modalities = len(config_dict["Modalities"])
     n_cache = arguments["n_cache"]
     dataset_folder = Path(config_dict["base_folder"]).joinpath(
         "nnUNet_raw_data", "Task" + config_dict["Task_ID"] + "_" + config_dict["Task_Name"]
     )
-    transforms = Compose(
-        [
-            LoadImaged(keys=["image", "label"]),
-            OrientToRAId(keys=["image", "label"]),
-            Save2DSlicesd(
-                keys=["image", "label"],
-                output_folder=str(dataset_folder),
-                rescale_to_png={"image": True, "label": True},
-                file_extension=file_extension,
-                slicing_axes=orientations,
-                slices_2d_filetype=slice_2d_extension,
-            ),
-        ]
-    )
+    if n_modalities == 1:
+        transforms = Compose(
+            [
+                LoadImaged(keys=["image", "label"]),
+                OrientToRAId(keys=["image", "label"]),
+                Save2DSlicesd(
+                    keys=["image", "label"],
+                    output_folder=str(dataset_folder),
+                    rescale_to_png={"image": True, "label": True},
+                    file_extension=file_extension,
+                    slicing_axes=orientations,
+                    slices_2d_filetype=slice_2d_extension,
+                ),
+            ]
+        )
+    else:
+        mod_keys = ["label"]
+        for mod in range(n_modalities):
+            mod_keys.append("image_{}".format(mod))
+        transforms = Compose(
+            [
+                LoadImaged(keys=mod_keys),
+                OrientToRAId(keys=mod_keys),
+                Save2DSlicesd(
+                    keys=mod_keys,
+                    output_folder=str(dataset_folder),
+                    file_extension=file_extension,
+                    slicing_axes=orientations,
+                    slices_2d_filetype=slice_2d_extension,
+                ),
+            ]
+        )
 
     cv_dataset = CrossValidationDataset(
         dataset_cls=LungLobeDataset,
@@ -118,17 +136,9 @@ def main():
     training_folds = list(range(n_fold))
 
     dataset = cv_dataset.get_dataset(folds=training_folds)
-    pool = Pool(n_workers)
-    transformed_data = []
-    for data in dataset:
-        transformed_data.append(
-            pool.starmap_async(
-                transforms,
-                ((data,),),
-            )
-        )
 
-    [res.get() for res in tqdm(transformed_data, desc="2D Slicing")]
+    for data in tqdm(dataset):
+        transforms(data)
 
     for orientation in orientations:
         generate_dataset_json(
