@@ -3,10 +3,9 @@ from typing import Any, List, Dict, Hashable
 
 import SimpleITK as sitk
 import numpy as np
+from Hive.monai import ORIENTATION_MAP, ACCEPTED_FILE_EXTENSIONS_FOR_2D_SLICES
 from monai.config import KeysCollection
 from monai.transforms import MapTransform
-
-from Hive.monai import ORIENTATION_MAP, ACCEPTED_FILE_EXTENSIONS_FOR_2D_SLICES
 
 
 class Save2DSlicesd(MapTransform):
@@ -75,7 +74,10 @@ class Save2DSlicesd(MapTransform):
             for orientation in self.slicing_axes:
                 orientation_index = ORIENTATION_MAP[orientation]
                 data["{}_meta_dict".format(key)]["filenames_" + orientation] = []
-                output_folder = os.path.join(self.output_folder, orientation, str(key) + "sTr")
+                if str(key).startswith("image"):
+                    output_folder = os.path.join(self.output_folder, orientation, "imagesTr")
+                else:
+                    output_folder = os.path.join(self.output_folder, orientation, str(key) + "sTr")
                 os.makedirs(
                     output_folder,
                     exist_ok=True,
@@ -94,17 +96,23 @@ class Save2DSlicesd(MapTransform):
 
                 for index, slice_2d in enumerate(data[key]):
 
-                    if str(key) == "image":
+                    if str(key).startswith("image"):
+                        modality_id = 0
+                        if str(key).startswith("image_"):
+                            modality_id = int(str(key)[-(len(str(key)) - 6) :])
                         output_file = os.path.join(
                             output_folder,
-                            os.path.basename(data["image_meta_dict"]["filename_or_obj"][: -(len(self.file_extension) + 5)])
-                            + "_{0:04d}_0000".format(index)
+                            os.path.basename(
+                                data["{}_meta_dict".format(key)]["filename_or_obj"][: -(len(self.file_extension) + 5)]
+                            )
+                            + "_{0:04d}_".format(index)
+                            + "{0:04d}".format(modality_id)
                             + "{}".format(self.slices_2D_filetype),
                         )
                     else:
                         output_file = os.path.join(
                             output_folder,
-                            os.path.basename(data["image_meta_dict"]["filename_or_obj"][: -(len(self.file_extension) + 5)])
+                            os.path.basename(data["{}_meta_dict".format(key)]["filename_or_obj"][: -(len(self.file_extension))])
                             + "_{0:04d}".format(index)
                             + "{}".format(self.slices_2D_filetype),
                         )
