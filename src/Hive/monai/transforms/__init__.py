@@ -1,5 +1,5 @@
 from .io.dictionary import Save2DSlicesd  # NOQA: F401
-from .matrix_orientation.dictionary import OrientToRAId  # NOQA: F401
+from .matrix_orientation.dictionary import OrientToRAId, TransposeAxesd  # NOQA: F401
 from .post.array import ToListMemorySaver, ThresholdForegroundLabels  # NOQA: F401
 from .post.dictionary import ThresholdForegroundLabelsd  # NOQA: F401
 from .preprocessing.dictionary import LungLobeMapToFissureMaskd  # NOQA: F401

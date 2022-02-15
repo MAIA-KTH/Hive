@@ -1,12 +1,11 @@
+import copy
 from typing import Any
 
 import numpy as np
+from Hive.monai import ORIENTATION_MAP
+from Hive.monai.transforms.utils import get_axis_order_to_RAI
 from monai.config import KeysCollection
 from monai.transforms import MapTransform
-from scipy.spatial.transform import Rotation as R
-
-from Hive.monai import ORIENTATION_MAP
-from Hive.monai.transforms.utils import get_quatern_a, get_axis_order_to_RAI
 
 
 class OrientToRAId(MapTransform):
@@ -22,6 +21,7 @@ class OrientToRAId(MapTransform):
         self,
         keys: KeysCollection,
         slicing_axes: str = None,
+        inverse_function: bool = False,
         allow_missing_keys: bool = False,
     ) -> None:
         """
@@ -30,12 +30,13 @@ class OrientToRAId(MapTransform):
             slicing_axes: optional string, indicating the orientation to be displayed on the first dimension.
             Accepted string values for the axes are 'axial', 'coronal' and 'sagittal'. If None (Default), no permutation
             is performed.
+            inverse_function: reverse order of axis flip and transpose.
             allow_missing_keys: don't raise exception if key is missing.
 
         """
 
         self.slicing_axes = slicing_axes
-
+        self.inverse_function = inverse_function
         MapTransform.__init__(self, keys, allow_missing_keys)
 
         if self.slicing_axes not in ORIENTATION_MAP and self.slicing_axes is not None:
@@ -46,26 +47,11 @@ class OrientToRAId(MapTransform):
     def __call__(self, data: Any):
 
         for key in self.keys:
-            if int(data["{}_meta_dict".format(key)]["qform_code"]) > 0:
-                quaterns = [
-                    data["{}_meta_dict".format(key)]["quatern_b"],
-                    data["{}_meta_dict".format(key)]["quatern_c"],
-                    data["{}_meta_dict".format(key)]["quatern_d"],
-                ]
-                quaterns.insert(0, get_quatern_a(*quaterns))
-                r = R.from_quat(quaterns)
-                orientation_matrix = r.as_matrix()
-            elif int(data["{}_meta_dict".format(key)]["sform_code"]) > 0:
-
-                orientation_matrix = np.array(
-                    [
-                        data["{}_meta_dict".format(key)]["srow_x"][:-1] / (-data["{}_meta_dict".format(key)]["pixdim"][1]),
-                        data["{}_meta_dict".format(key)]["srow_y"][:-1] / (-data["{}_meta_dict".format(key)]["pixdim"][2]),
-                        data["{}_meta_dict".format(key)]["srow_z"][:-1] / (data["{}_meta_dict".format(key)]["pixdim"][3]),
-                    ]
-                )
-            else:
-                raise ValueError("Q Form or S Form are not used to describe the rotation matrix in the NIFTI volume")
+            affine = copy.deepcopy(data["{}_meta_dict".format(key)]["original_affine"])
+            orientation_matrix = np.eye(3)
+            orientation_matrix[0] = affine[0][:-1] / -data["{}_meta_dict".format(key)]["pixdim"][1]
+            orientation_matrix[1] = affine[1][:-1] / -data["{}_meta_dict".format(key)]["pixdim"][2]
+            orientation_matrix[2] = affine[2][:-1] / data["{}_meta_dict".format(key)]["pixdim"][3]
             axis_orientation, flip_axes = get_axis_order_to_RAI(orientation_matrix)
             data["{}_meta_dict".format(key)]["axis_orientation"] = axis_orientation
             data["{}_meta_dict".format(key)]["axis_flip"] = flip_axes
@@ -78,7 +64,66 @@ class OrientToRAId(MapTransform):
                 data["{}_meta_dict".format(key)]["axis_orientation_swapped"][0] = axis_orientation[axis_index]
                 data["{}_meta_dict".format(key)]["axis_orientation_swapped"][axis_index] = axis_orientation[0]
                 axis_to_flip = [axis for axis, flip in enumerate(data["{}_meta_dict".format(key)]["axis_flip"]) if flip]
-                data[key] = np.flip(data[key], axis_to_flip)
+                if not self.inverse_function:
+                    data[key] = np.flip(data[key], axis_to_flip)
                 data[key] = np.swapaxes(data[key], 0, axis_index)
+                if self.inverse_function:
+                    data[key] = np.flip(data[key], axis_to_flip)
+                data["{}_meta_dict".format(key)]["spatial_shape"] = data[key].shape
+                affine = data["{}_meta_dict".format(key)]["original_affine"]
+                affine[0][:-1] = affine[0][:-1] / data["{}_meta_dict".format(key)]["pixdim"][1]
+                affine[1][:-1] = affine[1][:-1] / data["{}_meta_dict".format(key)]["pixdim"][2]
+                affine[2][:-1] = affine[2][:-1] / data["{}_meta_dict".format(key)]["pixdim"][3]
+                data["{}_meta_dict".format(key)]["pixdim"][1], data["{}_meta_dict".format(key)]["pixdim"][axis_index + 1] = (
+                    data["{}_meta_dict".format(key)]["pixdim"][axis_index + 1],
+                    data["{}_meta_dict".format(key)]["pixdim"][1],
+                )
+                affine[0][:-1] = affine[0][:-1] * data["{}_meta_dict".format(key)]["pixdim"][1]
+                affine[1][:-1] = affine[1][:-1] * data["{}_meta_dict".format(key)]["pixdim"][2]
+                affine[2][:-1] = affine[2][:-1] * data["{}_meta_dict".format(key)]["pixdim"][3]
+                data["{}_meta_dict".format(key)]["original_affine"] = affine
+                data["{}_meta_dict".format(key)]["affine"] = affine
+        return data
 
+
+class TransposeAxesd(MapTransform):
+    """
+    Dictionary-based transform, used to reverse the order of the axis, permuting to (2,1,0). Used when saving a numpy array
+    as image with SimpleITK
+    """
+
+    def __init__(
+        self,
+        keys: KeysCollection,
+        allow_missing_keys: bool = False,
+    ) -> None:
+        """
+        Args:
+            keys: keys of the corresponding items to be transformed.
+            Accepted string values for the axes are 'axial', 'coronal' and 'sagittal'. If None (Default), no permutation
+            is performed.
+            allow_missing_keys: don't raise exception if key is missing.
+
+        """
+        MapTransform.__init__(self, keys, allow_missing_keys)
+
+    def __call__(self, data: Any):
+
+        for key in self.keys:
+            data[key] = np.transpose(data[key], (2, 1, 0))
+
+            affine = data["{}_meta_dict".format(key)]["original_affine"]
+            affine[0][:-1] = affine[0][:-1] / data["{}_meta_dict".format(key)]["pixdim"][1]
+            affine[1][:-1] = affine[1][:-1] / data["{}_meta_dict".format(key)]["pixdim"][2]
+            affine[2][:-1] = affine[2][:-1] / data["{}_meta_dict".format(key)]["pixdim"][3]
+            data["{}_meta_dict".format(key)]["pixdim"][1], data["{}_meta_dict".format(key)]["pixdim"][3] = (
+                data["{}_meta_dict".format(key)]["pixdim"][3],
+                data["{}_meta_dict".format(key)]["pixdim"][1],
+            )
+            affine[0][:-1] = affine[0][:-1] * data["{}_meta_dict".format(key)]["pixdim"][1]
+            affine[1][:-1] = affine[1][:-1] * data["{}_meta_dict".format(key)]["pixdim"][2]
+            affine[2][:-1] = affine[2][:-1] * data["{}_meta_dict".format(key)]["pixdim"][3]
+            data["{}_meta_dict".format(key)]["original_affine"] = affine
+            data["{}_meta_dict".format(key)]["affine"] = affine
+            data["{}_meta_dict".format(key)]["spatial_shape"] = data[key].shape
         return data
