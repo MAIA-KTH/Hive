@@ -5,7 +5,6 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
 
-from Hive.utils.file_utils import move_file_in_subfolders, rename_files_with_suffix
 from Hive.utils.log_utils import (
     get_logger,
     add_verbosity_options_to_argparser,
@@ -107,9 +106,6 @@ def main():
 
         arguments_list.extend(unknown_arguments)
         os.system("nnUNet_predict " + " ".join(arguments_list))
-        move_file_in_subfolders(args["output_folder"], "_post" + data["FileExtension"], data["FileExtension"])
-        rename_files_with_suffix(args["output_folder"], ".nii.gz", "_raw.nii.gz")
-        rename_files_with_suffix(args["output_folder"], "_post.nii.gz", ".nii.gz")
 
 
 if __name__ == "__main__":
