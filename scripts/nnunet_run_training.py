@@ -125,8 +125,9 @@ def main():
                 Path(data["predictions_path"]).joinpath("fold_{}".format(args["run_fold"]), data["predictions_folder_name"])
             )
 
-        order_data_in_single_folder(fold_path, fold_path)
-        order_data_folder_by_patient(fold_path, data["FileExtension"])
+        if Path(fold_path).is_dir():
+            order_data_in_single_folder(fold_path, fold_path)
+            order_data_folder_by_patient(fold_path, data["FileExtension"])
         if "--sub-step" in arguments:
             sub_step = arguments[arguments.index("--sub-step") + 1]
             if sub_step == "step_1":
