@@ -33,9 +33,8 @@ def dcm2nii_CT(CT_dcm_path: Union[str, PathLike], nii_out_path: Union[str, PathL
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(str(tmp))
-        dicom2nifti.convert_directory(CT_dcm_path, str(tmp),
-                                      compression=True, reorient=True)
-        nii = next(tmp.glob('*nii.gz'))
+        dicom2nifti.convert_directory(CT_dcm_path, str(tmp), compression=True, reorient=True)
+        nii = next(tmp.glob("*nii.gz"))
         shutil.copy(nii, nii_out_path)
 
 
@@ -53,7 +52,7 @@ def dcm2nii_mask(mask_dcm_path: Union[str, PathLike], nii_out_path: Union[str, P
     ref_nii_path : Union[str, PathLike]
         Reference NIFTI used to correctly saved the segmentation volume.
     """
-    mask_dcm = list(mask_dcm_path.glob('*.dcm'))[0]
+    mask_dcm = list(mask_dcm_path.glob("*.dcm"))[0]
     mask = pydicom.read_file(str(mask_dcm))
     mask_array = mask.pixel_array
 
@@ -85,41 +84,76 @@ def convert_DICOM_folder_to_NIFTI_image(patient_dicom_folder: Union[str, PathLik
         the corresponding NIFTI study folder path.
     """
     studies = subfolders(patient_dicom_folder, join=False)
+    single_study = False
+    if len(studies) == 1:
+        single_study = True
 
     for study_id, study in enumerate(studies):
-        Path(str(patient_nifti_folder) + "_{}".format(study_id)).mkdir(parents=True, exist_ok=True)
+
+        if not single_study:
+            Path(str(patient_nifti_folder) + "_{}".format(study_id)).mkdir(parents=True, exist_ok=True)
+        else:
+            Path(str(patient_nifti_folder)).mkdir(parents=True, exist_ok=True)
         series = subfolders(Path(patient_dicom_folder).joinpath(study), join=False)
         for serie in series:
-            first_file = next(Path(patient_dicom_folder).joinpath(study, serie).glob('*.dcm'))
+            first_file = next(Path(patient_dicom_folder).joinpath(study, serie).glob("*.dcm"))
             ds = pydicom.dcmread(str(first_file))
 
             if ds.Modality == "CT":
-                dcm2nii_CT(str(Path(patient_dicom_folder).joinpath(study, serie)),
-                           str(Path(str(patient_nifti_folder) + "_{}".format(study_id)).joinpath(
-                               "{}_{}_CT.nii.gz".format(
-                                   Path(patient_dicom_folder).name, study_id))))
+                if not single_study:
+                    ct_filename = str(
+                        Path(str(patient_nifti_folder) + "_{}".format(study_id)).joinpath(
+                            "{}_{}_CT.nii.gz".format(Path(patient_dicom_folder).name, study_id)
+                        )
+                    )
+                else:
+                    ct_filename = str(
+                        Path(str(patient_nifti_folder)).joinpath("{}_CT.nii.gz".format(Path(patient_dicom_folder).name))
+                    )
+
+                dcm2nii_CT(str(Path(patient_dicom_folder).joinpath(study, serie)), ct_filename)
             elif ds.Modality == "PT":
-                normalize_PET_to_SUV_BW(str(Path(patient_dicom_folder).joinpath(study, serie)),
-                                        str(Path(str(patient_nifti_folder) + "_{}".format(study_id)).joinpath(
-                                            "{}_{}_PET.nii.gz".format(
-                                                Path(patient_dicom_folder).name, study_id))))
+                if not single_study:
+                    pet_filename = str(
+                        Path(str(patient_nifti_folder) + "_{}".format(study_id)).joinpath(
+                            "{}_{}_PET.nii.gz".format(Path(patient_dicom_folder).name, study_id)
+                        )
+                    )
+                else:
+                    pet_filename = str(
+                        Path(str(patient_nifti_folder)).joinpath(
+                            "{}_PET.nii.gz".format(Path(patient_dicom_folder).name))
+                    )
+                normalize_PET_to_SUV_BW(str(Path(patient_dicom_folder).joinpath(study, serie)), pet_filename)
 
         for study_id, study in enumerate(studies):
-            Path(str(patient_nifti_folder) + "_{}".format(study_id)).mkdir(parents=True, exist_ok=True)
             series = subfolders(Path(patient_dicom_folder).joinpath(study), join=False)
             for serie in series:
-                first_file = next(Path(patient_dicom_folder).joinpath(study, serie).glob('*.dcm'))
+                first_file = next(Path(patient_dicom_folder).joinpath(study, serie).glob("*.dcm"))
                 ds = pydicom.dcmread(str(first_file))
 
                 if ds.Modality == "SEG":
-                    dcm2nii_mask(Path(patient_dicom_folder).joinpath(study, serie),
-                                 str(Path(str(patient_nifti_folder) + "_{}".format(study_id)).joinpath(
-                                     "{}_{}_SEG.nii.gz".format(
-                                         Path(patient_dicom_folder).name, study_id))),
-                                 str(Path(str(patient_nifti_folder) + "_{}".format(study_id)).joinpath(
-                                     "{}_{}_PET.nii.gz".format(
-                                         Path(patient_dicom_folder).name, study_id)))
-                                 )
+                    if not single_study:
+                        seg_filename = str(
+                            Path(str(patient_nifti_folder) + "_{}".format(study_id)).joinpath(
+                                "{}_{}_SEG.nii.gz".format(Path(patient_dicom_folder).name, study_id)
+                            )
+                        )
+                        ref_filename = str(
+                            Path(str(patient_nifti_folder) + "_{}".format(study_id)).joinpath(
+                                "{}_{}_PET.nii.gz".format(Path(patient_dicom_folder).name, study_id)
+                            )
+                        )
+                    else:
+                        seg_filename = str(
+                            Path(str(patient_nifti_folder)).joinpath(
+                                "{}_SEG.nii.gz".format(Path(patient_dicom_folder).name))
+                        )
+                        ref_filename = str(
+                            Path(str(patient_nifti_folder)).joinpath(
+                                "{}_PET.nii.gz".format(Path(patient_dicom_folder).name))
+                        )
+                    dcm2nii_mask(Path(patient_dicom_folder).joinpath(study, serie), seg_filename, ref_filename)
 
 
 def normalize_PET_to_SUV_BW(dicom_pet_series_folder: Union[str, PathLike], suv_pet_filename: Union[str, PathLike]):
