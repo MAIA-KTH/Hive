@@ -1,10 +1,10 @@
 # Hive
 
 <p align="center">
-  <img src="images/MAI_A_logo.png" width="50%" alt='Hive'>
+<img src="https://raw.githubusercontent.com/SimoneBendazzoli93/Hive/Hive-13/images/MAI_A_logo.png" width="50%" alt='project-monai'>
 </p>
 
-![Version](https://img.shields.io/badge/Hive-v1.1-blue)
+![Version](https://img.shields.io/badge/Hive-v2.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-orange)
 ![CUDA](https://img.shields.io/badge/CUDA-10.1%2F10.2%2F11.0-green)
 
