@@ -1,0 +1,11 @@
+numpy==1.22.3
+scikit_learn==1.1.2
+tqdm==4.61.2
+coloredlogs==15.0.1
+dicom2nifti==2.3.4
+nibabel==3.2.2
+numpy==1.22.3
+pydicom==2.3.0
+pynvml==11.4.1
+SimpleITK==2.2.0
+
