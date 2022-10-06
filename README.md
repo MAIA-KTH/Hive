@@ -1,7 +1,7 @@
 # Hive
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/SimoneBendazzoli93/Hive/Hive-13/images/MAI_A_logo.png" width="50%" alt='project-monai'>
+<img src="https://raw.githubusercontent.com/SimoneBendazzoli93/Hive/main/images/MAI_A_logo.png" width="50%" alt='Hive'>
 </p>
 
 ![Version](https://img.shields.io/badge/Hive-v2.0-blue)
