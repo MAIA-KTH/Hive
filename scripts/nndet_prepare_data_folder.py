@@ -30,6 +30,7 @@ DESC = dedent(
     Prepare Dataset folder according to the nnDetection specifications, creating and populating the subfolders ``imagesTr``,
     ``labelsTr``, ``imagesTs`` and ``labelsTs``. In addition, a JSON instance configuration file (as required by nnDetection)
     for each label mask is generated, alongside a summary of the train/test split of the dataset.
+    The label mask images are expected to be as instance segmentation masks (NOT semantic segmentation representations).
     """  # noqa: E501
 )
 EPILOG = dedent(
