@@ -35,8 +35,10 @@ DESC = dedent(
 )
 EPILOG = dedent(
     """
-    {filename} -i /PATH/TO/DATA_FOLDER --task-ID 000 --task-name Example --config-file Example_config.json
-    {filename} -i /PATH/TO/DATA_FOLDER --task-ID 000 --task-name Example --config-file Example_config.json --test-split 30
+    Example call:
+    ::
+        {filename} -i /PATH/TO/DATA_FOLDER --task-ID 000 --task-name Example --config-file Example_config.json
+        {filename} -i /PATH/TO/DATA_FOLDER --task-ID 000 --task-name Example --config-file Example_config.json --test-split 30
     """.format(  # noqa: E501
         filename=Path(__file__).name
     )
@@ -193,7 +195,7 @@ def main():
 
 
 def get_arg_parser():
-    pars = ArgumentParser(description=DESC, formatter_class=RawTextHelpFormatter)
+    pars = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
 
     pars.add_argument(
         "-i",

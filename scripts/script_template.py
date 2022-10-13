@@ -16,7 +16,9 @@ DESC = dedent(
 )
 EPILOG = dedent(
     """
-    {filename} Script usage examples.
+    Example call:
+    ::
+        {filename} Script usage examples.
     """.format(  # noqa: E501
         filename=Path(__file__).name
     )
@@ -35,7 +37,7 @@ def main():
 
 
 def get_arg_parser():
-    pars = ArgumentParser(description=DESC, formatter_class=RawTextHelpFormatter)
+    pars = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
 
     pars.add_argument(
         "-arg",

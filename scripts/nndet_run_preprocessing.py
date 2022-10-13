@@ -20,7 +20,9 @@ DESC = dedent(
 )
 EPILOG = dedent(
     """
-    {filename} --config-file /PATH/TO/CONFIG_FILE.json
+    Example call:
+    ::
+        {filename} --config-file /PATH/TO/CONFIG_FILE.json
     """.format(  # noqa: E501
         filename=Path(__file__).name
     )
@@ -28,7 +30,7 @@ EPILOG = dedent(
 
 
 def get_arg_parser():
-    pars = ArgumentParser(description=DESC, formatter_class=RawTextHelpFormatter)
+    pars = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
 
     pars.add_argument(
         "--config-file",
