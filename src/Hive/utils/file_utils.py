@@ -315,7 +315,7 @@ def copy_data_to_dataset_folder(
                     instances = instances[instances > 0]
 
                     json_dict = {
-                        "instances": {str(int(i)): 1 for i in instances},
+                        "instances": {str(int(i)): 0 for i in instances},
                     }
                     save_config_json(json_dict,
                                      str(Path(label_folder).joinpath(label_filename.replace(label_suffix, ".json"))))
@@ -423,7 +423,7 @@ def generate_dataset_json(
         "test_labels": True,
         "task_type": task_type,
         "tensorImageSize": "4D",
-        "modality": {str(i): modalities[i] for i in range(len(modalities))},
+        "modalities": {str(i): modalities[i] for i in range(len(modalities))},
         "labels": labels,  # {str(i): labels[i] for i in labels.keys()},
         "numTraining": len(train_subjects),
         "numTest": len(test_subjects),
