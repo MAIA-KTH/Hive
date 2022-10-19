@@ -24,7 +24,7 @@ EPILOG = dedent(
     {filename} --data-folder /PATH/TO/DATASET --output-folder /PATH/TO/SUBSET --data-class-file /PATH/TO/SUBJECT_CLASSES.json --subclasses CLASS_1
     {filename} --data-folder /PATH/TO/DATASET --output-folder /PATH/TO/SUBSET --data-class-file /PATH/TO/SUBJECT_CLASSES.json --subclasses CLASS_1 --max-size 100
     """.format(  # noqa: E501
-        filename=Path(__file__).name
+        filename=Path(__file__).stem
     )
 )
 

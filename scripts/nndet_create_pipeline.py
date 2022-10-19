@@ -31,7 +31,7 @@ EPILOG = dedent(
         {filename} -i /path/to/input_data_folder --config-file nnDet_3D_config.json --task-ID 000
         {filename} -i /path/to/input_data_folder --config-file nnDet_3D_config.json --task-ID 000 --test-split 25
     """.format(  # noqa: E501
-        filename=Path(__file__).name
+        filename=Path(__file__).stem
     )
 )
 
@@ -144,7 +144,7 @@ def main():
                 config_dict = json.load(json_file)
 
     output_json_config_filename = (
-            config_dict["DatasetName"] + "_" + config_dict["Experiment Name"] + "_" + arguments["task_ID"] + ".json"
+        config_dict["DatasetName"] + "_" + config_dict["Experiment Name"] + "_" + arguments["task_ID"] + ".json"
     )
     os.environ["RESULTS_FOLDER"] = str(
         Path(os.environ["root_experiment_folder"]).joinpath(
@@ -162,8 +162,7 @@ def main():
 
     [pipeline_steps.append(step) for step in run_training_step(output_json_config_file, range(config_dict["n_folds"]))]
 
-    Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]).mkdir(exist_ok=True,
-                                                                                              parents=True)
+    Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]).mkdir(exist_ok=True, parents=True)
     pipeline_steps_summary = open(
         Path(os.environ["root_experiment_folder"]).joinpath(
             config_dict["Experiment Name"], "Task_" + arguments["task_ID"] + "_" + TIMESTAMP + ".txt"

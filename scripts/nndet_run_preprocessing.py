@@ -24,7 +24,7 @@ EPILOG = dedent(
     ::
         {filename} --config-file /PATH/TO/CONFIG_FILE.json
     """.format(  # noqa: E501
-        filename=Path(__file__).name
+        filename=Path(__file__).stem
     )
 )
 

@@ -40,7 +40,7 @@ EPILOG = dedent(
         {filename} -i /PATH/TO/DATA_FOLDER --task-ID 000 --task-name Example --config-file Example_config.json
         {filename} -i /PATH/TO/DATA_FOLDER --task-ID 000 --task-name Example --config-file Example_config.json --test-split 30
     """.format(  # noqa: E501
-        filename=Path(__file__).name
+        filename=Path(__file__).stem
     )
 )
 
@@ -75,8 +75,7 @@ def main():
         except KeyboardInterrupt:
             logger.log(INFO, "Disabling e-mail updates.")
 
-    os.environ["raw_data_base"] = str(
-        Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]))
+    os.environ["raw_data_base"] = str(Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]))
 
     os.environ["preprocessed_folder"] = str(
         Path(os.environ["root_experiment_folder"]).joinpath(
@@ -106,8 +105,7 @@ def main():
         arguments["task_ID"],
     )
 
-    train_dataset, test_dataset = split_dataset(arguments["input_data_folder"], arguments["test_split"],
-                                                config_dict["Seed"])
+    train_dataset, test_dataset = split_dataset(arguments["input_data_folder"], arguments["test_split"], config_dict["Seed"])
 
     dataset_split = []
     for test_subject in test_dataset:
@@ -179,8 +177,7 @@ def main():
 
         Path(config_dict["results_folder"]).mkdir(parents=True, exist_ok=True)
     except KeyError:
-        logger.warning(
-            "RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
+        logger.warning("RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
         return 1
     try:
         config_dict["preprocessing_folder"] = os.environ["preprocessed_folder"]

@@ -21,7 +21,7 @@ EPILOG = dedent(
         {filename} --config-file ../CONFIG_FILE.json --run-fold 0
         {filename} --config-file ../CONFIG_FILE.json --run-fold 0 --resume-training y
     """.format(  # noqa: E501
-        filename=Path(__file__).name
+        filename=Path(__file__).stem
     )
 )
 

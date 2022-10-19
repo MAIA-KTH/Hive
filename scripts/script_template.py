@@ -20,7 +20,7 @@ EPILOG = dedent(
     ::
         {filename} Script usage examples.
     """.format(  # noqa: E501
-        filename=Path(__file__).name
+        filename=Path(__file__).stem
     )
 )
 

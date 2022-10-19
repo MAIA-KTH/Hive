@@ -28,7 +28,7 @@ EPILOG = dedent(
     ::
         {filename}  --data-folder /PATH/TO/DICOM_DATA --output-folder /PATH/TO/NIFTI_DATASET
     """.format(  # noqa: E501
-        filename=Path(__file__).name
+        filename=Path(__file__).stem
     )
 )
 

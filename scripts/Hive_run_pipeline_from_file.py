@@ -21,7 +21,7 @@ EPILOG = dedent(
     ::
         {filename} --file PIPELINE_FILE.txt
     """.format(  # noqa: E501
-        filename=Path(__file__).name
+        filename=Path(__file__).stem
     )
 )
 
