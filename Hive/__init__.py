@@ -1,5 +1,6 @@
-from Hive.utils.log_utils import get_logger
 from pynvml import *  # noqa: F403
+
+from Hive.utils.log_utils import get_logger
 
 try:
     nvmlInit()  # noqa: F405

@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 
 def subfiles(
-        folder: Union[str, PathLike], join: bool = True, prefix: str = None, suffix: str = None, sort: bool = True
+    folder: Union[str, PathLike], join: bool = True, prefix: str = None, suffix: str = None, sort: bool = True
 ) -> List[str]:
     """
     Given a folder path, returns a list with all the files in the folder.
@@ -125,29 +125,28 @@ def create_nndet_data_folder_tree(data_folder: Union[str, PathLike], task_name: 
     """
     logger.log(DEBUG, ' Creating Dataset tree at "{}"'.format(data_folder))
 
-    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "imagesTr", ).mkdir(
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "imagesTr",).mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "labelsTr", ).mkdir(
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "labelsTr",).mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "imagesTs", ).mkdir(
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "imagesTs",).mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "labelsTs", ).mkdir(
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "labelsTs",).mkdir(
         parents=True,
         exist_ok=True,
     )
 
 
-def split_dataset(input_data_folder: Union[str, PathLike], test_split_ratio: int, seed: int) -> Tuple[
-    List[str], List[str]]:
+def split_dataset(input_data_folder: Union[str, PathLike], test_split_ratio: int, seed: int) -> Tuple[List[str], List[str]]:
     """
     Split dataset into a train/test split, given the specified ratio.
 
@@ -195,8 +194,7 @@ def copy_image_file(input_filepath: Union[str, PathLike], output_filepath: Union
     )
 
 
-def copy_label_file(input_image: Union[str, PathLike], input_label: Union[str, PathLike],
-                    output_filepath: Union[str, PathLike]):
+def copy_label_file(input_image: Union[str, PathLike], input_label: Union[str, PathLike], output_filepath: Union[str, PathLike]):
     """
     Copy label file, verifying the image information (spacing, orientation).
 
@@ -217,13 +215,13 @@ def copy_label_file(input_image: Union[str, PathLike], input_label: Union[str, P
 
 
 def copy_data_to_dataset_folder(
-        input_data_folder: Union[str, PathLike],
-        subjects: List[str],
-        image_folder: Union[str, PathLike],
-        config_dict: Dict[str, object],
-        label_folder: Union[str, PathLike] = None,
-        num_threads: int = None,
-        save_label_instance_config: bool = False,
+    input_data_folder: Union[str, PathLike],
+    subjects: List[str],
+    image_folder: Union[str, PathLike],
+    config_dict: Dict[str, object],
+    label_folder: Union[str, PathLike] = None,
+    num_threads: int = None,
+    save_label_instance_config: bool = False,
 ):
     """
 
@@ -272,8 +270,7 @@ def copy_data_to_dataset_folder(
             image_filename = directory + image_suffix
 
             if image_filename in files:
-                updated_image_filename = image_filename.replace(image_suffix,
-                                                                modality_code + str(config_dict["FileExtension"]))
+                updated_image_filename = image_filename.replace(image_suffix, modality_code + str(config_dict["FileExtension"]))
                 copied_files.append(
                     pool.starmap_async(
                         copy_image_file,
@@ -317,8 +314,7 @@ def copy_data_to_dataset_folder(
                     json_dict = {
                         "instances": {str(int(i)): 0 for i in instances},
                     }
-                    save_config_json(json_dict,
-                                     str(Path(label_folder).joinpath(label_filename.replace(label_suffix, ".json"))))
+                    save_config_json(json_dict, str(Path(label_folder).joinpath(label_filename.replace(label_suffix, ".json"))))
             else:
                 logger.warning("{} is not found: skipping {} case".format(label_filename, directory))
 
@@ -329,8 +325,7 @@ def copy_data_to_dataset_folder(
 
                 if label_filename in files:
 
-                    updated_label_filename = label_filename.replace(label_s,
-                                                                    task_code + str(config_dict["FileExtension"]))
+                    updated_label_filename = label_filename.replace(label_s, task_code + str(config_dict["FileExtension"]))
 
                     copied_files.append(
                         pool.starmap_async(
@@ -367,14 +362,14 @@ def save_config_json(config_dict: Dict[str, object], output_json: Union[str, Pat
 
 
 def generate_dataset_json(
-        output_file: Union[str, PathLike],
-        train_subjects: List[str],
-        test_subjects: List[str],
-        modalities: Tuple,
-        labels: Union[Dict, List],
-        dataset_name: str,
-        task_name: str,
-        n_tasks: int = 1,
+    output_file: Union[str, PathLike],
+    train_subjects: List[str],
+    test_subjects: List[str],
+    modalities: Tuple,
+    labels: Union[Dict, List],
+    dataset_name: str,
+    task_name: str,
+    n_tasks: int = 1,
 ):
     """
     Generates and saves a Dataset JSON file.
@@ -428,8 +423,7 @@ def generate_dataset_json(
         "numTraining": len(train_subjects),
         "numTest": len(test_subjects),
         "n_tasks": n_tasks,
-        "training": [{"image": "./imagesTr/%s.nii.gz" % i, "label": "./labelsTr/%s.nii.gz" % i} for i in
-                     train_subjects],
+        "training": [{"image": "./imagesTr/%s.nii.gz" % i, "label": "./labelsTr/%s.nii.gz" % i} for i in train_subjects],
         "test": ["./imagesTs/%s.nii.gz" % i for i in test_subjects],
     }
 

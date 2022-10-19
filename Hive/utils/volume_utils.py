@@ -38,8 +38,7 @@ def dcm2nii_CT(CT_dcm_path: Union[str, PathLike], nii_out_path: Union[str, PathL
         shutil.copy(nii, nii_out_path)
 
 
-def dcm2nii_mask(mask_dcm_path: Union[str, PathLike], nii_out_path: Union[str, PathLike],
-                 ref_nii_path: Union[str, PathLike]):
+def dcm2nii_mask(mask_dcm_path: Union[str, PathLike], nii_out_path: Union[str, PathLike], ref_nii_path: Union[str, PathLike]):
     """
     Converts a SEG DICOM volume into NIFTI format. Requires an existing NIFTI file to derive the corresponding affine transform.
 
@@ -70,8 +69,7 @@ def dcm2nii_mask(mask_dcm_path: Union[str, PathLike], nii_out_path: Union[str, P
     nib.save(mask_out, nii_out_path)
 
 
-def convert_DICOM_folder_to_NIFTI_image(patient_dicom_folder: Union[str, PathLike],
-                                        patient_nifti_folder: Union[str, PathLike]):
+def convert_DICOM_folder_to_NIFTI_image(patient_dicom_folder: Union[str, PathLike], patient_nifti_folder: Union[str, PathLike]):
     """
     Converts a given Patient DICOM folder into NIFTI format, saving the DICOM Studies in different folders.
 
@@ -121,8 +119,7 @@ def convert_DICOM_folder_to_NIFTI_image(patient_dicom_folder: Union[str, PathLik
                     )
                 else:
                     pet_filename = str(
-                        Path(str(patient_nifti_folder)).joinpath(
-                            "{}_PET.nii.gz".format(Path(patient_dicom_folder).name))
+                        Path(str(patient_nifti_folder)).joinpath("{}_PET.nii.gz".format(Path(patient_dicom_folder).name))
                     )
                 normalize_PET_to_SUV_BW(str(Path(patient_dicom_folder).joinpath(study, serie)), pet_filename)
 
@@ -146,12 +143,10 @@ def convert_DICOM_folder_to_NIFTI_image(patient_dicom_folder: Union[str, PathLik
                         )
                     else:
                         seg_filename = str(
-                            Path(str(patient_nifti_folder)).joinpath(
-                                "{}_SEG.nii.gz".format(Path(patient_dicom_folder).name))
+                            Path(str(patient_nifti_folder)).joinpath("{}_SEG.nii.gz".format(Path(patient_dicom_folder).name))
                         )
                         ref_filename = str(
-                            Path(str(patient_nifti_folder)).joinpath(
-                                "{}_PET.nii.gz".format(Path(patient_dicom_folder).name))
+                            Path(str(patient_nifti_folder)).joinpath("{}_PET.nii.gz".format(Path(patient_dicom_folder).name))
                         )
                     dcm2nii_mask(Path(patient_dicom_folder).joinpath(study, serie), seg_filename, ref_filename)
 
