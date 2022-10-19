@@ -1,0 +1,50 @@
+{
+
+  "title": "nnDetection configuration template",
+  "description": "A JSON template used to set the configuration parameters for experiments based on nnDetection framework.",
+  "properties": {
+    "Experiment Name": {
+      "type": "string",
+      "description": "String describing the experiment, usually related to the selected DL framework/architecture. Example: \"nnDet_3D_fullres\""
+    },
+    "Seed": {
+      "type": "integer",
+      "description": "Random seed number used when randomizing events and actions. Example: 12345"
+    },
+    "label_suffix": {
+      "type": "string",
+      "description": "File suffix (including file extension) of the files containing the label map. Example: \"_mask.nii.gz\""
+    },
+    "Modalities": {
+      "type": "Dict[str,str]",
+     "description": "Dictionary listing the input modalities. The key-value pair contains the file suffix as key and the modality name as value. Example: \"_image.nii.gz\": \"CT\""
+
+    },
+    "label_dict": {
+      "type": "Dict[str,str]",
+      "description": "Dictionary describing the labels (excluding the background). The key-value pair contains the label value as key (starting from ``0``) and the label description as value. Example: \"0\": \"ABD_Lymph_Node\""
+    },
+    "n_folds": {
+      "type": "integer",
+      "description": "Number of folds to run cross-validation. Example: 5."
+    },
+    "DatasetName": {
+      "type": "string",
+      "description": "String describing the dataset. Example: \"LymphNodeSeg_ABD\"",
+    },
+    "FileExtension": {
+      "type": "string",
+      "description": "String for the file extension of the dataset. \"Example: .nii.gz\""
+    }
+  },
+  "required": [
+    "Experiment Name",
+    "Seed",
+    "label_suffix",
+    "Modalities",
+    "label_dict",
+    "n_folds",
+    "DatasetName",
+    "FileExtension"
+  ]
+}
