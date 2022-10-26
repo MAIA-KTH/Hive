@@ -6,3 +6,11 @@ sphinx-jsonschema
 myst-parser
 pydata-sphinx-theme
 pynvml
+scikit_learn
+tqdm
+coloredlogs
+dicom2nifti
+nibabel
+numpy
+pydicom
+SimpleITK
