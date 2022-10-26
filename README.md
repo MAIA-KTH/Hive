@@ -4,6 +4,7 @@
 <img src="https://raw.githubusercontent.com/SimoneBendazzoli93/Hive/main/images/MAI_A_logo.png" width="50%" alt='Hive'>
 </p>
 
+[![Documentation Status](https://readthedocs.org/projects/hive-maia/badge/?version=latest)](https://hive-maia.readthedocs.io/en/latest/?badge=latest)
 ![Version](https://img.shields.io/badge/Hive-v1.0-blue)
 [![License](https://img.shields.io/badge/license-GPL%203.0-green.svg)](https://opensource.org/licenses/GPL-3.0)
 ![Python](https://img.shields.io/badge/python-3.8+-orange)
