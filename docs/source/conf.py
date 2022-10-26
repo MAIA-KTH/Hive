@@ -14,13 +14,15 @@ import os
 import subprocess
 import sys
 
-import Hive
 
 sys.path.insert(0, os.path.abspath("../../scripts"))
-sys.path.insert(1, os.path.abspath("../../Hive"))
+sys.path.insert(0, os.path.abspath("../../Hive"))
+sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 print(sys.path)
 # -- Project information -----------------------------------------------------
+import Hive
 
 project = "Hive"
 copyright = "2022, Simone Bendazzoli"
