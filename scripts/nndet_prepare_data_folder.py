@@ -30,14 +30,17 @@ DESC = dedent(
     Prepare Dataset folder according to the nnDetection specifications, creating and populating the subfolders ``imagesTr``,
     ``labelsTr``, ``imagesTs`` and ``labelsTs``. In addition, a JSON instance configuration file (as required by nnDetection)
     for each label mask is generated, alongside a summary of the train/test split of the dataset.
+    The label mask images are expected to be as instance segmentation masks (NOT semantic segmentation representations).
     """  # noqa: E501
 )
 EPILOG = dedent(
     """
-    {filename} -i /PATH/TO/DATA_FOLDER --task-ID 000 --task-name Example --config-file Example_config.json
-    {filename} -i /PATH/TO/DATA_FOLDER --task-ID 000 --task-name Example --config-file Example_config.json --test-split 30
+    Example call:
+    ::
+        {filename} -i /PATH/TO/DATA_FOLDER --task-ID 000 --task-name Example --config-file Example_config.json
+        {filename} -i /PATH/TO/DATA_FOLDER --task-ID 000 --task-name Example --config-file Example_config.json --test-split 30
     """.format(  # noqa: E501
-        filename=Path(__file__).name
+        filename=Path(__file__).stem
     )
 )
 
@@ -72,8 +75,7 @@ def main():
         except KeyboardInterrupt:
             logger.log(INFO, "Disabling e-mail updates.")
 
-    os.environ["raw_data_base"] = str(
-        Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]))
+    os.environ["raw_data_base"] = str(Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]))
 
     os.environ["preprocessed_folder"] = str(
         Path(os.environ["root_experiment_folder"]).joinpath(
@@ -103,8 +105,7 @@ def main():
         arguments["task_ID"],
     )
 
-    train_dataset, test_dataset = split_dataset(arguments["input_data_folder"], arguments["test_split"],
-                                                config_dict["Seed"])
+    train_dataset, test_dataset = split_dataset(arguments["input_data_folder"], arguments["test_split"], config_dict["Seed"])
 
     dataset_split = []
     for test_subject in test_dataset:
@@ -176,8 +177,7 @@ def main():
 
         Path(config_dict["results_folder"]).mkdir(parents=True, exist_ok=True)
     except KeyError:
-        logger.warning(
-            "RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
+        logger.warning("RESULTS_FOLDER is not set as environment variable, {} is not saved".format(output_json_basename))
         return 1
     try:
         config_dict["preprocessing_folder"] = os.environ["preprocessed_folder"]
@@ -192,7 +192,7 @@ def main():
 
 
 def get_arg_parser():
-    pars = ArgumentParser(description=DESC, formatter_class=RawTextHelpFormatter)
+    pars = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
 
     pars.add_argument(
         "-i",

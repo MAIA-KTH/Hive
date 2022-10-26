@@ -24,9 +24,11 @@ DESC = dedent(
 )
 EPILOG = dedent(
     """
-    {filename}  --data-folder /PATH/TO/DICOM_DATA --output-folder /PATH/TO/NIFTI_DATASET
+    Example call:
+    ::
+        {filename}  --data-folder /PATH/TO/DICOM_DATA --output-folder /PATH/TO/NIFTI_DATASET
     """.format(  # noqa: E501
-        filename=Path(__file__).name
+        filename=Path(__file__).stem
     )
 )
 
@@ -35,7 +37,7 @@ if "N_THREADS" not in os.environ:
 
 
 def get_arg_parser():
-    pars = ArgumentParser(description=DESC, formatter_class=RawTextHelpFormatter)
+    pars = ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=RawTextHelpFormatter)
 
     pars.add_argument(
         "--data-folder",
