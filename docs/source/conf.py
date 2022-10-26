@@ -14,6 +14,8 @@ import os
 import subprocess
 import sys
 
+import Hive
+
 sys.path.insert(0, os.path.abspath("../../scripts"))
 sys.path.insert(1, os.path.abspath("../../Hive"))
 
