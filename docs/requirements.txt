@@ -4,3 +4,4 @@ sphinx-copybutton
 sphinxcontrib-contentui
 sphinx-jsonschema
 myst-parser
+pydata-sphinx-theme
