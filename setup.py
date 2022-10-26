@@ -44,7 +44,7 @@ setup(
             "Hive_convert_DICOM_dataset_to_NIFTI_dataset = scripts.Hive_convert_DICOM_dataset_to_NIFTI_dataset:main",
             "Hive_run_pipeline_from_file = scripts.Hive_run_pipeline_from_file:main",
             "Hive_create_subset = scripts.Hive_create_subset:main",
-            "nndet_create_pipeline = scripts.nndet_create_pipeline.:main",
+            "nndet_create_pipeline = scripts.nndet_create_pipeline:main",
             "nndet_prepare_data_folder = scripts.nndet_prepare_data_folder:main",
             "nndet_run_preprocessing = scripts.nndet_run_preprocessing:main",
             "nndet_run_training = scripts.nndet_run_training:main",
