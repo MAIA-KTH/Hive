@@ -8,6 +8,7 @@ Hive Scripts
 
    Hive_convert_DICOM_dataset_to_NIFTI_dataset
    Hive_run_pipeline_from_file
+   Hive_convert_semantic_to_instance_segmentation
    Hive_create_subset
 
 Hive Scripts for nnDetection

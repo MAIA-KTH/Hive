@@ -10,6 +10,7 @@ Submodules
    Hive.utils.file_utils
    Hive.utils.log_utils
    Hive.utils.volume_utils
+   Hive.utils.seg_mask_utils
 
 Module contents
 ---------------
