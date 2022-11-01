@@ -42,6 +42,27 @@ def get_arg_parser():
         help="AutoPET patient dataset folder.",
     )
 
+    pars.add_argument(
+        "--sem-seg-suffix",
+        type=str,
+        required=True,
+        help="Semantic Segmentation suffix.",
+    )
+
+    pars.add_argument(
+        "--inst-seg-suffix",
+        type=str,
+        required=True,
+        help="Instance Segmentation suffix.",
+    )
+
+    pars.add_argument(
+        "--output-json-path",
+        type=str,
+        required=True,
+        help="Output path of json file.",
+    )
+
     add_verbosity_options_to_argparser(pars)
 
     return pars
@@ -51,23 +72,22 @@ def main():
     parser = get_arg_parser()
     arguments = vars(parser.parse_args())
 
-    # data_folder = /home/Data/LymphNoDet/AutoPET_Data
-    # subject = PETCT_0011f3deaf_0
     subjects = subfolders(arguments["data_folder"], join=False)
+    sem_seg = arguments["sem_seg_suffix"]
+    inst_seg = arguments["inst_seg_suffix"]
+    out_json = arguments["output_json_path"]
 
-    # /home/Data/LymphNoDet/AutoPET_Data/PETCT_0011f3deaf_0/PETCT_0011f3deaf_0_SEG.nii.gz
-    # subject + sem_seg = "PETCT_0011f3deaf_0_SEG.nii.gz"
-    sem_seg = "_SEG.nii.gz"
-    inst_seg = "_INST_SEG.nii.gz"
+    # e.g. subject + sem_seg = "PETCT_0011f3deaf_0_SEG.nii.gz"
     labels_dict = {}
     for subject in subjects:
         subject_sem_seg_filename = os.path.join(arguments["data_folder"], subject, str(subject + sem_seg))
         subject_inst_seg_filename = os.path.join(arguments["data_folder"], subject, str(subject + inst_seg))
         num_features = semantic_segmentation_to_instance(subject_sem_seg_filename, subject_inst_seg_filename)
         labels_dict.update({str(subject): num_features})
+        print("Subject: ", subject, " converted mask done.")
 
     # Create Json file with number of labels of instance segmentation for each patient.
-    with open('/home/Data/LymphNoDet/inst_seg_labels.json', 'w') as json_file:
+    with open(out_json, 'w') as json_file:
         json.dump(labels_dict, json_file)
 
 

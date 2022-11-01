@@ -2,7 +2,7 @@ import nibabel as nib
 from scipy.ndimage import label
 
 
-def semantic_segmentation_to_instance(mask_filename, output_path):
+def semantic_segmentation_to_instance(mask_filename: str, output_path: str) -> int:
     """
     Given a semantic segmentation mask convert to instance segmentation and save in the given output path.
     Return the number of labels in instance segmentation mask.
@@ -28,17 +28,10 @@ def semantic_segmentation_to_instance(mask_filename, output_path):
     # label connected regions in segmentation mask
     labeled_array, num_features = label(np_mask)
 
-    # skip if patient is healthy, save instance as original mask, if label(np_mask) returns same segmentation mask
-    # for healthy then remove this and put in range labeled_array.max()+1 and put if condition then continue
-    # if num_features == 0:
-    #    nib.save(mask_filename, output_path)
-    #    return num_features
-
     thresh = 10
     # voxel count in each region from https://neurostars.org/t/roi-voxel-count-using-python/6451
     # ignore regions below threshold = 10
 
-    # is labeled_array.max()+1 correct?
     for i in range(1, labeled_array.max()+1):
         # in case of healthy patient skip
         if num_features == 0:
