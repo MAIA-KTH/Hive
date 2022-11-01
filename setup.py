@@ -48,6 +48,7 @@ setup(
             "nndet_prepare_data_folder = scripts.nndet_prepare_data_folder:main",
             "nndet_run_preprocessing = scripts.nndet_run_preprocessing:main",
             "nndet_run_training = scripts.nndet_run_training:main",
+            "Hive_convert_semantic_to_instance_segmentation = scripts.Hive_convert_semantic_to_instance_segmentation:main",
         ],
     },
     keywords=["deep learning", "image segmentation", "medical image analysis", "medical image segmentation"],
