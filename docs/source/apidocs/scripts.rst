@@ -10,13 +10,14 @@ Hive Scripts
    Hive_run_pipeline_from_file
    Hive_convert_semantic_to_instance_segmentation
    Hive_create_subset
+   nndet_create_pipeline
+   nndet_prepare_data_folder
+   nndet_run_preprocessing
+   nndet_run_training
 
 Hive Scripts for nnDetection
 ---------------
 .. toctree::
    :maxdepth: 1
 
-   nndet_create_pipeline
-   nndet_prepare_data_folder
-   nndet_run_preprocessing
-   nndet_run_training
+
