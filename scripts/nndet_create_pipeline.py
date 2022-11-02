@@ -86,7 +86,7 @@ def run_data_and_folder_preparation_step(arguments):
                 config_dict = json.load(json_file)
 
     args = [
-        "nndet_prepare_data_folder.py",
+        "nndet_prepare_data_folder",
         "--input-data-folder",
         arguments["input_data_folder"],
         "--task-ID",
@@ -102,7 +102,7 @@ def run_data_and_folder_preparation_step(arguments):
 
 def run_preprocessing_step(config_file):
     args = [
-        "nndet_run_preprocessing.py",
+        "nndet_run_preprocessing",
         "--config-file",
         config_file,
         "--n-workers",
@@ -116,7 +116,7 @@ def run_training_step(config_file, folds):
     arg_list = []
     for fold in folds:
         args = [
-            "nndet_run_training.py",
+            "nndet_run_training",
             "--config-file",
             config_file,
             "--run-fold",
