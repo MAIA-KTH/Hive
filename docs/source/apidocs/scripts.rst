@@ -16,7 +16,7 @@ Hive Scripts for nnDetection
 .. toctree::
    :maxdepth: 1
 
-   scripts.nndet_create_pipeline
+   nndet_create_pipeline
    nndet_prepare_data_folder
    nndet_run_preprocessing
    nndet_run_training

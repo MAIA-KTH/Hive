@@ -1,4 +1,4 @@
-createpipe script
+nndet\_create\_pipeline script
 ==============================
 
 .. argparse:: nndet_create_pipeline
