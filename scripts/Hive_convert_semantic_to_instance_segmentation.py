@@ -25,7 +25,7 @@ EPILOG = dedent(
     """
     Example call:
     ::
-        {filename}  --data-folder /PATH/TO/SEMANTIC_SEG_DATA
+        {filename}  --data-folder /PATH/TO/SEMANTIC_SEG_DATA --sem-seg-suffix _SEG.nii.gz --inst-seg-suffix _INST_SEG.nii.gz --output-json-path /PATH/TO/JSON/inst_seg_labels.json
     """.format(  # noqa: E501
         filename=Path(__file__).stem
     )
