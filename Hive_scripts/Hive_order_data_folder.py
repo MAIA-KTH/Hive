@@ -29,9 +29,10 @@ DESC = dedent(
 EPILOG = dedent(
     """
     Example call:
-      {filename} -i /path/to/inputfolder -o /path/to/outputfolder --patient-suffix _image.nii.gz
-      {filename} -i /path/to/inputfolder -o /path/to/outputfolder --patient-suffix _image.nii.gz
-      {filename} -i /path/to/inputfolder --patient-suffix _image.nii.gz --in-place yes
+    ::
+        {filename} -i /path/to/inputfolder -o /path/to/outputfolder --patient-suffix _image.nii.gz
+        {filename} -i /path/to/inputfolder -o /path/to/outputfolder --patient-suffix _image.nii.gz
+        {filename} -i /path/to/inputfolder --patient-suffix _image.nii.gz --in-place yes
     """.format(  # noqa: E501
         filename=os.path.basename(__file__)
     )
