@@ -86,8 +86,9 @@ def convert_DICOM_folder_to_NIFTI_image(patient_dicom_folder: Union[str, PathLik
     if len(studies) == 1:
         single_study = True
 
+    patient_study_map = {Path(patient_dicom_folder).name: {}}
     for study_id, study in enumerate(studies):
-
+        patient_study_map[Path(patient_dicom_folder).name][study_id] = study
         if not single_study:
             Path(str(patient_nifti_folder) + "_{}".format(study_id)).mkdir(parents=True, exist_ok=True)
         else:
@@ -149,7 +150,7 @@ def convert_DICOM_folder_to_NIFTI_image(patient_dicom_folder: Union[str, PathLik
                             Path(str(patient_nifti_folder)).joinpath("{}_PET.nii.gz".format(Path(patient_dicom_folder).name))
                         )
                     dcm2nii_mask(Path(patient_dicom_folder).joinpath(study, serie), seg_filename, ref_filename)
-
+    return patient_study_map
 
 def normalize_PET_to_SUV_BW(dicom_pet_series_folder: Union[str, PathLike], suv_pet_filename: Union[str, PathLike]):
     """
