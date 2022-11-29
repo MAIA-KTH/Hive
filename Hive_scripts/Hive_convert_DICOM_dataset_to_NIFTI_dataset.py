@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import datetime
+import json
 import os
 from argparse import ArgumentParser, RawTextHelpFormatter
 from multiprocessing import Pool
@@ -89,7 +90,14 @@ def main():
             )
         )
 
-    _ = [i.get() for i in tqdm(DICOM_to_NIFTI_conversions)]
+    patients_map = {}
+    for i in tqdm(DICOM_to_NIFTI_conversions):
+        patient_study_map = i.get()
+        patients_map[list(patient_study_map[0].keys())[0]] = patient_study_map[0][list(patient_study_map[0].keys())[0]]
+
+    with open(Path(arguments["output_folder"]).parent.joinpath(Path(arguments["output_folder"]).name + ".json"),
+              "w") as file:
+        json.dump(patients_map, file)
 
 
 if __name__ == "__main__":
