@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 import datetime
-import os
 import json
+import os
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
 
-from Hive.utils.log_utils import add_verbosity_options_to_argparser
 from Hive.utils.file_utils import subfolders
+from Hive.utils.log_utils import add_verbosity_options_to_argparser
 from Hive.utils.seg_mask_utils import semantic_segmentation_to_instance
 
 TIMESTAMP = "{:%Y-%m-%d_%H-%M-%S}".format(datetime.datetime.now())
