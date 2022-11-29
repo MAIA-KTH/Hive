@@ -10,6 +10,7 @@ Hive Scripts
    Hive_run_pipeline_from_file
    Hive_convert_semantic_to_instance_segmentation
    Hive_create_subset
+   Hive_order_data_folder
 
 Hive Scripts for nnDetection
 ---------------
