@@ -2,6 +2,7 @@ import json
 import os
 import random
 import shutil
+from distutils.dir_util import copy_tree
 from multiprocessing import Pool
 from os import PathLike
 from pathlib import Path
@@ -12,13 +13,13 @@ import nibabel as nib
 import numpy as np
 from tqdm import tqdm
 
-from Hive.utils.log_utils import get_logger, DEBUG
+from Hive.utils.log_utils import get_logger, DEBUG, WARN, INFO
 
 logger = get_logger(__name__)
 
 
 def subfiles(
-    folder: Union[str, PathLike], join: bool = True, prefix: str = None, suffix: str = None, sort: bool = True
+        folder: Union[str, PathLike], join: bool = True, prefix: str = None, suffix: str = None, sort: bool = True
 ) -> List[str]:
     """
     Given a folder path, returns a list with all the files in the folder.
@@ -125,28 +126,29 @@ def create_nndet_data_folder_tree(data_folder: Union[str, PathLike], task_name: 
     """
     logger.log(DEBUG, ' Creating Dataset tree at "{}"'.format(data_folder))
 
-    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "imagesTr",).mkdir(
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "imagesTr", ).mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "labelsTr",).mkdir(
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "labelsTr", ).mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "imagesTs",).mkdir(
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "imagesTs", ).mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "labelsTs",).mkdir(
+    Path(data_folder).joinpath("Task" + task_id + "_" + task_name, "raw_splitted", "labelsTs", ).mkdir(
         parents=True,
         exist_ok=True,
     )
 
 
-def split_dataset(input_data_folder: Union[str, PathLike], test_split_ratio: int, seed: int) -> Tuple[List[str], List[str]]:
+def split_dataset(input_data_folder: Union[str, PathLike], test_split_ratio: int, seed: int) -> Tuple[
+    List[str], List[str]]:
     """
     Split dataset into a train/test split, given the specified ratio.
 
@@ -194,7 +196,8 @@ def copy_image_file(input_filepath: Union[str, PathLike], output_filepath: Union
     )
 
 
-def copy_label_file(input_image: Union[str, PathLike], input_label: Union[str, PathLike], output_filepath: Union[str, PathLike]):
+def copy_label_file(input_image: Union[str, PathLike], input_label: Union[str, PathLike],
+                    output_filepath: Union[str, PathLike]):
     """
     Copy label file, verifying the image information (spacing, orientation).
 
@@ -215,13 +218,13 @@ def copy_label_file(input_image: Union[str, PathLike], input_label: Union[str, P
 
 
 def copy_data_to_dataset_folder(
-    input_data_folder: Union[str, PathLike],
-    subjects: List[str],
-    image_folder: Union[str, PathLike],
-    config_dict: Dict[str, object],
-    label_folder: Union[str, PathLike] = None,
-    num_threads: int = None,
-    save_label_instance_config: bool = False,
+        input_data_folder: Union[str, PathLike],
+        subjects: List[str],
+        image_folder: Union[str, PathLike],
+        config_dict: Dict[str, object],
+        label_folder: Union[str, PathLike] = None,
+        num_threads: int = None,
+        save_label_instance_config: bool = False,
 ):
     """
 
@@ -270,7 +273,8 @@ def copy_data_to_dataset_folder(
             image_filename = directory + image_suffix
 
             if image_filename in files:
-                updated_image_filename = image_filename.replace(image_suffix, modality_code + str(config_dict["FileExtension"]))
+                updated_image_filename = image_filename.replace(image_suffix,
+                                                                modality_code + str(config_dict["FileExtension"]))
                 copied_files.append(
                     pool.starmap_async(
                         copy_image_file,
@@ -314,7 +318,8 @@ def copy_data_to_dataset_folder(
                     json_dict = {
                         "instances": {str(int(i)): 0 for i in instances},
                     }
-                    save_config_json(json_dict, str(Path(label_folder).joinpath(label_filename.replace(label_suffix, ".json"))))
+                    save_config_json(json_dict,
+                                     str(Path(label_folder).joinpath(label_filename.replace(label_suffix, ".json"))))
             else:
                 logger.warning("{} is not found: skipping {} case".format(label_filename, directory))
 
@@ -325,7 +330,8 @@ def copy_data_to_dataset_folder(
 
                 if label_filename in files:
 
-                    updated_label_filename = label_filename.replace(label_s, task_code + str(config_dict["FileExtension"]))
+                    updated_label_filename = label_filename.replace(label_s,
+                                                                    task_code + str(config_dict["FileExtension"]))
 
                     copied_files.append(
                         pool.starmap_async(
@@ -362,14 +368,14 @@ def save_config_json(config_dict: Dict[str, object], output_json: Union[str, Pat
 
 
 def generate_dataset_json(
-    output_file: Union[str, PathLike],
-    train_subjects: List[str],
-    test_subjects: List[str],
-    modalities: Tuple,
-    labels: Union[Dict, List],
-    dataset_name: str,
-    task_name: str,
-    n_tasks: int = 1,
+        output_file: Union[str, PathLike],
+        train_subjects: List[str],
+        test_subjects: List[str],
+        modalities: Tuple,
+        labels: Union[Dict, List],
+        dataset_name: str,
+        task_name: str,
+        n_tasks: int = 1,
 ):
     """
     Generates and saves a Dataset JSON file.
@@ -423,7 +429,8 @@ def generate_dataset_json(
         "numTraining": len(train_subjects),
         "numTest": len(test_subjects),
         "n_tasks": n_tasks,
-        "training": [{"image": "./imagesTr/%s.nii.gz" % i, "label": "./labelsTr/%s.nii.gz" % i} for i in train_subjects],
+        "training": [{"image": "./imagesTr/%s.nii.gz" % i, "label": "./labelsTr/%s.nii.gz" % i} for i in
+                     train_subjects],
         "test": ["./imagesTs/%s.nii.gz" % i for i in test_subjects],
     }
 
@@ -433,3 +440,124 @@ def generate_dataset_json(
             "Proceeding anyways..."
         )
     save_config_json(json_dict, output_file)
+
+
+def remove_empty_folder_recursive(folder_path: Union[str, PathLike]):
+    """
+    Recursively removes all the empty subdirectories of the root folder.
+
+    Parameters
+    ----------
+    folder_path : Union[str, PathLike]
+        Root folder path.
+    """
+    for subfolder_path in Path(folder_path).glob("*"):
+        if Path(subfolder_path).is_dir():
+            try:
+                os.rmdir(subfolder_path)
+            except FileNotFoundError as e:
+                logger.log(WARN, e)
+            except OSError as e:
+                logger.log(WARN, e)
+                remove_empty_folder_recursive(subfolder_path)
+                os.rmdir(subfolder_path)
+
+
+def order_data_in_single_folder(root_path: Union[str, PathLike], output_path: Union[str, PathLike],
+                                assign_parent_dir_name: bool = False, file_extension: str = ""):
+    """
+    Moves all the sub-files, found iteratively from the root directory, to the output folder.
+    Recursively removes all the empty subdirectories.
+    If the *assign_parent_dir_name* flag is set to True, the parent directory name for each file will be used as suffix
+    appended to the filename (used when images and masks are divided in different subfolders).
+
+    Parameters
+    ----------
+    file_extension  : str
+        File extension for the files in the selected folder.
+    assign_parent_dir_name  : bool
+        Flag to set if to assign the parent directory name as suffix.
+    root_path   :  Union[str, PathLike]
+        Root folder.
+    output_path : Union[str, PathLike]
+        Output folder.
+    """
+    logger.log(DEBUG, "Creating folder at '{}'".format(output_path))
+    search_regex = "*/*"
+    if assign_parent_dir_name:
+        search_regex = "*/*/*"
+
+    for file_path in Path(root_path).glob(search_regex):
+        if assign_parent_dir_name:
+
+            logger.log(DEBUG,
+                       "Moving '{}' file to '{}'".format(file_path, Path(output_path).joinpath(
+                           str(Path(file_path).name[:-len(file_extension)]) + "_" + str(
+                               Path(file_path).parent.name) + file_extension)))
+            Path(file_path).rename(Path(output_path).joinpath(
+                str(Path(file_path).name[:-len(file_extension)]) + "_" + str(
+                    Path(file_path).parent.name) + file_extension))
+        else:
+            logger.log(DEBUG,
+                       "Moving '{}' file to '{}'".format(file_path, Path(output_path).joinpath(Path(file_path).name)))
+            Path(file_path).rename(Path(output_path).joinpath(Path(file_path).name))
+    remove_empty_folder_recursive(root_path)
+
+
+def order_data_folder_by_patient(folder_path: Union[str, PathLike], file_pattern: str):
+    """
+    Order all the files in the root folder into corresponding subdirectories, according to the specified
+    file pattern.
+
+    Parameters
+    ----------
+    folder_path : Union[str, PathLike]
+        Root folder path.
+    file_pattern    : str
+        File pattern to group the files and create the corresponding subdirectories.
+    """
+    patient_id_list = []
+    for file_path in Path(folder_path).glob("*"):
+        if Path(file_path).is_file() and str(file_path).endswith(file_pattern):
+            patient_id_list.append(str(file_path.name)[: -len(file_pattern)])
+
+    logger.log(INFO, "Patient folders in database: {}".format(len(patient_id_list)))
+
+    for patient_id in patient_id_list:
+        logger.log(DEBUG, "Creating folder at '{}'".format(Path(folder_path).joinpath(patient_id)))
+        Path(folder_path).joinpath(patient_id).mkdir(exist_ok=True, parents=True)
+
+    for file_path in Path(folder_path).glob("*"):
+        if Path(file_path).is_file():
+            for patient_id in patient_id_list:
+
+                if file_path.name.startswith(patient_id):
+                    logger.log(
+                        DEBUG,
+                        "Moving '{}' file to '{}'".format(
+                            file_path, Path(folder_path).joinpath(patient_id, Path(file_path).name)
+                        ),
+                    )
+                    Path(file_path).rename(Path(folder_path).joinpath(patient_id, Path(file_path).name))
+
+
+def copy_subject_folder_to_data_folder(
+        input_data_folder: Union[str, PathLike], subjects: List[str], data_folder: Union[str, PathLike]
+):
+    """
+    Copy all the specified subject sub-folders to a new data folder.
+
+    Parameters
+    ----------
+    input_data_folder : Union[str, PathLike]
+        Input data folder.
+    subjects    : List[str]
+        Subjects to copy.
+    data_folder : Union[str, PathLike]
+        Destination data folder.
+    """
+    Path(data_folder).mkdir(parents=True, exist_ok=True)
+    for subject in subjects:
+        if Path(input_data_folder).joinpath(subject).is_dir():
+            logger.log(DEBUG, "Copying Subject {}".format(subject))
+            copy_tree(str(Path(input_data_folder).joinpath(subject)), str(Path(data_folder).joinpath(subject)))
