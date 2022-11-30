@@ -11,6 +11,8 @@ from typing import Union, List, Tuple, Dict
 import SimpleITK
 import nibabel as nib
 import numpy as np
+import pydicom
+import pydicom_seg
 from tqdm import tqdm
 
 from Hive.utils.log_utils import get_logger, DEBUG, WARN, INFO
@@ -463,8 +465,12 @@ def remove_empty_folder_recursive(folder_path: Union[str, PathLike]):
                 os.rmdir(subfolder_path)
 
 
-def order_data_in_single_folder(root_path: Union[str, PathLike], output_path: Union[str, PathLike],
-                                assign_parent_dir_name: bool = False, file_extension: str = ""):
+def order_data_in_single_folder(
+        root_path: Union[str, PathLike],
+        output_path: Union[str, PathLike],
+        assign_parent_dir_name: bool = False,
+        file_extension: str = "",
+):
     """
     Moves all the sub-files, found iteratively from the root directory, to the output folder.
     Recursively removes all the empty subdirectories.
@@ -490,13 +496,24 @@ def order_data_in_single_folder(root_path: Union[str, PathLike], output_path: Un
     for file_path in Path(root_path).glob(search_regex):
         if assign_parent_dir_name:
 
-            logger.log(DEBUG,
-                       "Moving '{}' file to '{}'".format(file_path, Path(output_path).joinpath(
-                           str(Path(file_path).name[:-len(file_extension)]) + "_" + str(
-                               Path(file_path).parent.name) + file_extension)))
-            Path(file_path).rename(Path(output_path).joinpath(
-                str(Path(file_path).name[:-len(file_extension)]) + "_" + str(
-                    Path(file_path).parent.name) + file_extension))
+            logger.log(
+                DEBUG,
+                "Moving '{}' file to '{}'".format(
+                    file_path,
+                    Path(output_path).joinpath(
+                        str(Path(file_path).name[: -len(file_extension)])
+                        + "_"
+                        + str(Path(file_path).parent.name)
+                        + file_extension
+                    ),
+                ),
+            )
+            Path(file_path).rename(
+                Path(output_path).joinpath(
+                    str(Path(file_path).name[: -len(file_extension)]) + "_" + str(
+                        Path(file_path).parent.name) + file_extension
+                )
+            )
         else:
             logger.log(DEBUG,
                        "Moving '{}' file to '{}'".format(file_path, Path(output_path).joinpath(Path(file_path).name)))
@@ -561,3 +578,52 @@ def copy_subject_folder_to_data_folder(
         if Path(input_data_folder).joinpath(subject).is_dir():
             logger.log(DEBUG, "Copying Subject {}".format(subject))
             copy_tree(str(Path(input_data_folder).joinpath(subject)), str(Path(data_folder).joinpath(subject)))
+
+
+def convert_nifti_pred_to_dicom_seg(
+        nifti_pred_file: Union[str, PathLike],
+        patient_dicom_folder: Union[str, PathLike],
+        template_file: Union[str, PathLike],
+        output_dicom_seg: Union[str, PathLike],
+):
+    """
+    Convert a NIFTI prediction file (segmentation mask), into a single DICOM SEG file. ``patient_dicom_folder`` and
+    ``template_file`` are used to extract DICOM metadata and information to use when saving the DICOM SEG file.
+
+    Parameters
+    ----------
+    nifti_pred_file :
+        NIFTI prediction file (segmentation mask) to convert.
+    patient_dicom_folder :
+        Original patient DICOM folder, used to retrieve DICOM Metadata.
+    template_file :
+        Template JSON file for the prediction model/algorithm used. Generated from : http://qiicr.org/dcmqi/#/home
+    output_dicom_seg :
+        Output DICOM SEG file to save.
+    """
+    segmentation = SimpleITK.ReadImage(nifti_pred_file)
+    reader = SimpleITK.ImageSeriesReader()
+
+    studies = subfolders(Path(patient_dicom_folder), join=False)
+
+    series = subfolders(Path(patient_dicom_folder).joinpath(studies[0]), join=False)
+
+    dcm_files = None
+    for serie in series:
+        first_file = next(Path(patient_dicom_folder).joinpath(studies[0], serie).glob("*.dcm"))
+        ds = pydicom.dcmread(str(first_file))
+        if ds.Modality != "SEG" and dcm_files is None:
+            dcm_files = reader.GetGDCMSeriesFileNames(str(Path(patient_dicom_folder).joinpath(studies[0], serie)))
+
+    template = pydicom_seg.template.from_dcmqi_metainfo(template_file)
+    writer = pydicom_seg.MultiClassWriter(
+        template=template,
+        inplane_cropping=False,
+        skip_empty_slices=False,
+        skip_missing_segment=False,
+    )
+
+    source_images = [pydicom.dcmread(x, stop_before_pixels=True) for x in dcm_files]
+    dcm = writer.write(segmentation, source_images)
+
+    dcm.save_as(output_dicom_seg)
