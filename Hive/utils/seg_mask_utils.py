@@ -9,14 +9,13 @@ def semantic_segmentation_to_instance(mask_filename: str, output_path: str) -> i
 
         Parameters
         ----------
-        mask_filename: str
+        mask_filename:
             File path of semantic segmentation mask.
-        output_path: str
+        output_path:
             Output path including new instance segmentation mask file name.
 
         Returns
         -------
-        int:
             Number of labels in converted instance segmentation mask.
         """
 

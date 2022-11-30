@@ -28,20 +28,19 @@ def subfiles(
 
     Parameters
     ----------
-    folder : Union[str, PathLike]
+    folder :
         Folder path.
-    join : bool
+    join :
         Flag to return the complete file paths or only the relative file names.
-    prefix : str
+    prefix :
         Filter the files with the specified prefix.
-    suffix : str
+    suffix :
         Filter the files with the specified suffix.
-    sort : bool
+    sort :
         Flag to sort the files in the list by alphabetical order.
 
     Returns
     -------
-    List[str] :
         Filename list.
     """
     if join:
@@ -64,16 +63,15 @@ def subfolders(folder: Union[str, PathLike], join: bool = True, sort: bool = Tru
 
     Parameters
     ----------
-    folder : Union[str, PathLike]
+    folder :
         Folder path.
-    join : bool
+    join :
         Flag to return the complete folder paths or only the relative folder names.
-    sort : bool
+    sort :
         Flag to sort the sub folders in the list by alphabetical order.
 
     Returns
     -------
-    List[str] :
         Sub folder list.
     """
     if join:
@@ -119,11 +117,11 @@ def create_nndet_data_folder_tree(data_folder: Union[str, PathLike], task_name: 
 
     Parameters
     ----------
-    data_folder : Union[str, PathLike]
+    data_folder :
         folder path corresponding to the *raw_data_base* environment variable.
-    task_name : str
+    task_name :
         string used as task_name when creating task folder
-    task_id : str
+    task_id :
         string used as task_id when creating task folder
     """
     logger.log(DEBUG, ' Creating Dataset tree at "{}"'.format(data_folder))
@@ -156,16 +154,15 @@ def split_dataset(input_data_folder: Union[str, PathLike], test_split_ratio: int
 
     Parameters
     ----------
-    input_data_folder : Union[str, PathLike]
+    input_data_folder :
         folder path of the input dataset.
-    test_split_ratio : int
+    test_split_ratio :
         integer value in the range 0-100, specifying the split ratio to be used for the test set.
-    seed : int
+    seed :
         integer value to be used as random seed.
 
     Returns
     -------
-    Tuple[List[str], List[str]] :
         lists of strings containing subject IDs for train set and test set respectively.
     """
     subjects = subfolders(input_data_folder, join=False)
@@ -187,9 +184,9 @@ def copy_image_file(input_filepath: Union[str, PathLike], output_filepath: Union
 
     Parameters
     ----------
-    input_filepath : Union[str, PathLike]
+    input_filepath :
         file path for the file to copy
-    output_filepath : Union[str, PathLike]
+    output_filepath :
         file path where to copy the file
     """
     shutil.copy(
@@ -205,11 +202,11 @@ def copy_label_file(input_image: Union[str, PathLike], input_label: Union[str, P
 
     Parameters
     ----------
-    input_image : Union[str, PathLike]
+    input_image :
         file path for the input image, to be used as reference when copying image information
-    input_label : Union[str, PathLike]
+    input_label :
         file path for the input label to be copied
-    output_filepath : Union[str, PathLike]
+    output_filepath :
         file location where to save the label image
     """
     label_nib = nib.load(input_label)
@@ -233,20 +230,20 @@ def copy_data_to_dataset_folder(
     Parameters
     ----------
 
-    input_data_folder : Union[str, PathLike]
+    input_data_folder :
         folder path of the input dataset
-    subjects : List[str]
+    subjects :
         string list containing subject IDs.
-    image_folder : Union[str, PathLike]
+    image_folder :
         folder path where to store images (imagesTr/imagesTs).
-    config_dict : Dict[str, object]
+    config_dict :
         dictionary with dataset and experiment configuration parameters.
-    label_folder : Union[str, PathLike]
+    label_folder :
         folder path where to store labels (labelsTr/labelsTs). Default: ``None``.
         If **label_suffix** is ``None``, the label files are not saved.
-    num_threads : int
+    num_threads :
         number of threads to use in multiprocessing ( Default: ``os.environ['N_THREADS']`` )
-    save_label_instance_config : bool
+    save_label_instance_config :
         Flag to save label mask together with an instance dictionary as JSON file. NOTE: All the instances are assigned
          to instance class ``1``.
     """
@@ -359,9 +356,9 @@ def save_config_json(config_dict: Dict[str, object], output_json: Union[str, Pat
 
     Parameters
     ----------
-    output_json : Union[str, PathLike]
+    output_json :
         JSON file path to be saved
-    config_dict: Dict[str, object]
+    config_dict:
         dictionary to be saved in JSON format in the RESULTS_FOLDER
     """
 
@@ -384,26 +381,26 @@ def generate_dataset_json(
 
     Parameters
     ----------
-    output_file : Union[str, PathLike]
+    output_file :
         This needs to be the full path to the dataset.json you intend to write, so
     output_file='DATASET_PATH/dataset.json' where the folder DATASET_PATH points to is the one with the
     imagesTr and labelsTr subfolders.
-    train_subjects : List[str]
+    train_subjects :
         List of subjects in the train set.
-    test_subjects : List[str]
+    test_subjects :
         List of subjects in the test set.
-    modalities : tuple
+    modalities :
         tuple of strings with modality names. must be in the same order as the images (first entry
     corresponds to _0000.nii.gz, etc). Example: ('T1', 'T2', 'FLAIR').
-    labels : Union[Dict, List]
+    labels :
         dict with int->str (key->value) mapping the label IDs to label names. Note that 0 is always
     supposed to be background! Example: {0: 'background', 1: 'edema', 2: 'enhancing tumor'}. In case of a multi label task,
         the dictionaries for each label task are nested into a list.
-    dataset_name : str
+    dataset_name :
         The name of the dataset.
-    task_name : str
+    task_name :
         The name of the dataset.
-    n_tasks : int
+    n_tasks :
         Number of tasks. Default: 1.
     """
     task_type = []
@@ -450,7 +447,7 @@ def remove_empty_folder_recursive(folder_path: Union[str, PathLike]):
 
     Parameters
     ----------
-    folder_path : Union[str, PathLike]
+    folder_path :
         Root folder path.
     """
     for subfolder_path in Path(folder_path).glob("*"):
@@ -479,13 +476,13 @@ def order_data_in_single_folder(
 
     Parameters
     ----------
-    file_extension  : str
+    file_extension  :
         File extension for the files in the selected folder.
-    assign_parent_dir_name  : bool
+    assign_parent_dir_name  :
         Flag to set if to assign the parent directory name as suffix.
-    root_path   :  Union[str, PathLike]
+    root_path   :
         Root folder.
-    output_path : Union[str, PathLike]
+    output_path :
         Output folder.
     """
     logger.log(DEBUG, "Creating folder at '{}'".format(output_path))
@@ -528,9 +525,9 @@ def order_data_folder_by_patient(folder_path: Union[str, PathLike], file_pattern
 
     Parameters
     ----------
-    folder_path : Union[str, PathLike]
+    folder_path :
         Root folder path.
-    file_pattern    : str
+    file_pattern    :
         File pattern to group the files and create the corresponding subdirectories.
     """
     patient_id_list = []
@@ -566,11 +563,11 @@ def copy_subject_folder_to_data_folder(
 
     Parameters
     ----------
-    input_data_folder : Union[str, PathLike]
+    input_data_folder :
         Input data folder.
-    subjects    : List[str]
+    subjects    :
         Subjects to copy.
-    data_folder : Union[str, PathLike]
+    data_folder :
         Destination data folder.
     """
     Path(data_folder).mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,3 @@
-import math
 import shutil
 import tempfile
 import time
@@ -8,6 +7,7 @@ from typing import Union
 
 import SimpleITK as sitk
 import dicom2nifti
+import math
 import nibabel as nib
 import numpy as np
 import pydicom
@@ -25,9 +25,9 @@ def dcm2nii_CT(CT_dcm_path: Union[str, PathLike], nii_out_path: Union[str, PathL
 
     Parameters
     ----------
-    CT_dcm_path : Union[str, PathLike]
+    CT_dcm_path :
         CT DICOM folder path.
-    nii_out_path : Union[str, PathLike]
+    nii_out_path :
         Output NIFTI file path.
     """
 
@@ -44,11 +44,11 @@ def dcm2nii_mask(mask_dcm_path: Union[str, PathLike], nii_out_path: Union[str, P
 
     Parameters
     ----------
-    mask_dcm_path : Union[str, PathLike]
+    mask_dcm_path :
         SEG DICOM folder.
-    nii_out_path : Union[str, PathLike]
+    nii_out_path :
         NIFTI file saved as output.
-    ref_nii_path : Union[str, PathLike]
+    ref_nii_path :
         Reference NIFTI used to correctly saved the segmentation volume.
     """
     mask_dcm = list(mask_dcm_path.glob("*.dcm"))[0]
@@ -75,9 +75,9 @@ def convert_DICOM_folder_to_NIFTI_image(patient_dicom_folder: Union[str, PathLik
 
     Parameters
     ----------
-    patient_dicom_folder : Union[str, PathLike]
+    patient_dicom_folder :
         DICOM folder containing a single patient Studies.
-    patient_nifti_folder : str
+    patient_nifti_folder :
         Output NIFTI folder used as stem to save the DICOM Studies. The Study index is appended to this path to create
         the corresponding NIFTI study folder path.
     """
@@ -158,9 +158,9 @@ def normalize_PET_to_SUV_BW(dicom_pet_series_folder: Union[str, PathLike], suv_p
 
     Parameters
     ----------
-    dicom_pet_series_folder : Union[str, PathLike]
+    dicom_pet_series_folder :
         DICOM PET Folder to be normalized.
-    suv_pet_filename: Union[str, PathLike]
+    suv_pet_filename:
         Normalized SUV PET file location.
     """
     reader = sitk.ImageSeriesReader()
