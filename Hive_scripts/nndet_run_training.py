@@ -91,10 +91,19 @@ def main():
         if "receiver_email" in data:
             os.environ["receiver_email"] = data["receiver_email"]
 
-        subprocess.run(arguments)
-        # subprocess.run(["nndet_sweep", data["Task_ID"], "RetinaUNetV001_D3V001_3d", str(args['run_fold'])])
-        # subprocess.run(["nndet_eval", data["Task_ID"], "RetinaUNetV001_D3V001_3d", str(args['run_fold']),"--boxes","--seg","--instances","--analyze_boxes"])
-        # subprocess.run(["nndet_consolidate", data["Task_ID"], "RetinaUNetV001_D3V001_3d","--sweep_boxes"])
+        if int(args["run_fold"]) >= 0:
+            subprocess.run(arguments)
+            subprocess.run(["nndet_sweep", data["Task_ID"], "RetinaUNetV001_D3V001_3d", str(args["run_fold"])])
+
+        # subprocess.run(
+        #    ["nndet_eval", data["Task_ID"], "RetinaUNetV001_D3V001_3d", str(args['run_fold']), "--boxes", "--seg",
+        #     "--analyze_boxes"])
+        else:
+            subprocess.run(["nndet_consolidate", data["Task_ID"], "RetinaUNetV001_D3V001_3d", "--sweep_boxes"])
+            subprocess.run(
+                ["nndet_seg2nii", data["Task_ID"], "RetinaUNetV001_D3V001_3d", "--fold", str(args["run_fold"])])
+            subprocess.run(
+                ["nndet_boxes2nii", data["Task_ID"], "RetinaUNetV001_D3V001_3d", "--fold", str(args["run_fold"])])
 
 
 if __name__ == "__main__":
