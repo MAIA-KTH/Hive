@@ -8,4 +8,5 @@ numpy==1.22.3
 pydicom==2.3.0
 pynvml==11.4.1
 SimpleITK==2.2.0
+pydicom-seg
 

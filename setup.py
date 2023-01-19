@@ -28,9 +28,9 @@ setup(
     url="https://github.com/MAIA-KTH/Hive.git",
     license="GPLv3",
     project_urls={
-        'Documentation': 'https://hive-maia.readthedocs.io',
-        'Source': 'https://github.com/MAIA-KTH/Hive',
-        'Tracker': 'https://github.com/MAIA-KTH/Hive/issues',
+        "Documentation": "https://hive-maia.readthedocs.io",
+        "Source": "https://github.com/MAIA-KTH/Hive",
+        "Tracker": "https://github.com/MAIA-KTH/Hive/issues",
     },
     author="Simone Bendazzoli",
     author_email="simben@kth.se",
@@ -55,9 +55,10 @@ setup(
             "nndet_run_training = Hive_scripts.nndet_run_training:main",
             "Hive_convert_semantic_to_instance_segmentation = Hive_scripts.Hive_convert_semantic_to_instance_segmentation:main",
             "Hive_extract_experiment_predictions = Hive_scripts.Hive_extract_experiment_predictions:main",
-            "Hive_order_data_folder = Hive_scripts.Hive_order_data_folder:main"
+            "Hive_order_data_folder = Hive_scripts.Hive_order_data_folder:main",
         ],
     },
-    keywords=["deep learning", "image segmentation", "medical image analysis", "medical image segmentation"],
+    keywords=["deep learning", "image segmentation", "medical image analysis", "medical image segmentation",
+              "object detection"],
     # scripts=glob.glob("scripts/*"),
 )
