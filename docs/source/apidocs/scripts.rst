@@ -21,5 +21,6 @@ Hive Scripts for nnDetection
    nndet_prepare_data_folder
    nndet_run_preprocessing
    nndet_run_training
+   Hive_extract_experiment_predictions
 
 
