@@ -14,3 +14,4 @@ nibabel
 numpy
 pydicom
 SimpleITK
+pydicom-seg
