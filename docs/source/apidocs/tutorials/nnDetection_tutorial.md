@@ -53,3 +53,16 @@ To run the full pipeline with the **Hive** script:
 ```
 Hive_run_pipeline_from_file --file /YOUR/PIPELINE_FILE.txt
 ```
+
+## 4. Extract Predictions
+After completing the 5-fold Cross Validation, the NIFTI predictions (Segmentation and Bounding Boxes), can be extracted and saved with the command:
+```bash
+Hive_extract_experiment_predictions --config-file /CONFIG_FILE.json --output-experiment-folder /PATH/TO/OUTPUT/FOLDER
+```
+
+## 5. Compute COCO, FROC and Dice Evaluation Metrics
+The object detection and segmentation evaluation metrics can be computed and with the following command:
+```bash
+nndet_compute_metric_results --config-file /PATH/TO/CONFIG_FILE.json --output-dir /OUTPUT/PATH
+```
+After the successful execution, the evaluation metrics will be written in an Excel Spreadsheet, together with the FROC PNG plots.

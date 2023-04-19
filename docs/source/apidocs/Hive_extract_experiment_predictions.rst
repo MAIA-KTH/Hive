@@ -1,4 +1,4 @@
-Hive\_extract\_experiment\_predictions scripts
+Hive\_extract\_experiment\_predictions script
 ===========================================================
 
 .. automodule:: Hive_extract_experiment_predictions

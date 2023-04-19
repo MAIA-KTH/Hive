@@ -3,6 +3,9 @@ import os
 import setuptools
 from setuptools import setup
 
+with open(os.path.join('VERSION')) as version_file:
+    version = version_file.read().strip()
+
 
 def resolve_requirements(file):
     requirements = []
@@ -24,7 +27,7 @@ def read_file(file):
 
 setup(
     name="hive-maia",
-    version="1.0",
+    version=version,
     url="https://github.com/MAIA-KTH/Hive.git",
     license="GPLv3",
     project_urls={
@@ -42,6 +45,7 @@ setup(
     package_data={
         "": ["configs/*.yml", "configs/*.json"],
     },
+    data_files=[('', ['VERSION', "requirements.txt"]), ],
     # package_dir={"": "src"},
     install_requires=resolve_requirements(os.path.join(os.path.dirname(__file__), "requirements.txt")),
     entry_points={
@@ -55,6 +59,7 @@ setup(
             "nndet_run_training = Hive_scripts.nndet_run_training:main",
             "Hive_convert_semantic_to_instance_segmentation = Hive_scripts.Hive_convert_semantic_to_instance_segmentation:main",
             "Hive_extract_experiment_predictions = Hive_scripts.Hive_extract_experiment_predictions:main",
+            "nndet_compute_metric_results = Hive_scripts.nndet_compute_metric_results:main",
             "Hive_order_data_folder = Hive_scripts.Hive_order_data_folder:main",
         ],
     },

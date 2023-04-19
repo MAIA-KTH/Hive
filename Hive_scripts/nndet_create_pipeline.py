@@ -95,6 +95,8 @@ def run_data_and_folder_preparation_step(arguments):
         config_dict["DatasetName"] + "_" + config_dict["Experiment Name"],
         "--config-file",
         arguments["config_file"],
+        "--test-split",
+        arguments["test_split"]
     ]
 
     return args
@@ -162,7 +164,10 @@ def main():
 
     [pipeline_steps.append(step) for step in run_training_step(output_json_config_file, range(config_dict["n_folds"]))]
 
-    Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]).mkdir(exist_ok=True, parents=True)
+    pipeline_steps.append(run_training_step(output_json_config_file, "-1"))
+
+    Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]).mkdir(exist_ok=True,
+                                                                                              parents=True)
     pipeline_steps_summary = open(
         Path(os.environ["root_experiment_folder"]).joinpath(
             config_dict["Experiment Name"], "Task_" + arguments["task_ID"] + "_" + TIMESTAMP + ".txt"

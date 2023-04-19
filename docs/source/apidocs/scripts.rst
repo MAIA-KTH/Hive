@@ -22,5 +22,6 @@ Hive Scripts for nnDetection
    nndet_run_preprocessing
    nndet_run_training
    Hive_extract_experiment_predictions
+   nndet_compute_metric_results
 
 
