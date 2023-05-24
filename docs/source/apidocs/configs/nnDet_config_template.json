@@ -5,7 +5,7 @@
   "properties": {
     "Experiment Name": {
       "type": "string",
-      "description": "String describing the experiment, usually related to the selected DL framework/architecture. Example: \"nnDet_3D_fullres\""
+      "description": "String describing the experiment, usually related to the selected DL framework/architecture. Example: \"Retina UNet\""
     },
     "Seed": {
       "type": "integer",
@@ -40,7 +40,6 @@
     "Modalities",
     "label_dict",
     "n_folds",
-    "DatasetName",
     "FileExtension"
   ]
 }

@@ -6,7 +6,7 @@ nnDetection config
 .. code-block:: json
 
     {
-        "Experiment Name": "nnDet_3D_fullres",
+        "Experiment Name": "Retina UNet",
         "Seed": 12345,
         "label_suffix": "_mask.nii.gz",
         "Modalities": {
@@ -16,6 +16,5 @@ nnDetection config
             "0": "ABD_Lymph_Node"
         },
         "n_folds": 5,
-        "DatasetName": "LymphNodeSeg_ABD",
         "FileExtension": ".nii.gz"
     }
