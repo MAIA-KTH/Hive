@@ -4,14 +4,13 @@ import csv
 import datetime
 import importlib.resources
 import json
+import numpy as np
 import os
 import re
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
-from textwrap import dedent
-
-import numpy as np
 from sklearn.model_selection import KFold
+from textwrap import dedent
 
 import Hive.configs
 from Hive.utils.file_utils import (
@@ -62,18 +61,6 @@ def main():
         with importlib.resources.path(Hive.configs, arguments["config_file"]) as json_path:
             with open(json_path) as json_file:
                 config_dict = json.load(json_file)
-
-    if "receiver_email" not in os.environ:
-        try:
-            user_email = input("Please Enter a valid e-mail to receive experiments updates:\n")
-            regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
-            if re.fullmatch(regex, user_email):
-                logger.log(INFO, "Using {} for e-mail updates.".format(user_email))
-                config_dict["receiver_email"] = user_email
-            else:
-                logger.log(INFO, "{} not valid, disabling e-mail updates.".format(user_email))
-        except KeyboardInterrupt:
-            logger.log(INFO, "Disabling e-mail updates.")
 
     os.environ["raw_data_base"] = str(Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]))
 
@@ -160,9 +147,8 @@ def main():
         test_dataset,
         list(config_dict["Modalities"].values()),
         config_dict["label_dict"],
-        config_dict["DatasetName"],
-        n_tasks=n_tasks,
         task_name="Task{}_{}".format(arguments["task_ID"], arguments["task_name"]),
+        file_extension=config_dict["FileExtension"],
     )
 
     config_dict["Task_ID"] = arguments["task_ID"]
@@ -170,7 +156,7 @@ def main():
     config_dict["train_test_split"] = arguments["test_split"]
     config_dict["base_folder"] = os.environ["raw_data_base"]
 
-    output_json_basename = config_dict["Task_Name"] + "_" + config_dict["Task_ID"] + ".json"
+    output_json_basename = "Task" + arguments["task_ID"] + "_" + config_dict["Experiment Name"] + ".json"
 
     try:
         config_dict["results_folder"] = os.environ["RESULTS_FOLDER"]

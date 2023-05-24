@@ -82,6 +82,7 @@ def main():
         if args["resume_training"]:
             arguments.append("train.mode=resume")
 
+        arguments.extend(unknown_arguments)
         os.environ["det_data"] = data["base_folder"]
         os.environ["OMP_NUM_THREADS"] = "1"
         os.environ["det_num_threads"] = os.environ["N_THREADS"]

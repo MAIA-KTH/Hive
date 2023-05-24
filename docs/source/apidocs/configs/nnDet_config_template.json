@@ -28,10 +28,6 @@
       "type": "integer",
       "description": "Number of folds to run cross-validation. Example: 5."
     },
-    "DatasetName": {
-      "type": "string",
-      "description": "String describing the dataset. Example: \"LymphNodeSeg_ABD\"",
-    },
     "FileExtension": {
       "type": "string",
       "description": "String for the file extension of the dataset. \"Example: .nii.gz\""
