@@ -6,7 +6,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from textwrap import dedent
 
-from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, DEBUG
+from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, INFO
 
 TIMESTAMP = "{:%Y-%m-%d_%H-%M-%S}".format(datetime.datetime.now())
 
@@ -36,6 +36,14 @@ def get_arg_parser():
         help="TXT file including list of commands to run.",
     )
 
+    pars.add_argument(
+        "--steps",
+        type=str,
+        nargs="+",
+        required=False,
+        help="Optional pipeline steps to run. When omitted, run all the steps.",
+    )
+
     add_verbosity_options_to_argparser(pars)
 
     return pars
@@ -54,9 +62,15 @@ def main():
     with open(arguments["file"]) as f:
         commands = f.readlines()
 
-    for command in commands:
-        logger.log(DEBUG, "Running: {}".format(command))
-        subprocess.call(command[:-1].split(" "))
+    steps = range(len(commands))
+    if arguments["steps"] is not None:
+        steps = arguments["steps"]
+        steps = [int(step) for step in steps]
+
+    for it, command in enumerate(commands):
+        if it in steps:
+            logger.log(INFO, "Running Step {}: {}".format(it, command))
+            subprocess.call(command[:-1].split(" "))
 
 
 if __name__ == "__main__":
