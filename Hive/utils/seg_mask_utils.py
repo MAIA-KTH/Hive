@@ -1,23 +1,23 @@
 import nibabel as nib
-from scipy.ndimage import label
+from scipy.ndimage import label, generate_binary_structure
 
 
 def semantic_segmentation_to_instance(mask_filename: str, output_path: str) -> int:
     """
-        Given a semantic segmentation mask convert to instance segmentation and save in the given output path.
-        Return the number of labels in instance segmentation mask.
+    Given a semantic segmentation mask convert to instance segmentation and save in the given output path.
+    Return the number of labels in instance segmentation mask.
 
-        Parameters
-        ----------
-        mask_filename:
-            File path of semantic segmentation mask.
-        output_path:
-            Output path including new instance segmentation mask file name.
+    Parameters
+    ----------
+    mask_filename:
+        File path of semantic segmentation mask.
+    output_path:
+        Output path including new instance segmentation mask file name.
 
-        Returns
-        -------
-            Number of labels in converted instance segmentation mask.
-        """
+    Returns
+    -------
+        Number of labels in converted instance segmentation mask.
+    """
 
     # load segmentation mask and properties
     mask = nib.load(mask_filename)
@@ -25,7 +25,7 @@ def semantic_segmentation_to_instance(mask_filename: str, output_path: str) -> i
     np_mask = mask.get_fdata()
 
     # label connected regions in segmentation mask
-    labeled_array, num_features = label(np_mask)
+    labeled_array, num_features = label(np_mask, structure=generate_binary_structure(3, 3))
 
     thresh = 10
     # voxel count in each region from https://neurostars.org/t/roi-voxel-count-using-python/6451
@@ -35,8 +35,8 @@ def semantic_segmentation_to_instance(mask_filename: str, output_path: str) -> i
         if vox_count < thresh:
             labeled_array[labeled_array == i] = 0
 
-    labeled_array[labeled_array>0] = 1
-    labeled_array, num_features = label(labeled_array)
+    labeled_array[labeled_array > 0] = 1
+    labeled_array, num_features = label(labeled_array, structure=generate_binary_structure(3, 3))
 
     # convert labeled array into Nifti file
     labeled_mask = nib.Nifti1Image(labeled_array, affine=affine)
