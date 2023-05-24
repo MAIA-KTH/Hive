@@ -1,19 +1,18 @@
+import SimpleITK
 import json
+import nibabel as nib
+import numpy as np
 import os
+import pydicom
+import pydicom_seg
 import random
 import shutil
 from distutils.dir_util import copy_tree
 from multiprocessing import Pool
 from os import PathLike
 from pathlib import Path
-from typing import Union, List, Tuple, Dict
-
-import SimpleITK
-import nibabel as nib
-import numpy as np
-import pydicom
-import pydicom_seg
 from tqdm import tqdm
+from typing import Union, List, Tuple, Dict
 
 from Hive.utils.log_utils import get_logger, DEBUG, WARN, INFO
 
@@ -82,6 +81,66 @@ def subfolders(folder: Union[str, PathLike], join: bool = True, sort: bool = Tru
     if sort:
         res.sort()
     return res
+
+
+def create_nnunet_data_folder_tree(data_folder: str, task_name: str, task_id: str):
+    """
+    Create nnUnet folder tree, ready to be populated with the dataset.
+
+    nnUnet folder tree:
+
+        ${raw_data_base}
+
+        [Task000_Example]
+            - dataset.yaml # dataset.json works too
+            [imagesTr]
+                - case0000_0000.nii.gz # case0000 modality 0
+                - case0000_0001.nii.gz # case0000 modality 1
+                - case0001_0000.nii.gz # case0001 modality 0
+                - case0000_0001.nii.gz # case0001 modality 1
+            [labelsTr]
+                - case0000.nii.gz # instance segmentation case0000
+                - case0000.json # properties of case0000
+                - case0001.nii.gz # instance segmentation case0001
+                - case0001.json # properties of case0001
+            [imagesTs] # optional, same structure as imagesTr
+            ...
+            [labelsTs] # optional, same structure as labelsTr
+
+        [Task001_Example1]
+            ...
+
+
+    Parameters
+    ----------
+    data_folder :
+        folder path corresponding to the *raw_data_base* environment variable.
+    task_name :
+        string used as task_name when creating task folder
+    task_id :
+        string used as task_id when creating task folder
+    """  # noqa E501
+    logger.log(DEBUG, ' Creating Dataset tree at "{}"'.format(data_folder))
+
+    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "imagesTr", ).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "labelsTr", ).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "imagesTs", ).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "labelsTs", ).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
 
 def create_nndet_data_folder_tree(data_folder: Union[str, PathLike], task_name: str, task_id: str):
@@ -372,15 +431,19 @@ def generate_dataset_json(
         test_subjects: List[str],
         modalities: Tuple,
         labels: Union[Dict, List],
-        dataset_name: str,
         task_name: str,
-        n_tasks: int = 1,
+        file_extension: str,
+        nnunet_format: bool = False,
 ):
     """
     Generates and saves a Dataset JSON file.
 
     Parameters
     ----------
+    nnunet_format   :
+        Flag to specify which modality key to use.
+    file_extension  :
+        Dataset file extension
     output_file :
         This needs to be the full path to the dataset.json you intend to write, so
     output_file='DATASET_PATH/dataset.json' where the folder DATASET_PATH points to is the one with the
@@ -396,41 +459,25 @@ def generate_dataset_json(
         dict with int->str (key->value) mapping the label IDs to label names. Note that 0 is always
     supposed to be background! Example: {0: 'background', 1: 'edema', 2: 'enhancing tumor'}. In case of a multi label task,
         the dictionaries for each label task are nested into a list.
-    dataset_name :
-        The name of the dataset.
     task_name :
         The name of the dataset.
-    n_tasks :
-        Number of tasks. Default: 1.
     """
-    task_type = []
-    if type(labels) == dict:
-        if len(labels) > 0:
-            task_type.append("CLASSIFICATION")
-        else:
-            task_type.append("REGRESSION")
-    elif type(labels) == list:
-        for label in labels:
-            if len(label) > 0:
-                task_type.append("CLASSIFICATION")
-            else:
-                task_type.append("REGRESSION")
-
+    modality_key = "modalities"
+    if nnunet_format:
+        modality_key = "channel_names"
     json_dict = {
-        "name": dataset_name,
         "task": task_name,
         "dim": 3,
         "test_labels": True,
-        "task_type": task_type,
         "tensorImageSize": "4D",
-        "modalities": {str(i): modalities[i] for i in range(len(modalities))},
+        modality_key: {str(i): modalities[i] for i in range(len(modalities))},
         "labels": labels,  # {str(i): labels[i] for i in labels.keys()},
         "numTraining": len(train_subjects),
         "numTest": len(test_subjects),
-        "n_tasks": n_tasks,
         "training": [{"image": "./imagesTr/%s.nii.gz" % i, "label": "./labelsTr/%s.nii.gz" % i} for i in
                      train_subjects],
         "test": ["./imagesTs/%s.nii.gz" % i for i in test_subjects],
+        "file_ending": file_extension,
     }
 
     if not str(output_file).endswith("dataset.json"):
@@ -582,6 +629,7 @@ def convert_nifti_pred_to_dicom_seg(
         patient_dicom_folder: Union[str, PathLike],
         template_file: Union[str, PathLike],
         output_dicom_seg: Union[str, PathLike],
+        study_id,
 ):
     """
     Convert a NIFTI prediction file (segmentation mask), into a single DICOM SEG file. ``patient_dicom_folder`` and
@@ -589,6 +637,8 @@ def convert_nifti_pred_to_dicom_seg(
 
     Parameters
     ----------
+    study_id    :
+        Study ID used to match the appropriate DICOM folder.
     nifti_pred_file :
         NIFTI prediction file (segmentation mask) to convert.
     patient_dicom_folder :
@@ -603,14 +653,14 @@ def convert_nifti_pred_to_dicom_seg(
 
     studies = subfolders(Path(patient_dicom_folder), join=False)
 
-    series = subfolders(Path(patient_dicom_folder).joinpath(studies[0]), join=False)
-
     dcm_files = None
-    for serie in series:
-        first_file = next(Path(patient_dicom_folder).joinpath(studies[0], serie).glob("*.dcm"))
-        ds = pydicom.dcmread(str(first_file))
-        if ds.Modality != "SEG" and dcm_files is None:
-            dcm_files = reader.GetGDCMSeriesFileNames(str(Path(patient_dicom_folder).joinpath(studies[0], serie)))
+    for study in studies:
+        series = subfolders(Path(patient_dicom_folder).joinpath(studies[0]), join=False)
+        for serie in series:
+            first_file = next(Path(patient_dicom_folder).joinpath(studies[0], serie).glob("*.dcm"))
+            ds = pydicom.dcmread(str(first_file))
+            if ds.Modality != "SEG" and ds.StudyInstanceUID == study_id and dcm_files is None:
+                dcm_files = reader.GetGDCMSeriesFileNames(str(Path(patient_dicom_folder).joinpath(study, serie)))
 
     template = pydicom_seg.template.from_dcmqi_metainfo(template_file)
     writer = pydicom_seg.MultiClassWriter(
