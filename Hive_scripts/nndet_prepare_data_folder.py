@@ -6,7 +6,6 @@ import importlib.resources
 import json
 import numpy as np
 import os
-import re
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from sklearn.model_selection import KFold
@@ -20,7 +19,7 @@ from Hive.utils.file_utils import (
     save_config_json,
     generate_dataset_json,
 )
-from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args, INFO
+from Hive.utils.log_utils import get_logger, add_verbosity_options_to_argparser, log_lvl_from_verbosity_args
 
 TIMESTAMP = "{:%Y-%m-%d_%H-%M-%S}".format(datetime.datetime.now())
 
@@ -62,15 +61,15 @@ def main():
             with open(json_path) as json_file:
                 config_dict = json.load(json_file)
 
-    os.environ["raw_data_base"] = str(Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]))
+    os.environ["raw_data_base"] = str(Path(os.environ["ROOT_FOLDER"]).joinpath(config_dict["Experiment Name"]))
 
     os.environ["preprocessed_folder"] = str(
-        Path(os.environ["root_experiment_folder"]).joinpath(
+        Path(os.environ["ROOT_FOLDER"]).joinpath(
             config_dict["Experiment Name"], "Task" + arguments["task_ID"] + "_" + arguments["task_name"], "preprocessed"
         )
     )
     os.environ["RESULTS_FOLDER"] = str(
-        Path(os.environ["root_experiment_folder"]).joinpath(
+        Path(os.environ["ROOT_FOLDER"]).joinpath(
             config_dict["Experiment Name"], "Task" + arguments["task_ID"] + "_" + arguments["task_name"], "results"
         )
     )
@@ -106,7 +105,7 @@ def main():
             dataset_split_dict = {"Subject": train_dataset_sorted[test], "Split": "Validation_fold_{}".format(i)}
             dataset_split.append(dataset_split_dict)
 
-    dataset_split_summary = Path(os.environ["root_experiment_folder"]).joinpath(
+    dataset_split_summary = Path(os.environ["ROOT_FOLDER"]).joinpath(
         config_dict["Experiment Name"], "dataset_split.csv"
     )
 
@@ -134,8 +133,6 @@ def main():
         Path(dataset_path).joinpath("labelsTs"),
         save_label_instance_config=True,
     )
-
-    n_tasks = 1
 
     generate_dataset_json(
         str(

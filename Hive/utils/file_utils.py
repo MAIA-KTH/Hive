@@ -91,7 +91,7 @@ def create_nnunet_data_folder_tree(data_folder: str, task_name: str, task_id: st
 
         ${raw_data_base}
 
-        [Task000_Example]
+        [Dataset000_Example]
             - dataset.yaml # dataset.json works too
             [imagesTr]
                 - case0000_0000.nii.gz # case0000 modality 0
@@ -107,7 +107,7 @@ def create_nnunet_data_folder_tree(data_folder: str, task_name: str, task_id: st
             ...
             [labelsTs] # optional, same structure as labelsTr
 
-        [Task001_Example1]
+        [Dataset001_Example1]
             ...
 
 
@@ -122,22 +122,22 @@ def create_nnunet_data_folder_tree(data_folder: str, task_name: str, task_id: st
     """  # noqa E501
     logger.log(DEBUG, ' Creating Dataset tree at "{}"'.format(data_folder))
 
-    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "imagesTr", ).mkdir(
+    Path(data_folder).joinpath("nnUNet_raw_data", "Dataset" + task_id + "_" + task_name, "imagesTr", ).mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "labelsTr", ).mkdir(
+    Path(data_folder).joinpath("nnUNet_raw_data", "Dataset" + task_id + "_" + task_name, "labelsTr", ).mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "imagesTs", ).mkdir(
+    Path(data_folder).joinpath("nnUNet_raw_data", "Dataset" + task_id + "_" + task_name, "imagesTs", ).mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    Path(data_folder).joinpath("nnUNet_raw_data", "Task" + task_id + "_" + task_name, "labelsTs", ).mkdir(
+    Path(data_folder).joinpath("nnUNet_raw_data", "Dataset" + task_id + "_" + task_name, "labelsTs", ).mkdir(
         parents=True,
         exist_ok=True,
     )

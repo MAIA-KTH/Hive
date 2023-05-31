@@ -167,7 +167,7 @@ def main():
 
     output_json_config_filename = "Task" + arguments["task_ID"] + "_" + config_dict["Experiment Name"] + ".json"
     os.environ["RESULTS_FOLDER"] = str(
-        Path(os.environ["root_experiment_folder"]).joinpath(
+        Path(os.environ["ROOT_FOLDER"]).joinpath(
             config_dict["Experiment Name"],
             "Task" + arguments["task_ID"] + "_" + config_dict["Experiment Name"],
             "results",
@@ -197,10 +197,10 @@ def main():
     )
     ]
 
-    Path(os.environ["root_experiment_folder"]).joinpath(config_dict["Experiment Name"]).mkdir(exist_ok=True,
-                                                                                              parents=True)
+    Path(os.environ["ROOT_FOLDER"]).joinpath(config_dict["Experiment Name"]).mkdir(exist_ok=True,
+                                                                                   parents=True)
 
-    output_file = Path(os.environ["root_experiment_folder"]).joinpath(
+    output_file = Path(os.environ["ROOT_FOLDER"]).joinpath(
         config_dict["Experiment Name"], "Task_" + arguments["task_ID"] + "_" + TIMESTAMP + ".txt"
     )
 

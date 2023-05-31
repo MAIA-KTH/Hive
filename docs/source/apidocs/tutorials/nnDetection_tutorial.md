@@ -24,15 +24,19 @@ The standard dataset folder structure is the following:
 
 ## 2. Create Pipeline File
 
-After organizing the Dataset folder according to the standard format, you are ready to generate a *Pipeline file*, that will be later used to run all the experiment steps (Data Preparation, Preprocessing and Training).
-In order to do so, you first need to prepare a JSON configuration file, specifying all the parameters and attributes for the experiment, as described in the section `Configs -> nnDetection config`. Some default config files are made available with the **Hive** package, in the **configs** section.
-In addition, *root_experiment_folder* should be set as an environment variable (this will be the base folder for all the experiments that will be created). Check it with:
+After organizing the Dataset folder according to the standard format, you are ready to generate a *Pipeline file*, that
+will be later used to run all the experiment steps (Data Preparation, Preprocessing and Training).
+In order to do so, you first need to prepare a JSON configuration file, specifying all the parameters and attributes for
+the experiment, as described in the section `Configs -> nnDetection config`. Some default config files are made
+available with the **Hive** package, in the **configs** section.
+In addition, *ROOT_FOLDER* should be set as an environment variable (this will be the base folder for all the
+experiments that will be created). Check it with:
 ```
-echo $root_experiment_folder
+echo $ROOT_FOLDER
 ```
 and, if not present, run:
 ```
-export root_experiment_folder=/YOUR/PATH/TO/Experiments
+export ROOT_FOLDER=/YOUR/PATH/TO/Experiments
 ```
 To generate the *Pipeline file*, run:
 ```
